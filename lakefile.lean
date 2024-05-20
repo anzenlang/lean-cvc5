@@ -3,13 +3,13 @@ open Lake DSL
 
 package cvc5 {
   precompileModules := true
-  moreGlobalServerArgs := #[s!"--load-dynlib={nameToSharedLib "c++"}.1"]
+  -- moreGlobalServerArgs := #[s!"--load-dynlib={nameToSharedLib "c++"}.1"]
   extraDepTargets := #[`libcvc5]
 }
 
 @[default_target]
 lean_lib cvc5 {
-  moreLeanArgs := #[s!"--load-dynlib={nameToSharedLib "c++"}.1"]
+  -- moreLeanArgs := #[s!"--load-dynlib={nameToSharedLib "c++"}.1"]
 }
 
 def Lake.unzip (name : String) (file : FilePath) (dir : FilePath) : LogIO Unit := do
@@ -46,7 +46,7 @@ target ffiO pkg : FilePath := do
   let oFile := pkg.buildDir / "ffi" / "ffi.o"
   let srcJob ← inputFile <| pkg.dir / "ffi" / "ffi.cpp"
   let flags := #["-stdlib=libc++", "-std=c++17", "-I", (← getLeanIncludeDir).toString, "-I", (pkg.lakeDir / "cvc5" / "include").toString, "-fPIC"]
-  buildO "ffi.cpp" oFile srcJob flags #[] "clang++-15"
+  buildO "ffi.cpp" oFile srcJob flags #[] "clang++"
 
 extern_lib libffi pkg := do
   let name := nameToStaticLib "ffi"
@@ -54,5 +54,7 @@ extern_lib libffi pkg := do
   let libcadical := pure (pkg.lakeDir / "cvc5" / "lib" / nameToStaticLib "cadical")
   let libcvc5 := pure (pkg.lakeDir / "cvc5" / "lib" / nameToStaticLib "cvc5")
   let libcvc5parser := pure (pkg.lakeDir / "cvc5" / "lib" / nameToStaticLib "cvc5parser")
+  let libgmp := pure (pkg.lakeDir / "cvc5" / "lib" / nameToStaticLib "gmp")
   let libFile := pkg.nativeLibDir / name
-  buildStaticLib' libFile #[ffiO, libcadical, libcvc5, libcvc5parser]
+  buildStaticLib' libFile
+    #[ffiO, libcadical, libcvc5, libcvc5parser, libgmp]
