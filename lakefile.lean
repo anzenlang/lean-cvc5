@@ -19,11 +19,11 @@ def Lake.unzip (name : String) (file : FilePath) (dir : FilePath) : LogIO Unit :
     args := #["-qd", dir.toString, file.toString]
   }
 
-target libcvc5 pkg : Unit := do
-  if !(← (pkg.lakeDir / "cvc5").pathExists) then
-    download "cvc5" "https://github.com/abdoo8080/cvc5/releases/download/v0.0.1/cvc5.zip" (pkg.lakeDir / "cvc5.zip")
-    unzip "cvc5" (pkg.lakeDir / "cvc5.zip") pkg.lakeDir
-    IO.FS.removeFile (pkg.lakeDir / "cvc5.zip")
+target libcvc5 _pkg : Unit := do
+  -- if !(← (pkg.lakeDir / "cvc5").pathExists) then
+  --   download "cvc5" "https://github.com/abdoo8080/cvc5/releases/download/v0.0.1/cvc5.zip" (pkg.lakeDir / "cvc5.zip")
+  --   unzip "cvc5" (pkg.lakeDir / "cvc5.zip") pkg.lakeDir
+  --   IO.FS.removeFile (pkg.lakeDir / "cvc5.zip")
   return pure ()
 
 def Lake.compileStaticLib' (name : String) (libFile : FilePath)
