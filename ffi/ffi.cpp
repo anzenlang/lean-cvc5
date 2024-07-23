@@ -642,3 +642,25 @@ extern "C" lean_obj_res solver_parse(lean_obj_arg inst,
   }
   return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
 }
+
+extern "C" lean_obj_res solver_declareFun(
+  lean_obj_arg inst,
+  lean_obj_arg symbol,
+  lean_obj_arg sorts,
+  lean_obj_arg sort,
+  lean_obj_arg fresh,
+  lean_obj_arg solver
+) {
+  lean_array_object* sort_array = lean_to_array(sorts);
+  std::vector<Sort> sort_vec;
+  for (int i = 0; i < sort_array->m_size; i++) {
+    sort_vec.push_back(*sort_unbox(sort_array->m_data[i]));
+  }
+  Term f = solver_unbox(solver)->declareFun(
+    lean_string_cstr(symbol),
+    sort_vec,
+    *sort_unbox(sort),
+    bool_unbox(lean_unbox(fresh))
+  );
+  return solver_val(lean_box(0), inst, lean_box(0), term_box(&f), solver);
+}

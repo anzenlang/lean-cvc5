@@ -353,6 +353,9 @@ opaque proofToString : Proof → SolverT m String
 @[extern "solver_parse"]
 opaque parse : String → SolverT m Unit
 
+@[extern "solver_declareFun"]
+opaque declareFun : String → Array Sort → Sort → Bool → SolverT m Term
+
 def run (tm : TermManager) (query : SolverT m α) : m (Except Error α) :=
   return match ← ExceptT.run query (new tm) with
   | (.ok x, _) => .ok x
