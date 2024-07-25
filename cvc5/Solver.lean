@@ -335,8 +335,13 @@ private opaque new : TermManager → Solver
 @[extern "solver_getVersion"]
 opaque getVersion : SolverT m String
 
+/-- Sets the value of a solver option. -/
 @[extern "solver_setOption"]
 opaque setOption (option value : String) : SolverT m Unit
+
+/-- Get the value associated to a solver option. -/
+@[extern "solver_getOption"]
+opaque getOption : (option : String) → SolverT m String
 
 @[extern "solver_assertFormula"]
 opaque assertFormula : Term → SolverT m Unit
@@ -402,6 +407,24 @@ def declareFreshSort (symbol : String) (arity : Nat) : SolverT m Sort :=
   declareSort symbol arity true
 
 end declarations
+
+
+
+section information_extraction
+
+/-- Get the list of asserted formulas. -/
+@[extern "solver_getAssertions"]
+opaque getAssertions : SolverT m (Array Term)
+
+/-- Get the information associated to a flag. -/
+@[extern "solver_getInfo"]
+opaque getInfo : (flag : String) → SolverT m String
+
+/-- Get the name of all the solver options. -/
+@[extern "solver_getOptionNames"]
+opaque getOptionNames : SolverT m (Array String)
+
+end information_extraction
 
 
 

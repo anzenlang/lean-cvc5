@@ -645,7 +645,7 @@ extern "C" lean_obj_res solver_parse(lean_obj_arg inst,
 
 
 
-// # Declarations
+// # Solver: declarations
 
 extern "C" lean_obj_res solver_declareFun(
   lean_obj_arg inst,
@@ -683,4 +683,58 @@ extern "C" lean_obj_res solver_declareSort(
     bool_unbox(lean_unbox(fresh))
   );
   return solver_val(lean_box(0), inst, lean_box(0), sort_box(new Sort(s)), solver);
+}
+
+
+
+// # Solver: information extraction
+
+extern "C" lean_obj_res solver_getAssertions(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+) {
+  std::vector<Term> assertions = solver_unbox(solver)->getAssertions();
+  lean_object* res = lean_mk_empty_array();
+  for (const Term& assertion : assertions)
+  {
+    res = lean_array_push(res, term_box(new Term(assertion)));
+  }
+  return res;
+}
+
+extern "C" lean_obj_res solver_getInfo(
+  lean_obj_arg inst,
+  lean_obj_arg flag,
+  lean_obj_arg solver
+) {
+
+  std::string info = solver_unbox(solver)->getInfo(
+    lean_string_cstr(flag)
+  );
+  return lean_mk_string(info.c_str());
+}
+
+extern "C" lean_obj_res solver_getOption(
+  lean_obj_arg inst,
+  lean_obj_arg option,
+  lean_obj_arg solver
+) {
+
+  std::string info = solver_unbox(solver)->getOption(
+    lean_string_cstr(option)
+  );
+  return lean_mk_string(info.c_str());
+}
+
+extern "C" lean_obj_res solver_getOptionNames(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+) {
+  std::vector<std::string> options = solver_unbox(solver)->getOptionNames();
+  lean_object* res = lean_mk_empty_array();
+  for (const std::string& name : options)
+  {
+    res = lean_array_push(res, lean_mk_string(name.c_str()));
+  }
+  return res;
 }
