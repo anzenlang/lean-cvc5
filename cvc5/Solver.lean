@@ -353,9 +353,28 @@ opaque proofToString : Proof → SolverT m String
 @[extern "solver_parse"]
 opaque parse : String → SolverT m Unit
 
+/-- Declares a function symbol `symbol` with signature `in_sorts → out_sort`.
+
+If `fresh`, then a new (fresh) `Term` is always produced; otherwise, the `Term` will always be
+(physically) the same.
+
+See also `declareFreshFun`.
+-/
 @[extern "solver_declareFun"]
 opaque declareFun :
   (symbol : String) → (in_sorts : Array Sort) → (out_sort : Sort) → (fresh : Bool) → SolverT m Term
+
+/-- Declares a new function symbol `symbol` with signature `in_sorts → out_sort`.
+
+Note that creating functions with the same name and signature will always yield a new, physically
+different, `Term`.
+
+See also `declareFun`.
+-/
+def declareFreshFun
+  (symbol : String) (in_sorts : Array Sort) (out_sort : Sort)
+: SolverT m Term :=
+  declareFun symbol in_sorts out_sort true
 
 def run (tm : TermManager) (query : SolverT m α) : m (Except Error α) :=
   return match ← ExceptT.run query (new tm) with
