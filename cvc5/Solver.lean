@@ -353,6 +353,10 @@ opaque proofToString : Proof → SolverT m String
 @[extern "solver_parse"]
 opaque parse : String → SolverT m Unit
 
+
+
+section declarations
+
 /-- Declares a function symbol `symbol` with signature `in_sorts → out_sort`.
 
 If `fresh`, then a new (fresh) `Term` is always produced; otherwise, the `Term` will always be
@@ -375,6 +379,31 @@ def declareFreshFun
   (symbol : String) (in_sorts : Array Sort) (out_sort : Sort)
 : SolverT m Term :=
   declareFun symbol in_sorts out_sort true
+
+/-- Declares a sort symbol `symbol` with arity `arity`.
+
+If `fresh`, then a new (fresh) `Sort` is always produced; otherwise, the `Sort` will always be
+(physically) the same.
+
+See also `declareFreshSort`.
+-/
+@[extern "solver_declareSort"]
+opaque declareSort :
+  (symbol : String) → (arity: Nat) → (fresh : Bool) → SolverT m Sort
+
+/-- Declares a new sort symbol `symbol` with arity `arity`.
+
+Note that creating sorts with the same name and arity will always yield a new, physically different,
+`Sort`.
+
+See also `declareSort`.
+-/
+def declareFreshSort (symbol : String) (arity : Nat) : SolverT m Sort :=
+  declareSort symbol arity true
+
+end declarations
+
+
 
 def run (tm : TermManager) (query : SolverT m α) : m (Except Error α) :=
   return match ← ExceptT.run query (new tm) with

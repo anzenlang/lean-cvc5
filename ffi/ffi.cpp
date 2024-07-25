@@ -643,6 +643,10 @@ extern "C" lean_obj_res solver_parse(lean_obj_arg inst,
   return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
 }
 
+
+
+// # Declarations
+
 extern "C" lean_obj_res solver_declareFun(
   lean_obj_arg inst,
   lean_obj_arg symbol,
@@ -664,4 +668,19 @@ extern "C" lean_obj_res solver_declareFun(
     bool_unbox(lean_unbox(fresh))
   );
   return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(f)), solver);
+}
+
+extern "C" lean_obj_res solver_declareSort(
+  lean_obj_arg inst,
+  lean_obj_arg symbol,
+  lean_obj_arg arity,
+  lean_obj_arg fresh,
+  lean_obj_arg solver
+) {
+  Sort s = solver_unbox(solver)->declareSort(
+    lean_string_cstr(symbol),
+    lean_uint32_of_nat(arity),
+    bool_unbox(lean_unbox(fresh))
+  );
+  return solver_val(lean_box(0), inst, lean_box(0), sort_box(new Sort(s)), solver);
 }
