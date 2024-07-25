@@ -699,7 +699,46 @@ extern "C" lean_obj_res solver_getAssertions(
   {
     res = lean_array_push(res, term_box(new Term(assertion)));
   }
-  return res;
+  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+}
+
+extern "C" lean_obj_res solver_getUnsatAssumptions(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+) {
+  std::vector<Term> assertions = solver_unbox(solver)->getUnsatAssumptions();
+  lean_object* res = lean_mk_empty_array();
+  for (const Term& assertion : assertions)
+  {
+    res = lean_array_push(res, term_box(new Term(assertion)));
+  }
+  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+}
+
+extern "C" lean_obj_res solver_getUnsatCore(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+) {
+  std::vector<Term> assertions = solver_unbox(solver)->getUnsatCore();
+  lean_object* res = lean_mk_empty_array();
+  for (const Term& assertion : assertions)
+  {
+    res = lean_array_push(res, term_box(new Term(assertion)));
+  }
+  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+}
+
+extern "C" lean_obj_res solver_getUnsatCoreLemmas(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+) {
+  std::vector<Term> assertions = solver_unbox(solver)->getUnsatCoreLemmas();
+  lean_object* res = lean_mk_empty_array();
+  for (const Term& assertion : assertions)
+  {
+    res = lean_array_push(res, term_box(new Term(assertion)));
+  }
+  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
 }
 
 extern "C" lean_obj_res solver_getInfo(
@@ -707,11 +746,10 @@ extern "C" lean_obj_res solver_getInfo(
   lean_obj_arg flag,
   lean_obj_arg solver
 ) {
-
   std::string info = solver_unbox(solver)->getInfo(
     lean_string_cstr(flag)
   );
-  return lean_mk_string(info.c_str());
+  return solver_val(lean_box(0), inst, lean_box(0), lean_mk_string(info.c_str()), solver);
 }
 
 extern "C" lean_obj_res solver_getOption(
@@ -719,11 +757,10 @@ extern "C" lean_obj_res solver_getOption(
   lean_obj_arg option,
   lean_obj_arg solver
 ) {
-
   std::string info = solver_unbox(solver)->getOption(
     lean_string_cstr(option)
   );
-  return lean_mk_string(info.c_str());
+  return solver_val(lean_box(0), inst, lean_box(0), lean_mk_string(info.c_str()), solver);
 }
 
 extern "C" lean_obj_res solver_getOptionNames(
@@ -736,5 +773,38 @@ extern "C" lean_obj_res solver_getOptionNames(
   {
     res = lean_array_push(res, lean_mk_string(name.c_str()));
   }
-  return res;
+  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+}
+
+
+
+// # Solver: evaluation
+
+extern "C" lean_obj_res solver_getValue(
+  lean_obj_arg inst,
+  lean_obj_arg term,
+  lean_obj_arg solver
+) {
+  Term value = solver_unbox(solver)->getValue(*term_unbox(term));
+  return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
+}
+
+extern "C" lean_obj_res solver_getValues(
+  lean_obj_arg inst,
+  lean_obj_arg lean_terms,
+  lean_obj_arg solver
+) {
+  std::vector<Term> terms;
+  for (size_t i = 0, n = lean_array_size(lean_terms); i < n; ++i) {
+    terms.push_back(*term_unbox(
+      lean_array_get(term_box(new Term()), lean_terms, lean_usize_to_nat(i))
+    ));
+  }
+  std::vector<Term> values = solver_unbox(solver)->getValue(terms);
+  lean_object* lean_values = lean_mk_empty_array();
+  for (const Term& value : values)
+  {
+    lean_values = lean_array_push(lean_values, term_box(new Term(value)));
+  }
+  return solver_val(lean_box(0), inst, lean_box(0), lean_values, solver);
 }

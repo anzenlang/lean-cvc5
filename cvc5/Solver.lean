@@ -360,6 +360,7 @@ opaque parse : String → SolverT m Unit
 
 
 
+/-! ## Symbol declarations. -/
 section declarations
 
 /-- Declares a function symbol `symbol` with signature `in_sorts → out_sort`.
@@ -410,11 +411,54 @@ end declarations
 
 
 
+/-! ## Solver information extraction -/
 section information_extraction
 
-/-- Get the list of asserted formulas. -/
+/-- Get the asserted formulas. -/
 @[extern "solver_getAssertions"]
 opaque getAssertions : SolverT m (Array Term)
+
+/-- When `unsat`, retrieves the unsat (*failed*) asserted assumptions.
+
+Note: requires to enable option `produce-unsat-assumptions`.
+
+# TODO
+
+What happens
+
+- when `sat`?
+- no `check-sat` has been issued?
+-/
+@[extern "solver_getUnsatAssumptions"]
+opaque getUnsatAssumptions : SolverT m (Array Term)
+
+/-- When `unsat`, retrieves the unsat core.
+
+Note: requires to enable option `produce-unsat-core`.
+
+# TODO
+
+What happens
+
+- when `sat`?
+- no `check-sat` has been issued?
+-/
+@[extern "solver_getUnsatCore"]
+opaque getUnsatCore : SolverT m (Array Term)
+
+/-- When `unsat`, retrieves the lemmas used to derive unsatisfiability.
+
+Note: requires the SAT proof unsat core mode: `unsat-core-mode=sat-proof`.
+
+# TODO
+
+What happens
+
+- when `sat`?
+- no `check-sat` has been issued?
+-/
+@[extern "solver_getUnsatCoreLemmas"]
+opaque getUnsatCoreLemmas : SolverT m (Array Term)
 
 /-- Get the information associated to a flag. -/
 @[extern "solver_getInfo"]
@@ -425,6 +469,37 @@ opaque getInfo : (flag : String) → SolverT m String
 opaque getOptionNames : SolverT m (Array String)
 
 end information_extraction
+
+
+
+/-! ## Term evaluation in a model -/
+section evaluation
+
+/-- Evaluates a term in the current model.
+
+# TODO
+
+What happens
+
+- when `unsat`?
+- no `check-sat` has been issued?
+-/
+@[extern "solver_getValue"]
+opaque getValue : (term : Term) → SolverT m Term
+
+/-- Evaluates some terms in the current model.
+
+# TODO
+
+What happens
+
+- when `unsat`?
+- no `check-sat` has been issued?
+-/
+@[extern "solver_getValue"]
+opaque getValues : (terms : Array Term) → SolverT m (Array Term)
+
+end evaluation
 
 
 
