@@ -58,6 +58,9 @@ inductive Error where
   | user_error (msg : String)
 deriving Repr
 
+instance Error.instToString : ToString Error :=
+  ⟨toString ∘ (reprPrec · 1)⟩
+
 private opaque SolverImpl : NonemptyType.{0}
 
 def Solver : Type := SolverImpl.type
@@ -124,7 +127,8 @@ opaque getBitVectorSize : cvc5.Sort → UInt32
 @[extern "sort_toString"]
 protected opaque toString : cvc5.Sort → String
 
-instance instToStringSort : ToString cvc5.Sort := ⟨Sort.toString⟩
+instance instToString : ToString cvc5.Sort := ⟨Sort.toString⟩
+instance instRepr : Repr cvc5.Sort := ⟨fun self _ => self.toString⟩
 
 end cvc5.Sort
 
