@@ -3,7 +3,7 @@ import Test.Init
 namespace cvc5.Test
 
 def mkTerms : IO Unit := do
-  let tm ← TermManager.new
+  let tm ← Term.Manager.mk
 
   let boolKind := Kind.CONST_BOOLEAN
 

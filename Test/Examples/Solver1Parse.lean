@@ -4,8 +4,8 @@ namespace cvc5.Test
 
 -- #TODO same but without parsing, needs a few more lean-level cvc5 functions
 
-def mkTerms : IO Unit := do
-  let tm ← TermManager.new
+def work : IO Unit := do
+  let tm ← Term.Manager.mk
 
   let query :=
     "
@@ -60,4 +60,4 @@ def mkTerms : IO Unit := do
   for p in proofs do
     println! "- {p.getResult}"
 
-#eval mkTerms
+#eval work

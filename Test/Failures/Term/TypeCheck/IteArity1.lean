@@ -3,7 +3,7 @@ import Test.Init
 namespace cvc5.Test
 
 def mkTerms : IO Unit := do
-  let tm ← TermManager.new
+  let tm ← Term.Manager.mk
 
   let ite1 :=
     tm.mkTerm Kind.ITE #[tm.mkBoolean true, tm.mkInteger 7]
