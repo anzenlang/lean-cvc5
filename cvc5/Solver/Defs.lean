@@ -215,3 +215,14 @@ What happens
 opaque getValues : (terms : Array Term) → SolverT m (Array Term)
 
 end evaluation
+
+
+
+/-! ## Restart/reset -/
+section restart_reset
+
+/-- Removes all assertions. -/
+@[extern "solver_resetAssertions"]
+opaque resetAssertions : SolverT m Unit
+
+end restart_reset

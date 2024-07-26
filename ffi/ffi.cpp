@@ -533,6 +533,47 @@ extern "C" lean_obj_res termManager_mkBooleanSort(
   return sort_box(new Sort(mut_tm_unbox(tm)->getBooleanSort()));
 }
 
+extern "C" lean_obj_res termManager_mkIntegerSort(
+  lean_obj_arg tm
+) {
+  return sort_box(new Sort(mut_tm_unbox(tm)->getIntegerSort()));
+}
+
+extern "C" lean_obj_res termManager_mkRealSort(
+  lean_obj_arg tm
+) {
+  return sort_box(new Sort(mut_tm_unbox(tm)->getRealSort()));
+}
+
+extern "C" lean_obj_res termManager_mkRegExpSort(
+  lean_obj_arg tm
+) {
+  return sort_box(new Sort(mut_tm_unbox(tm)->getRegExpSort()));
+}
+
+extern "C" lean_obj_res termManager_mkStringSort(
+  lean_obj_arg tm
+) {
+  return sort_box(new Sort(mut_tm_unbox(tm)->getStringSort()));
+}
+
+extern "C" lean_obj_res termManager_mkArraySort(
+  lean_obj_arg tm,
+  b_lean_obj_arg leanIdxSort,
+  b_lean_obj_arg leanElmSort
+) {
+  const Sort* idxSort = sort_unbox(leanIdxSort);
+  const Sort* elmSort = sort_unbox(leanElmSort);
+  return sort_box(new Sort(mut_tm_unbox(tm)->mkArraySort(*idxSort, *elmSort)));
+}
+
+extern "C" lean_obj_res termManager_mkBitVectorSort(
+  lean_obj_arg tm,
+  lean_obj_arg size
+) {
+  return sort_box(new Sort(mut_tm_unbox(tm)->mkBitVectorSort(lean_uint32_of_nat(size))));
+}
+
 
 
 
@@ -852,4 +893,16 @@ extern "C" lean_obj_res solver_getValues(
     lean_values = lean_array_push(lean_values, term_box(new Term(value)));
   }
   return solver_val(lean_box(0), inst, lean_box(0), lean_values, solver);
+}
+
+
+
+// # `Solver`: restart/reset
+
+extern "C" lean_obj_res solver_resetAssertions(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+) {
+  solver_unbox(solver)->resetAssertions();
+  return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
 }

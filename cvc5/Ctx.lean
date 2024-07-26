@@ -7,6 +7,7 @@ Authors: Abdalrhman Mohamed
 
 import cvc5.Init
 import cvc5.Term.Manager
+import cvc5.Proof
 import cvc5.Solver
 
 
@@ -112,6 +113,49 @@ def mkEqualN (terms : Array Term) (h : 1 < terms.size := by simp_arith) : CtxT M
 def mkEqual (lft rgt : Term) : CtxT M Term :=
   termManagerDo fun tm => tm.mkEqual lft rgt
 
+@[inherit_doc Term.Manager.mkNot]
+def mkNot (t : Term) : CtxT M Term :=
+  termManagerDo fun tm => tm.mkNot t
+
+@[inherit_doc Term.Manager.mkImplies]
+def mkImplies (lhs rhs : Term) : CtxT M Term :=
+  termManagerDo fun tm => tm.mkImplies lhs rhs
+
+
+
+@[inherit_doc Term.Manager.mkSort]
+def mkSort (α : Type) [ToCvc5Sort α] : CtxT M cvc5.Sort :=
+  termManagerDo fun tm => tm.mkSort α
+
+@[inherit_doc Term.Manager.mkSortBool]
+def mkSortBool : CtxT M cvc5.Sort :=
+  mkSort Bool
+
+@[inherit_doc Term.Manager.mkSortInt]
+def mkSortInt : CtxT M cvc5.Sort :=
+  mkSort Int
+
+@[inherit_doc Term.Manager.mkSortReal]
+def mkSortReal : CtxT M cvc5.Sort :=
+  mkSort Lean.Rat
+
+@[inherit_doc Term.Manager.mkSortRegExp]
+def mkSortRegExp : CtxT M cvc5.Sort :=
+  termManagerDo fun tm => tm.mkSortRegExp
+
+@[inherit_doc Term.Manager.mkSortString]
+def mkSortString : CtxT M cvc5.Sort :=
+  mkSort String
+
+@[inherit_doc Term.Manager.mkSortArray]
+def mkSortArray (α : Type) [ToCvc5Sort α] : CtxT M cvc5.Sort :=
+  mkSort (Array α)
+
+@[inherit_doc Term.Manager.mkSortBitVec]
+def mkSortBitVec (size : Nat) : CtxT M cvc5.Sort :=
+  mkSort (BitVec size)
+
+
 
 
 /-! ## `Solver` monadic functions -/
@@ -146,6 +190,17 @@ def checkSat : CtxT M Result :=
   Solver.checkSat
   |> solverRun
 
+/-- True if *sat*, false if *unsat*, `none` if *unknown*. -/
+def checkSat? : CtxT M (Option Bool) := do
+  let res ← checkSat
+  if res.isSat
+  then return true
+  else if res.isUnsat
+  then return false
+  else if res.isUnknown
+  then return none
+  else panic! s!"`{res} : Result` is neither sat, unsat, or unknown"
+
 @[inherit_doc Solver.getProof]
 def getProof : CtxT M (Array Proof) :=
   Solver.getProof
@@ -178,6 +233,10 @@ def declareFreshFun
 : CtxT M Term :=
   Solver.declareFreshFun symbol in_sorts out_sort
   |> solverRun
+
+def declareConst (symbol : String) (α : Type) [ToCvc5Sort α] : CtxT M Term := do
+  let sort ← mkSort α
+  declareFun symbol #[] sort
 
 @[inherit_doc Solver.declareSort]
 def declareSort
@@ -233,4 +292,11 @@ def getValue (term : Term) : CtxT M Term :=
 @[inherit_doc Solver.getValues]
 def getValues (terms : Array Term) : CtxT M (Array Term) :=
   Solver.getValues terms
+  |> solverRun
+
+
+
+@[inherit_doc Solver.resetAssertions]
+def resetAssertions : CtxT M Unit :=
+  Solver.resetAssertions
   |> solverRun
