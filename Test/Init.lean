@@ -30,7 +30,7 @@ def checkSat? : SolverT m (Option Bool) := do
   else
     return none
 
-def run! [Inhabited α] (tm : TermManager) (query : SolverT m α) : m α := do
+def run! [Inhabited α] (tm : Term.Manager) (query : SolverT m α) : m α := do
   match ← Solver.run tm query with
   | .ok res => return res
   | .error err => panic! s!"solver query failed: {err}"
