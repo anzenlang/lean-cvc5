@@ -1,0 +1,40 @@
+Test/Failures/Solver/Solver1Safe.lean:15:29: error: application type mismatch
+  Smt.mkEqual n1 b
+argument
+  b
+has type
+  Smt.Term Bool : Type
+but is expected to have type
+  Smt.Term Int : Type
+Test/Failures/Solver/Solver1Safe.lean:16:25: error: application type mismatch
+  Smt.mkNot n1
+argument
+  n1
+has type
+  Smt.Term Int : Type
+but is expected to have type
+  Smt.Term Bool : Type
+Test/Failures/Solver/Solver1Safe.lean:17:26: error: application type mismatch
+  Smt.mkIte n1
+argument
+  n1
+has type
+  Smt.Term Int : Type
+but is expected to have type
+  Smt.Term Bool : Type
+Test/Failures/Solver/Solver1Safe.lean:18:31: error: application type mismatch
+  Smt.mkIte b n1 b
+argument
+  b
+has type
+  Smt.Term Bool : Type
+but is expected to have type
+  Smt.Term Int : Type
+Test/Failures/Solver/Solver1Safe.lean:24:20: error: application type mismatch
+  Smt.assertFormula n1
+argument
+  n1
+has type
+  Smt.Term Int : Type
+but is expected to have type
+  Smt.Term Bool : Type

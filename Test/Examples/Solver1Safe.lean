@@ -1,6 +1,6 @@
 import Test.Init
 
-namespace cvc5.Test
+namespace cvc5.Safe.Test
 
 def work : IO Unit := Smt.run! do
   Smt.setOption "produce-proofs" "true"
@@ -19,13 +19,8 @@ def work : IO Unit := Smt.run! do
   Smt.assertFormula ite
   Smt.assertFormula eq
 
-  match ← Smt.checkSat? with
-  | none =>
-    panic! "got a timeout"
-  | some false =>
-    panic! "unexpected `unsat` result"
-  | some true =>
-    println! "confirmed `sat` result"
+  Smt.checkSat
+    (onSat := println! "confirmed `sat` result")
 
   Smt.resetAssertions
 
@@ -38,15 +33,14 @@ def work : IO Unit := Smt.run! do
   Smt.assertFormula eq
   Smt.assertFormula not_b
 
-  match ← Smt.checkSat? with
-  | none => panic! "got a timeout"
-  | some false => println! "confirmed `unsat` result"
-  | some true => panic! "unexpected `sat` result"
+  Smt.checkSat
+    (onUnsat := do
+      println! "confirmed `unsat` result"
+      let proofs ← Smt.getProof
+      println! "proof:"
+      for p in proofs do
+        println! "- {p.getResult}"
+    )
 
-  let proofs ← Smt.getProof
-
-  println! "proof:"
-  for p in proofs do
-    println! "- {p.getResult}"
 
 #eval work
