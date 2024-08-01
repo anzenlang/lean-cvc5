@@ -1,4 +1,21 @@
-confirmed `sat` result
-confirmed `unsat` result
-proof:
-- (let ((_let_1 (not b))) (let ((_let_2 (= n1 n2))) (not (and (=> b _let_2) (=> _let_1 (not _let_2)) _let_2 _let_1))))
+assert (let ((_let_1 (= n1 n2))) (ite b _let_1 (not _let_1)))
+assert (= n1 n2)
+
+checksat
+- confirmed `sat` result
+  getValue b := true
+  getValues #[n1, n2] := #[0, 0]
+
+
+reset
+
+
+assert (=> b (= n1 n2))
+assert (=> (not b) (not (= n1 n2)))
+assert (= n1 n2)
+assert (not b)
+
+checksat
+- confirmed `unsat` result
+  proof :=
+    (let ((_let_1 (not b))) (let ((_let_2 (= n1 n2))) (not (and (=> b _let_2) (=> _let_1 (not _let_2)) _let_2 _let_1))))
