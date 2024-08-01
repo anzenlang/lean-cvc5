@@ -363,11 +363,11 @@ def getUnsatAssumptions : SmtUnsatT m (Array (Term Bool)) :=
   (Array.map Term.mk) <$> Solver.getUnsatAssumptions (m := m)
 
 @[inherit_doc Solver.getUnsatCore]
-def getUnsatCore : SmtT m (Array (Term Bool)) :=
+def getUnsatCore : SmtUnsatT m (Array (Term Bool)) :=
   (Array.map Term.mk) <$> Solver.getUnsatCore (m := m)
 
 @[inherit_doc Solver.getUnsatCoreLemmas]
-def getUnsatCoreLemmas : SmtT m (Array (Term Bool)) :=
+def getUnsatCoreLemmas : SmtUnsatT m (Array (Term Bool)) :=
   (Array.map Term.mk) <$> Solver.getUnsatCoreLemmas (m := m)
 
 @[inherit_doc Solver.getInfo]
