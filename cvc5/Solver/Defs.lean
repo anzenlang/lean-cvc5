@@ -211,8 +211,12 @@ What happens
 - when `unsat`?
 - no `check-sat` has been issued?
 -/
-@[extern "solver_getValue"]
-opaque getValues : (terms : Array Term) → SolverT m (Array Term)
+def getValues (terms : Array Term) : SolverT m (Array Term) := do
+  let mut res := Array.mkEmpty terms.size
+  for term in terms do
+    let value ← getValue term
+    res := res.push value
+  return res
 
 end evaluation
 

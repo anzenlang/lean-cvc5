@@ -875,26 +875,6 @@ extern "C" lean_obj_res solver_getValue(
   return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
 }
 
-extern "C" lean_obj_res solver_getValues(
-  lean_obj_arg inst,
-  lean_obj_arg lean_terms,
-  lean_obj_arg solver
-) {
-  std::vector<Term> terms;
-  for (size_t i = 0, n = lean_array_size(lean_terms); i < n; ++i) {
-    terms.push_back(*term_unbox(
-      lean_array_get(term_box(new Term()), lean_terms, lean_usize_to_nat(i))
-    ));
-  }
-  std::vector<Term> values = solver_unbox(solver)->getValue(terms);
-  lean_object* lean_values = lean_mk_empty_array();
-  for (const Term& value : values)
-  {
-    lean_values = lean_array_push(lean_values, term_box(new Term(value)));
-  }
-  return solver_val(lean_box(0), inst, lean_box(0), lean_values, solver);
-}
-
 
 
 // # `Solver`: restart/reset

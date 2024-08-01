@@ -191,8 +191,20 @@ structure Term (_ : Type) : Type where
 private mk ::
   toTerm : cvc5.Term
 
+namespace Term
+
 private instance instCoeTermSafeTerm : Coe cvc5.Term (Term α) :=
   ⟨Term.mk⟩
+
+variable (self : Term α)
+
+protected def toString : String :=
+  self.toTerm.toString
+
+instance : ToString (Term α) :=
+  ⟨Term.toString⟩
+
+end Term
 
 
 /-! ## `Term.Manager` monadic functions -/
@@ -369,12 +381,12 @@ def getOptionNames : SmtT m (Array String) :=
 
 
 @[inherit_doc Solver.getValue]
-def getValue (term : (Term α)) : SmtT m (Term α) :=
+def getValue (term : (Term α)) : SmtSatT m (Term α) :=
   Solver.getValue term.toTerm (m := m)
 
 @[inherit_doc Solver.getValues]
-def getValues (terms : Array (Term α)) : SmtT m (Array (Term α)) :=
-  Array.map Term.mk <$> Solver.getValues (terms.map Term.toTerm) (m := m)
+def getValues (terms : Array (Term α)) : SmtSatT m (Array (Term α)) :=
+  terms.mapM getValue
 
 
 
