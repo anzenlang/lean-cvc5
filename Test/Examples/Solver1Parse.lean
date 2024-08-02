@@ -18,7 +18,7 @@ def work : IO Unit := do
 (assert (= n1 n2))
     ".smtParseAnd Solver.checkSat?
 
-  match ← Solver.run! (handleError := fun e => panic! s!"error: {e}") tm query with
+  match ← Solver.run! tm query with
   | none =>
     panic! "got a timeout"
   | some false =>
@@ -52,7 +52,7 @@ def work : IO Unit := do
 
       Solver.getProof
 
-  let proofs ← Solver.run! (handleError := fun e => panic! s!"error: {e}") tm query
+  let proofs ← Solver.run! tm query
 
   println! "proof:"
   for p in proofs do
