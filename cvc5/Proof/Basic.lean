@@ -5,13 +5,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed
 -/
 
-import cvc5.Proof.Rule
-import cvc5.Proof.RewriteRule
-import cvc5.Term.Defs
+import cvc5.Proof.Defs.RewriteRule
+import cvc5.Proof.Defs.Rule
+
+import cvc5.Term.Basic
 
 
 
 namespace cvc5
+
+
 
 private opaque ProofImpl : NonemptyType.{0}
 
@@ -19,6 +22,8 @@ private opaque ProofImpl : NonemptyType.{0}
 def Proof : Type := ProofImpl.type
 
 instance Proof.instNonemptyProof : Nonempty Proof := ProofImpl.property
+
+
 
 namespace Proof
 
@@ -36,6 +41,8 @@ opaque getRewriteRule : Proof → RewriteRule
 @[extern "proof_getResult"]
 opaque getResult : Proof → Term
 
+abbrev toTerm := getResult
+
 @[extern "proof_getChildren"]
 opaque getChildren : Proof → Array Proof
 
@@ -51,5 +58,3 @@ instance : BEq Proof := ⟨Proof.beq⟩
 protected opaque hash : Proof → UInt64
 
 instance : Hashable Proof := ⟨Proof.hash⟩
-
-end Proof

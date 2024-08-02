@@ -5,13 +5,5 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed
 -/
 
-import Lean.Data.Rat
-
-import cvc5.Term.Defs
-import cvc5.Op.Defs
-
-
-namespace cvc5.Term
-
-@[extern "term_getOp"]
-opaque getOp : Term → Op
+import cvc5.Term.Basic
+import cvc5.Term.Manager.Extended

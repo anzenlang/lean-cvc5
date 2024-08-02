@@ -2,10 +2,8 @@ import Test.Init
 
 namespace cvc5.Safe.Test
 
-def work : IO Unit := Smt.run! do
+def work : IO Unit := Smt.run! .qf_lia do
   Smt.setOption "produce-proofs" "true"
-
-  Smt.setLogic "QF_LIA"
 
   let n1 ← Smt.declareConst "n1" Int
   let n2 ← Smt.declareConst "n2" Int
@@ -22,3 +20,9 @@ def work : IO Unit := Smt.run! do
   let ite ← Smt.mkIte b eq neq
 
   Smt.assertFormula n1
+
+  Smt.getProof
+
+  Smt.getValue b
+
+  Smt.getValues #[n1, n2]

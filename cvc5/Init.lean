@@ -5,8 +5,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed
 -/
 
+import cvc5.Init.Basic
+import cvc5.Init.Logic
 import cvc5.Init.Kind
 import cvc5.Init.SortKind
+
 
 
 /-! # Type definitions such as `Term`, `Solver`, ...

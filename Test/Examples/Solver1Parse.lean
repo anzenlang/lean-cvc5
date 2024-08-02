@@ -2,8 +2,6 @@ import Test.Init
 
 namespace cvc5.Test
 
--- #TODO same but without parsing, needs a few more lean-level cvc5 functions
-
 def work : IO Unit := do
   let tm ← Term.Manager.mk
 
@@ -20,7 +18,7 @@ def work : IO Unit := do
 (assert (= n1 n2))
     ".smtParseAnd Solver.checkSat?
 
-  match ← Solver.run! tm query with
+  match ← Solver.run! (handleError := fun e => panic! s!"error: {e}") tm query with
   | none =>
     panic! "got a timeout"
   | some false =>
@@ -54,7 +52,7 @@ def work : IO Unit := do
 
       Solver.getProof
 
-  let proofs ← Solver.run! tm query
+  let proofs ← Solver.run! (handleError := fun e => panic! s!"error: {e}") tm query
 
   println! "proof:"
   for p in proofs do

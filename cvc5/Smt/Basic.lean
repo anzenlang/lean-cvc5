@@ -5,10 +5,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed
 -/
 
-import cvc5.Init
-import cvc5.Term.Manager
-import cvc5.Proof
-import cvc5.Solver
+import cvc5.Solver.Basic
 
 
 
@@ -29,11 +26,44 @@ abbrev SmtM := SmtT IO
 
 namespace Smt
 
+/-- Constructor from a term manager. -/
+def ofTermManager (tm : Term.Manager) : Smt :=
+  ⟨tm, Solver.mk tm⟩
+
 /-- Constructor. -/
 def mk [Monad m] [MonadLiftT BaseIO m] : m Smt := do
   let tm ← Term.Manager.mk
-  let solver := Solver.mk tm
-  return ⟨tm, solver⟩
+  return ofTermManager tm
+
+/-- Runs some monadic `Smt` code given a term manager. -/
+def runWith [instMonad : Monad m]
+  (tm : Term.Manager)
+  (code : SmtT m α)
+: ExceptT Error m α := do
+  let smt := ofTermManager tm
+  match ← code smt with
+  | (.ok res, _) => instMonad.pure (.ok res)
+  | (.error err, _) => instMonad.pure (.error err)
+
+/-- Runs some monadic `Smt` code given a term manager, with error-handling. -/
+def runWithOr [Monad m]
+  (tm : Term.Manager)
+  (code : SmtT m α)
+  (handleError : Error → m α)
+: m α := do
+  match ← runWith tm code with
+  | Except.ok res => return res
+  | .error err => handleError err
+
+/-- Runs some monadic `Smt` code given a term manager, panics on errors. -/
+def runWith! [Monad m] [Inhabited α]
+  (tm : Term.Manager)
+  (code : SmtT m α)
+  (handleError : Error → m α := fun e => panic! s!"[cvc5.Smt] {e}")
+: m α := do
+  match ← runWith tm code with
+  | Except.ok res => return res
+  | .error err => handleError err
 
 /-- Runs some monadic `Smt` code. -/
 def run
@@ -45,16 +75,21 @@ def run
   | (.ok res, _) => instMonad.pure (.ok res)
   | (.error err, _) => instMonad.pure (.error err)
 
-/-- Runs some monadic `Smt` code, `panic!`-s on errors by default. -/
-def run!
-  [Inhabited α]
-  [Monad m] [MonadLiftT BaseIO m]
+/-- Runs some monadic `Smt` code, with error-handling. -/
+def runOr [Monad m] [MonadLiftT BaseIO m]
   (code : SmtT m α)
-  (handleError : Error → m α := (panic! s!"error: {·}"))
+  (handleError : Error → m α)
 : m α := do
   match ← run code with
   | Except.ok res => return res
   | .error err => handleError err
+
+/-- Runs some monadic `Smt` code but panics on errors. -/
+def run! [Monad m] [MonadLiftT BaseIO m] [Inhabited α]
+  (code : SmtT m α)
+  (handleError : Error → m α := fun e => panic! s!"[cvc5.Smt] {e}")
+: m α :=
+  runOr code handleError
 
 
 
@@ -102,43 +137,19 @@ def mkInt (i : Int) : SmtT m Term :=
 def mkTerm (k : Kind) (kids : Array Term := #[]) : SmtT m Term :=
   termManagerDo fun tm => tm.mkTerm k kids
 
-@[inherit_doc Term.Manager.mkIte]
-def mkIte (cnd thn els : Term) : SmtT m Term :=
-  termManagerDo fun tm => tm.mkIte cnd thn els
 
-@[inherit_doc Term.Manager.mkEqualN]
-def mkEqualN (terms : Array Term) (h : 1 < terms.size := by simp_arith) : SmtT m Term :=
-  termManagerDo fun tm => tm.mkEqualN terms h
-
-@[inherit_doc Term.Manager.mkEqual]
-def mkEqual (lft rgt : Term) : SmtT m Term :=
-  termManagerDo fun tm => tm.mkEqual lft rgt
-
-@[inherit_doc Term.Manager.mkNot]
-def mkNot (t : Term) : SmtT m Term :=
-  termManagerDo fun tm => tm.mkNot t
-
-@[inherit_doc Term.Manager.mkImplies]
-def mkImplies (lhs rhs : Term) : SmtT m Term :=
-  termManagerDo fun tm => tm.mkImplies lhs rhs
-
-
-
-@[inherit_doc Term.Manager.mkSort]
-def mkSort (α : Type) [ToCvc5Sort α] : SmtT m cvc5.Sort :=
-  termManagerDo fun tm => tm.mkSort α
 
 @[inherit_doc Term.Manager.mkSortBool]
 def mkSortBool : SmtT m cvc5.Sort :=
-  mkSort Bool
+  termManagerDo fun tm => tm.mkSortBool
 
 @[inherit_doc Term.Manager.mkSortInt]
 def mkSortInt : SmtT m cvc5.Sort :=
-  mkSort Int
+  termManagerDo fun tm => tm.mkSortInt
 
 @[inherit_doc Term.Manager.mkSortReal]
 def mkSortReal : SmtT m cvc5.Sort :=
-  mkSort Lean.Rat
+  termManagerDo fun tm => tm.mkSortReal
 
 @[inherit_doc Term.Manager.mkSortRegExp]
 def mkSortRegExp : SmtT m cvc5.Sort :=
@@ -146,15 +157,15 @@ def mkSortRegExp : SmtT m cvc5.Sort :=
 
 @[inherit_doc Term.Manager.mkSortString]
 def mkSortString : SmtT m cvc5.Sort :=
-  mkSort String
+  termManagerDo fun tm => tm.mkSortString
 
 @[inherit_doc Term.Manager.mkSortArray]
-def mkSortArray (α : Type) [ToCvc5Sort α] : SmtT m cvc5.Sort :=
-  mkSort (Array α)
+def mkSortArray (idx sort : cvc5.Sort) : SmtT m cvc5.Sort :=
+  termManagerDo fun tm => tm.mkSortArray idx sort
 
 @[inherit_doc Term.Manager.mkSortBitVec]
 def mkSortBitVec (size : Nat) : SmtT m cvc5.Sort :=
-  mkSort (BitVec size)
+  termManagerDo fun tm => tm.mkSortBitVec size
 
 
 
@@ -191,17 +202,6 @@ def checkSat : SmtT m Result :=
   Solver.checkSat
   |> solverRun
 
-/-- True if *sat*, false if *unsat*, `none` if *unknown*. -/
-def checkSat? : SmtT m (Option Bool) := do
-  let res ← checkSat
-  if res.isSat
-  then return true
-  else if res.isUnsat
-  then return false
-  else if res.isUnknown
-  then return none
-  else panic! s!"`{res} : Result` is neither sat, unsat, or unknown"
-
 @[inherit_doc Solver.getProof]
 def getProof : SmtT m (Array Proof) :=
   Solver.getProof
@@ -234,10 +234,6 @@ def declareFreshFun
 : SmtT m Term :=
   Solver.declareFreshFun symbol in_sorts out_sort
   |> solverRun
-
-def declareConst (symbol : String) (α : Type) [ToCvc5Sort α] : SmtT m Term := do
-  let sort ← mkSort α
-  declareFun symbol #[] sort
 
 @[inherit_doc Solver.declareSort]
 def declareSort

@@ -1,40 +1,58 @@
-Test/Failures/Solver/Solver1Safe.lean:15:29: error: application type mismatch
+Test/Failures/Solver/Solver1Safe.lean:13:29: error: application type mismatch
   Smt.mkEqual n1 b
 argument
   b
 has type
-  Smt.Term Bool : Type
+  Term Bool : Type
 but is expected to have type
-  Smt.Term Int : Type
-Test/Failures/Solver/Solver1Safe.lean:16:25: error: application type mismatch
+  Term Int : Type
+Test/Failures/Solver/Solver1Safe.lean:14:25: error: application type mismatch
   Smt.mkNot n1
 argument
   n1
 has type
-  Smt.Term Int : Type
+  Term Int : Type
 but is expected to have type
-  Smt.Term Bool : Type
-Test/Failures/Solver/Solver1Safe.lean:17:26: error: application type mismatch
+  Term Bool : Type
+Test/Failures/Solver/Solver1Safe.lean:15:26: error: application type mismatch
   Smt.mkIte n1
 argument
   n1
 has type
-  Smt.Term Int : Type
+  Term Int : Type
 but is expected to have type
-  Smt.Term Bool : Type
-Test/Failures/Solver/Solver1Safe.lean:18:31: error: application type mismatch
+  Term Bool : Type
+Test/Failures/Solver/Solver1Safe.lean:16:31: error: application type mismatch
   Smt.mkIte b n1 b
 argument
   b
 has type
-  Smt.Term Bool : Type
+  Term Bool : Type
 but is expected to have type
-  Smt.Term Int : Type
-Test/Failures/Solver/Solver1Safe.lean:24:20: error: application type mismatch
+  Term Int : Type
+Test/Failures/Solver/Solver1Safe.lean:22:20: error: application type mismatch
   Smt.assertFormula n1
 argument
   n1
 has type
-  Smt.Term Int : Type
+  Term Int : Type
 but is expected to have type
-  Smt.Term Bool : Type
+  Term Bool : Type
+Test/Failures/Solver/Solver1Safe.lean:24:2: error: type mismatch
+  Smt.getProof
+has type
+  Smt.UnsatT ?m.1257 (Array Proof) : Type ?u.1256
+but is expected to have type
+  SmtT IO PUnit : Type
+Test/Failures/Solver/Solver1Safe.lean:26:2: error: type mismatch
+  Smt.getValue b
+has type
+  Smt.SatT ?m.1697 (Term Bool) : Type ?u.1696
+but is expected to have type
+  SmtT IO PUnit : Type
+Test/Failures/Solver/Solver1Safe.lean:28:2: error: type mismatch
+  Smt.getValues #[n1, n2]
+has type
+  Smt.SatT ?m.2103 (Array (Term Int)) : Type ?u.2102
+but is expected to have type
+  SmtT IO Unit : Type

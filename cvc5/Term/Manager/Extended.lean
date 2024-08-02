@@ -5,17 +5,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed
 -/
 
-import cvc5.Term.Defs
+import cvc5.Term.Manager.Basic
 
 
 
 namespace cvc5
-
-
-
-private opaque Term.ManagerImpl : NonemptyType.{0}
-
-def Term.Manager : Type := Term.ManagerImpl.type
 
 
 
@@ -45,11 +39,6 @@ end lean_type_to_sort
 
 namespace Term.Manager
 
-instance instNonempty : Nonempty Manager := ManagerImpl.property
-
-@[extern "termManager_new"]
-opaque mk : BaseIO Manager
-
 
 
 /-! ## Sort creation -/
@@ -65,43 +54,19 @@ open cvc5 (ToCvc5Sort)
 abbrev mkSort :=
   @ToCvc5Sort.mkCvc5Sort
 
-/-- Boolean sort. -/
-@[extern "termManager_mkBooleanSort"]
-opaque mkSortBool : Manager → cvc5.Sort
-
 instance instToCvc5SortBool : ToCvc5Sort Bool :=
   ⟨mkSortBool⟩
 
-/-- Integer sort. -/
-@[extern "termManager_mkIntegerSort"]
-opaque mkSortInt : Manager → cvc5.Sort
-
 instance instToCvc5SortInt : ToCvc5Sort Int :=
   ⟨mkSortInt⟩
-
-/-- Real/Rat sort. -/
-@[extern "termManager_mkRealSort"]
-opaque mkSortReal : Manager → cvc5.Sort
 
 -- # TODO
 -- `Lean.Rat` is not cvc5's `Real`, maybe a bad idea to have that
 instance instToCvc5SortRat : ToCvc5Sort Lean.Rat :=
   ⟨mkSortReal⟩
 
-/-- regular expression sort. -/
-@[extern "termManager_mkRegExpSort"]
-opaque mkSortRegExp : Manager → cvc5.Sort
-
-/-- String sort. -/
-@[extern "termManager_mkStringSort"]
-opaque mkSortString : Manager → cvc5.Sort
-
 instance instToCvc5SortString : ToCvc5Sort String :=
   ⟨mkSortString⟩
-
-/-- Array sort. -/
-@[extern "termManager_mkArraySort"]
-opaque mkSortArray : Manager → (idxSort : cvc5.Sort) → (elmSort : cvc5.Sort) → cvc5.Sort
 
 -- # TODO
 -- the resulting sort is indexed by `Int`, might not be a good idea to have this :/
@@ -111,31 +76,12 @@ instance instToCvc5SortArray [ToCvc5Sort α] : ToCvc5Sort (Array α) where
     let elmSort := tm.mkSort α
     tm.mkSortArray idxSort elmSort
 
-/-- BitVec sort. -/
-@[extern "termManager_mkBitVectorSort"]
-opaque mkSortBitVec : Manager → (size : Nat) → cvc5.Sort
-
 instance instToCvc5BitVec : ToCvc5Sort (BitVec size) where
   mkCvc5Sort tm := tm.mkSortBitVec size
 
 
 
 /-! ## Term creation -/
-
-/-- Creates a boolean constant. -/
-@[extern "termManager_mkBoolean"]
-opaque mkBoolean : Manager → Bool → Term
-
-@[extern "termManager_mkIntegerFromString"]
-private opaque mkIntegerFromString : Manager → String → Term
-
-/-- Creates an integer constant. -/
-def mkInteger : Int → Term :=
-  self.mkIntegerFromString ∘ toString
-
-/-- Creates an n-ary `Term` of a given `Kind`. -/
-@[extern "termManager_mkTerm"]
-opaque mkTerm : Manager → Kind → (children : Array Term := #[]) → Term
 
 /-- Creates an if-then-else.
 

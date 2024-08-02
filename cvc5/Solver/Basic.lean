@@ -5,8 +5,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed
 -/
 
-import cvc5.Init
-import cvc5.Term.Defs
+import cvc5.Term.Basic
+import cvc5.Proof.Basic
 
 
 
@@ -24,9 +24,45 @@ abbrev SolverT m := ExceptT Error (StateT Solver m)
 /-- `Solver` error-state IO monad. -/
 abbrev SolverM := SolverT IO
 
+
+
 namespace Solver
 
+@[extern "solver_new"]
+opaque mk : Term.Manager → Solver
+
+
+
 variable [Monad m]
+
+
+
+/-- Runs a `SolverT` on a fresh solver. -/
+def run (tm : Term.Manager) (query : SolverT m α) : m (Except Error α) := do
+  match ← ExceptT.run query (mk tm) with
+  | (.ok x, _) => return .ok x
+  | (.error e, _) => return .error e
+
+/-- Same as `Solver.run` with an error handler. -/
+def runOr
+  (tm : Term.Manager)
+  (query : SolverT m α)
+  (handleError : Error → m α)
+: m α := do
+  match ← ExceptT.run query (mk tm) with
+  | (.ok x, _) => return x
+  | (.error e, _) => handleError e
+
+/-- Same as `Solver.run` but panics on errors. -/
+def run!
+  [Inhabited α]
+  (tm : Term.Manager)
+  (query : SolverT m α)
+  (handleError : Error → m α := fun e => panic! s!"[cvc5.Solver] {e}")
+: m α := do
+  runOr tm query handleError
+
+
 
 @[export solver_val]
 private def val (a : α) : SolverT m α := pure a
@@ -202,27 +238,17 @@ What happens
 @[extern "solver_getValue"]
 opaque getValue : (term : Term) → SolverT m Term
 
-/-- Evaluates some terms in the current model.
-
-# TODO
-
-What happens
-
-- when `unsat`?
-- no `check-sat` has been issued?
--/
-def getValues (terms : Array Term) : SolverT m (Array Term) := do
-  let mut res := Array.mkEmpty terms.size
-  for term in terms do
-    let value ← getValue term
-    res := res.push value
-  return res
+/-- Evaluates some terms in the current model. -/
+def getValues (terms : Array Term) : SolverT m (Array Term) :=
+  Array.mkEmpty terms.size
+  |> terms.foldlM fun array term =>
+    return array.push (← getValue term)
 
 end evaluation
 
 
 
-/-! ## Restart/reset -/
+/-! ## Reset / incrementality -/
 section restart_reset
 
 /-- Removes all assertions. -/
