@@ -261,6 +261,8 @@ theorem arith_valid {l : Logic} {a : Arith} : (l.arith a).valid := by
 
 
 
+/-! ### Convenient `Logic` constructors for `Arith` -/
+
 def lia := mk |>.arith .lia
 def lra := mk |>.arith .lra
 def lira := mk |>.arith .lira
@@ -268,6 +270,20 @@ def lira := mk |>.arith .lira
 def nia := mk |>.arith .nia
 def nra := mk |>.arith .nra
 def nira := mk |>.arith .nira
+
+def liat := mk |>.arith .liat
+def lrat := mk |>.arith .lrat
+def lirat := mk |>.arith .lirat
+
+def niat := mk |>.arith .niat
+def nrat := mk |>.arith .nrat
+def nirat := mk |>.arith .nirat
+
+def idl := mk |>.arith .idl
+def rdl := mk |>.arith .rdl
+def irdl := mk |>.arith .irdl
+
+/-! ### Ubiquitous logics -/
 
 def qf_lia := lia.qf
 def qf_lra := lra.qf
