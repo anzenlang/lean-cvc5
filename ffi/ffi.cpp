@@ -4,6 +4,20 @@
 
 using namespace cvc5;
 
+#define HANDLE_EXCEPTIONS(fn, code) \
+  try { \
+    code \
+  } catch (CVC5ApiException& e) { \
+    fprintf(stderr, "Error in cvc5 FFI function `%s`\n%s\n", fn, e.what()); \
+    exit(1); \
+  } catch (char const* e) { \
+    fprintf(stderr, "Error in cvc5 FFI function `%s`\n%s\n", fn, e); \
+    exit(1); \
+  } catch (...) { \
+    printf("Error in cvc5 FFI function `%s`\nAn unexpected exception was thrown", fn); \
+    exit(1); \
+  }
+
 inline lean_obj_res mk_unit_unit() { return lean_box(0); }
 
 inline uint8_t mk_bool_false() { return 0; }
@@ -18,28 +32,38 @@ inline bool bool_unbox(uint8_t b) { return static_cast<bool>(b); }
 
 extern "C" lean_obj_res kind_toString(uint16_t k)
 {
-  return lean_mk_string(std::to_string(static_cast<Kind>(k - 2)).c_str());
+  HANDLE_EXCEPTIONS("kind_toString",
+    return lean_mk_string(std::to_string(static_cast<Kind>(k - 2)).c_str());
+  )
 }
 
 extern "C" lean_obj_res sortKind_toString(uint8_t sk)
 {
-  return lean_mk_string(std::to_string(static_cast<SortKind>(sk - 2)).c_str());
+  HANDLE_EXCEPTIONS("sortKind_toString",
+    return lean_mk_string(std::to_string(static_cast<SortKind>(sk - 2)).c_str());
+  )
 }
 
 extern "C" lean_obj_res proofRule_toString(uint8_t pr)
 {
-  return lean_mk_string(std::to_string(static_cast<ProofRule>(pr)).c_str());
+  HANDLE_EXCEPTIONS("proofRule_toString",
+    return lean_mk_string(std::to_string(static_cast<ProofRule>(pr)).c_str());
+  )
 }
 
 extern "C" lean_obj_res proofRewriteRule_toString(uint16_t prr)
 {
-  return lean_mk_string(
-      std::to_string(static_cast<ProofRewriteRule>(prr)).c_str());
+  HANDLE_EXCEPTIONS("proofRewriteRule_toString",
+    return lean_mk_string(
+        std::to_string(static_cast<ProofRewriteRule>(prr)).c_str());
+  )
 }
 
 extern "C" lean_obj_res skolemId_toString(uint8_t si)
 {
-  return lean_mk_string(std::to_string(static_cast<SkolemId>(si)).c_str());
+  HANDLE_EXCEPTIONS("skolemId_toString",
+    return lean_mk_string(std::to_string(static_cast<SkolemId>(si)).c_str());
+  )
 }
 
 static void result_finalize(void* obj) { delete static_cast<Result*>(obj); }
@@ -68,22 +92,30 @@ static inline const Result* result_unbox(b_lean_obj_arg r)
 
 extern "C" uint8_t result_isSat(lean_obj_arg r)
 {
-  return bool_box(result_unbox(r)->isSat());
+  HANDLE_EXCEPTIONS("result_isSat",
+    return bool_box(result_unbox(r)->isSat());
+  )
 }
 
 extern "C" uint8_t result_isUnsat(lean_obj_arg r)
 {
-  return bool_box(result_unbox(r)->isUnsat());
+  HANDLE_EXCEPTIONS("result_isUnsat",
+    return bool_box(result_unbox(r)->isUnsat());
+  )
 }
 
 extern "C" uint8_t result_isUnknown(lean_obj_arg r)
 {
-  return bool_box(result_unbox(r)->isUnknown());
+  HANDLE_EXCEPTIONS("result_isUnknown",
+    return bool_box(result_unbox(r)->isUnknown());
+  )
 }
 
 extern "C" lean_obj_res result_toString(lean_obj_arg r)
 {
-  return lean_mk_string(result_unbox(r)->toString().c_str());
+  HANDLE_EXCEPTIONS("result_toString",
+    return lean_mk_string(result_unbox(r)->toString().c_str());
+  )
 }
 
 static void sort_finalize(void* obj) { delete static_cast<Sort*>(obj); }
@@ -111,68 +143,92 @@ static inline const Sort* sort_unbox(b_lean_obj_arg s)
 
 extern "C" lean_obj_res sort_null(lean_obj_arg unit)
 {
-  return sort_box(new Sort());
+  HANDLE_EXCEPTIONS("sort_null",
+    return sort_box(new Sort());
+  )
 }
 
 extern "C" uint8_t sort_getKind(lean_obj_arg s)
 {
-  return static_cast<int32_t>(sort_unbox(s)->getKind()) + 2;
+  HANDLE_EXCEPTIONS("sort_getKind",
+    return static_cast<int32_t>(sort_unbox(s)->getKind()) + 2;
+  )
 }
 
 extern "C" uint8_t sort_beq(lean_obj_arg l, lean_obj_arg r)
 {
-  return bool_box(*sort_unbox(l) == *sort_unbox(r));
+  HANDLE_EXCEPTIONS("sort_beq",
+    return bool_box(*sort_unbox(l) == *sort_unbox(r));
+  )
 }
 
 extern "C" uint8_t sort_blt(lean_obj_arg l, lean_obj_arg r)
 {
-  return bool_box(*sort_unbox(l) < *sort_unbox(r));
+  HANDLE_EXCEPTIONS("sort_blt",
+    return bool_box(*sort_unbox(l) < *sort_unbox(r));
+  )
 }
 
 extern "C" uint8_t sort_ble(lean_obj_arg l, lean_obj_arg r)
 {
-  return bool_box(*sort_unbox(l) <= *sort_unbox(r));
+  HANDLE_EXCEPTIONS("sort_ble",
+    return bool_box(*sort_unbox(l) <= *sort_unbox(r));
+  )
 }
 
 extern "C" uint64_t sort_hash(lean_obj_arg s)
 {
-  return std::hash<Sort>()(*sort_unbox(s));
+  HANDLE_EXCEPTIONS("sort_hash",
+    return std::hash<Sort>()(*sort_unbox(s));
+  )
 }
 
 extern "C" lean_obj_res sort_getFunctionDomainSorts(lean_obj_arg s)
 {
-  std::vector<Sort> domains = sort_unbox(s)->getFunctionDomainSorts();
-  lean_object* ds = lean_mk_empty_array();
-  for (const Sort& domain : domains)
-  {
-    ds = lean_array_push(ds, sort_box(new Sort(domain)));
-  }
-  return ds;
+  HANDLE_EXCEPTIONS("sort_getFunctionDomainSorts",
+    std::vector<Sort> domains = sort_unbox(s)->getFunctionDomainSorts();
+    lean_object* ds = lean_mk_empty_array();
+    for (const Sort& domain : domains)
+    {
+      ds = lean_array_push(ds, sort_box(new Sort(domain)));
+    }
+    return ds;
+  )
 }
 
 extern "C" lean_obj_res sort_getFunctionCodomainSort(lean_obj_arg s)
 {
-  return sort_box(new Sort(sort_unbox(s)->getFunctionCodomainSort()));
+  HANDLE_EXCEPTIONS("C",
+    return sort_box(new Sort(sort_unbox(s)->getFunctionCodomainSort()));
+  )
 }
 
 extern "C" lean_obj_res sort_getSymbol(lean_obj_arg s)
 {
-  return lean_mk_string(sort_unbox(s)->getSymbol().c_str());
+  HANDLE_EXCEPTIONS("sort_getSymbol",
+    return lean_mk_string(sort_unbox(s)->getSymbol().c_str());
+  )
 }
 
 extern "C" uint8_t sort_isInteger(lean_obj_arg s)
 {
-  return bool_box(sort_unbox(s)->isInteger());
+  HANDLE_EXCEPTIONS("sort_isInteger",
+    return bool_box(sort_unbox(s)->isInteger());
+  )
 }
 
 extern "C" uint32_t sort_getBitVectorSize(lean_obj_arg s)
 {
-  return static_cast<int32_t>(sort_unbox(s)->getBitVectorSize());
+  HANDLE_EXCEPTIONS("sort_getBitVectorSize",
+    return static_cast<int32_t>(sort_unbox(s)->getBitVectorSize());
+  )
 }
 
 extern "C" lean_obj_res sort_toString(lean_obj_arg s)
 {
-  return lean_mk_string(sort_unbox(s)->toString().c_str());
+  HANDLE_EXCEPTIONS("sort_toString",
+    return lean_mk_string(sort_unbox(s)->toString().c_str());
+  )
 }
 
 static void op_finalize(void* obj) { delete static_cast<Op*>(obj); }
@@ -203,38 +259,54 @@ static inline Op* mut_op_unbox(b_lean_obj_arg op)
   return static_cast<Op*>(lean_get_external_data(op));
 }
 
-extern "C" lean_obj_res op_null(lean_obj_arg unit) { return op_box(new Op()); }
+extern "C" lean_obj_res op_null(lean_obj_arg unit) {
+  HANDLE_EXCEPTIONS("op_null",
+    return op_box(new Op());
+  )
+}
 
 extern "C" uint16_t op_getKind(lean_obj_arg op)
 {
-  return static_cast<int32_t>(op_unbox(op)->getKind()) + 2;
+  HANDLE_EXCEPTIONS("op_getKind",
+    return static_cast<int32_t>(op_unbox(op)->getKind()) + 2;
+  )
 }
 
 extern "C" uint8_t op_isNull(lean_obj_arg op)
 {
-  return bool_box(op_unbox(op)->isNull());
+  HANDLE_EXCEPTIONS("op_isNull",
+    return bool_box(op_unbox(op)->isNull());
+  )
 }
 
 extern "C" uint8_t op_isIndexed(lean_obj_arg op)
 {
-  return bool_box(op_unbox(op)->isIndexed());
+  HANDLE_EXCEPTIONS("op_isIndexed",
+    return bool_box(op_unbox(op)->isIndexed());
+  )
 }
 
 extern "C" lean_obj_res op_getNumIndices(lean_obj_arg op)
 {
-  return lean_usize_to_nat(op_unbox(op)->getNumIndices());
+  HANDLE_EXCEPTIONS("op_getNumIndices",
+    return lean_usize_to_nat(op_unbox(op)->getNumIndices());
+  )
 }
 
 static inline lean_obj_res term_box(Term* t);
 
 extern "C" lean_obj_res op_get(lean_obj_arg op, lean_obj_arg i)
 {
-  return term_box(new Term((*mut_op_unbox(op))[lean_usize_of_nat(i)]));
+  HANDLE_EXCEPTIONS("op_get",
+    return term_box(new Term((*mut_op_unbox(op))[lean_usize_of_nat(i)]));
+  )
 }
 
 extern "C" lean_obj_res op_toString(lean_obj_arg op)
 {
-  return lean_mk_string(op_unbox(op)->toString().c_str());
+  HANDLE_EXCEPTIONS("op_toString",
+    return lean_mk_string(op_unbox(op)->toString().c_str());
+  )
 }
 
 static void term_finalize(void* obj) { delete static_cast<Term*>(obj); }
@@ -262,128 +334,174 @@ static inline const Term* term_unbox(b_lean_obj_arg t)
 
 extern "C" lean_obj_res term_null(lean_obj_arg unit)
 {
-  return term_box(new Term());
+  HANDLE_EXCEPTIONS("term_null",
+    return term_box(new Term());
+  )
 }
 
 extern "C" uint8_t term_isNull(lean_obj_arg t)
 {
-  return bool_box(term_unbox(t)->isNull());
+  HANDLE_EXCEPTIONS("term_isNull",
+    return bool_box(term_unbox(t)->isNull());
+  )
 }
 
 extern "C" lean_obj_res term_not(lean_obj_arg t)
 {
-  return term_box(new Term(term_unbox(t)->notTerm()));
+  HANDLE_EXCEPTIONS("term_not",
+    return term_box(new Term(term_unbox(t)->notTerm()));
+  )
 }
 
 extern "C" lean_obj_res term_and(lean_obj_arg t1, lean_obj_arg t2)
 {
-  return term_box(new Term(term_unbox(t1)->andTerm(*term_unbox(t2))));
+  HANDLE_EXCEPTIONS("term_and",
+    return term_box(new Term(term_unbox(t1)->andTerm(*term_unbox(t2))));
+  )
 }
 
 extern "C" lean_obj_res term_or(lean_obj_arg t1, lean_obj_arg t2)
 {
-  return term_box(new Term(term_unbox(t1)->orTerm(*term_unbox(t2))));
+  HANDLE_EXCEPTIONS("term_or",
+    return term_box(new Term(term_unbox(t1)->orTerm(*term_unbox(t2))));
+  )
 }
 
 extern "C" lean_obj_res term_toString(lean_obj_arg t)
 {
-  return lean_mk_string(term_unbox(t)->toString().c_str());
+  HANDLE_EXCEPTIONS("term_toString",
+    return lean_mk_string(term_unbox(t)->toString().c_str());
+  )
 }
 
 extern "C" uint16_t term_getKind(lean_obj_arg t)
 {
-  return static_cast<int32_t>(term_unbox(t)->getKind()) + 2;
+  HANDLE_EXCEPTIONS("term_getKind",
+    return static_cast<int32_t>(term_unbox(t)->getKind()) + 2;
+  )
 }
 
 extern "C" lean_obj_arg term_getOp(lean_obj_arg t)
 {
-  return op_box(new Op(term_unbox(t)->getOp()));
+  HANDLE_EXCEPTIONS("term_getOp",
+    return op_box(new Op(term_unbox(t)->getOp()));
+  )
 }
 
 extern "C" lean_obj_arg term_getSort(lean_obj_arg t)
 {
-  return sort_box(new Sort(term_unbox(t)->getSort()));
+  HANDLE_EXCEPTIONS("term_getSort",
+    return sort_box(new Sort(term_unbox(t)->getSort()));
+  )
 }
 
 extern "C" uint8_t term_beq(lean_obj_arg l, lean_obj_arg r)
 {
-  return bool_box(*term_unbox(l) == *term_unbox(r));
+  HANDLE_EXCEPTIONS("term_beq",
+    return bool_box(*term_unbox(l) == *term_unbox(r));
+  )
 }
 
 extern "C" uint64_t term_hash(lean_obj_arg t)
 {
-  return std::hash<Term>()(*term_unbox(t));
+  HANDLE_EXCEPTIONS("term_hash",
+    return std::hash<Term>()(*term_unbox(t));
+  )
 }
 
 extern "C" uint8_t term_getBooleanValue(lean_obj_arg t)
 {
-  return bool_box(term_unbox(t)->getBooleanValue());
+  HANDLE_EXCEPTIONS("term_getBooleanValue",
+    return bool_box(term_unbox(t)->getBooleanValue());
+  )
 }
 
 extern "C" lean_obj_res term_getBitVectorValue(lean_obj_arg t, uint32_t base)
 {
-  return lean_mk_string(term_unbox(t)->getBitVectorValue(base).c_str());
+  HANDLE_EXCEPTIONS("term_getBitVectorValue",
+    return lean_mk_string(term_unbox(t)->getBitVectorValue(base).c_str());
+  )
 }
 
 extern "C" lean_obj_res term_getIntegerValue(lean_obj_arg t)
 {
-  return lean_cstr_to_int(term_unbox(t)->getIntegerValue().c_str());
+  HANDLE_EXCEPTIONS("term_getIntegerValue",
+    return lean_cstr_to_int(term_unbox(t)->getIntegerValue().c_str());
+  )
 }
 
 extern "C" lean_obj_res l_Lean_mkRat(lean_obj_arg num, lean_obj_arg den);
 
 extern "C" lean_obj_res term_getRationalValue(lean_obj_arg t)
 {
-  std::string r = term_unbox(t)->getRealValue();
-  size_t i = r.find('/');
-  return l_Lean_mkRat(lean_cstr_to_int(r.substr(0, i).c_str()),
-                      lean_cstr_to_nat(r.substr(i + 1).c_str()));
+  HANDLE_EXCEPTIONS("term_getRationalValue",
+    std::string r = term_unbox(t)->getRealValue();
+    size_t i = r.find('/');
+    return l_Lean_mkRat(lean_cstr_to_int(r.substr(0, i).c_str()),
+                        lean_cstr_to_nat(r.substr(i + 1).c_str()));
+  )
 }
 
 extern "C" uint8_t term_hasSymbol(lean_obj_arg t)
 {
-  return bool_box(term_unbox(t)->hasSymbol());
+  HANDLE_EXCEPTIONS("term_hasSymbol",
+    return bool_box(term_unbox(t)->hasSymbol());
+  )
 }
 
 extern "C" lean_obj_res term_getSymbol(lean_obj_arg t)
 {
-  return lean_mk_string(term_unbox(t)->getSymbol().c_str());
+  HANDLE_EXCEPTIONS("term_getSymbol",
+    return lean_mk_string(term_unbox(t)->getSymbol().c_str());
+  )
 }
 
 extern "C" lean_obj_res term_getId(lean_obj_arg t)
 {
-  return lean_uint64_to_nat(term_unbox(t)->getId());
+  HANDLE_EXCEPTIONS("term_getId",
+    return lean_uint64_to_nat(term_unbox(t)->getId());
+  )
 }
 
 extern "C" lean_obj_res term_getNumChildren(lean_obj_arg t)
 {
-  return lean_usize_to_nat(term_unbox(t)->getNumChildren());
+  HANDLE_EXCEPTIONS("term_getNumChildren",
+    return lean_usize_to_nat(term_unbox(t)->getNumChildren());
+  )
 }
 
 extern "C" uint8_t term_isSkolem(lean_obj_arg t)
 {
-  return bool_box(term_unbox(t)->isSkolem());
+  HANDLE_EXCEPTIONS("term_isSkolem",
+    return bool_box(term_unbox(t)->isSkolem());
+  )
 }
 
 extern "C" uint8_t term_getSkolemId(lean_obj_arg t)
 {
-  return static_cast<int32_t>(term_unbox(t)->getSkolemId());
+  HANDLE_EXCEPTIONS("term_getSkolemId",
+    return static_cast<int32_t>(term_unbox(t)->getSkolemId());
+  )
 }
 
 extern "C" lean_obj_res term_getSkolemIndices(lean_obj_arg t)
 {
-  std::vector<Term> args = term_unbox(t)->getSkolemIndices();
-  lean_object* as = lean_mk_empty_array();
-  for (const Term& arg : args)
-  {
-    as = lean_array_push(as, term_box(new Term(arg)));
-  }
-  return as;
+  HANDLE_EXCEPTIONS("term_getSkolemIndices",
+    std::vector<Term> args = term_unbox(t)->getSkolemIndices();
+    lean_object* as = lean_mk_empty_array();
+    for (const Term& arg : args)
+    {
+      as = lean_array_push(as, term_box(new Term(arg)));
+    }
+    return as;
+  )
 }
 
 extern "C" lean_obj_res term_get(lean_obj_arg t, lean_obj_arg i)
 {
-  return term_box(new Term((*term_unbox(t))[lean_usize_of_nat(i)]));
+  HANDLE_EXCEPTIONS("term_get",
+    return term_box(new Term((*term_unbox(t))[lean_usize_of_nat(i)]));
+  )
 }
 
 static void proof_finalize(void* obj) { delete static_cast<Proof*>(obj); }
@@ -411,54 +529,70 @@ static inline const Proof* proof_unbox(b_lean_obj_arg p)
 
 extern "C" lean_obj_res proof_null(lean_obj_arg unit)
 {
-  return proof_box(new Proof());
+  HANDLE_EXCEPTIONS("proof_null",
+    return proof_box(new Proof());
+  )
 }
 
 extern "C" uint8_t proof_getRule(lean_obj_arg p)
 {
-  return static_cast<uint32_t>(proof_unbox(p)->getRule());
+  HANDLE_EXCEPTIONS("proof_getRule",
+    return static_cast<uint32_t>(proof_unbox(p)->getRule());
+  )
 }
 
 extern "C" uint16_t proof_getRewriteRule(lean_obj_arg p)
 {
-  return static_cast<uint32_t>(proof_unbox(p)->getRewriteRule());
+  HANDLE_EXCEPTIONS("proof_getRewriteRule",
+    return static_cast<uint32_t>(proof_unbox(p)->getRewriteRule());
+  )
 }
 
 extern "C" lean_obj_res proof_getResult(lean_obj_arg p)
 {
-  return term_box(new Term(proof_unbox(p)->getResult()));
+  HANDLE_EXCEPTIONS("proof_getResult",
+    return term_box(new Term(proof_unbox(p)->getResult()));
+  )
 }
 
 extern "C" lean_obj_res proof_getChildren(lean_obj_arg p)
 {
-  std::vector<Proof> children = proof_unbox(p)->getChildren();
-  lean_object* cs = lean_mk_empty_array();
-  for (const Proof& child : children)
-  {
-    cs = lean_array_push(cs, proof_box(new Proof(child)));
-  }
-  return cs;
+  HANDLE_EXCEPTIONS("proof_getChildren",
+    std::vector<Proof> children = proof_unbox(p)->getChildren();
+    lean_object* cs = lean_mk_empty_array();
+    for (const Proof& child : children)
+    {
+      cs = lean_array_push(cs, proof_box(new Proof(child)));
+    }
+    return cs;
+  )
 }
 
 extern "C" lean_obj_res proof_getArguments(lean_obj_arg p)
 {
-  std::vector<Term> args = proof_unbox(p)->getArguments();
-  lean_object* as = lean_mk_empty_array();
-  for (const Term& arg : args)
-  {
-    as = lean_array_push(as, term_box(new Term(arg)));
-  }
-  return as;
+  HANDLE_EXCEPTIONS("proof_getArguments",
+    std::vector<Term> args = proof_unbox(p)->getArguments();
+    lean_object* as = lean_mk_empty_array();
+    for (const Term& arg : args)
+    {
+      as = lean_array_push(as, term_box(new Term(arg)));
+    }
+    return as;
+  )
 }
 
 extern "C" uint8_t proof_beq(lean_obj_arg l, lean_obj_arg r)
 {
-  return bool_box(*proof_unbox(l) == *proof_unbox(r));
+  HANDLE_EXCEPTIONS("proof_beq",
+    return bool_box(*proof_unbox(l) == *proof_unbox(r));
+  )
 }
 
 extern "C" uint64_t proof_hash(lean_obj_arg p)
 {
-  return std::hash<Proof>()(*proof_unbox(p));
+  HANDLE_EXCEPTIONS("proof_hash",
+    return std::hash<Proof>()(*proof_unbox(p));
+  )
 }
 
 static void termManager_finalize(void* obj)
@@ -495,32 +629,40 @@ static inline TermManager* mut_tm_unbox(b_lean_obj_arg tm)
 
 extern "C" lean_obj_res termManager_new(lean_obj_arg unit)
 {
-  return lean_io_result_mk_ok(tm_box(new TermManager()));
+  HANDLE_EXCEPTIONS("termManager_new",
+    return lean_io_result_mk_ok(tm_box(new TermManager()));
+  )
 }
 
 extern "C" lean_obj_res termManager_mkBoolean(lean_obj_arg tm, uint8_t val)
 {
-  return term_box(new Term(mut_tm_unbox(tm)->mkBoolean(bool_unbox(val))));
+  HANDLE_EXCEPTIONS("termManager_mkBoolean",
+    return term_box(new Term(mut_tm_unbox(tm)->mkBoolean(bool_unbox(val))));
+  )
 }
 
 extern "C" lean_obj_res termManager_mkIntegerFromString(lean_obj_arg tm,
                                                         lean_obj_arg val)
 {
-  return term_box(new Term(mut_tm_unbox(tm)->mkInteger(lean_string_cstr(val))));
+  HANDLE_EXCEPTIONS("termManager_mkIntegerFromString",
+    return term_box(new Term(mut_tm_unbox(tm)->mkInteger(lean_string_cstr(val))));
+  )
 }
 
 extern "C" lean_obj_res termManager_mkTerm(lean_obj_arg tm,
                                            uint16_t kind,
                                            lean_obj_arg children)
 {
-  Kind k = static_cast<Kind>(static_cast<int32_t>(kind) - 2);
-  std::vector<Term> cs;
-  for (size_t i = 0, n = lean_array_size(children); i < n; ++i)
-  {
-    cs.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), children, lean_usize_to_nat(i))));
-  }
-  return term_box(new Term(mut_tm_unbox(tm)->mkTerm(k, cs)));
+  HANDLE_EXCEPTIONS("termManager_mkTerm",
+    Kind k = static_cast<Kind>(static_cast<int32_t>(kind) - 2);
+    std::vector<Term> cs;
+    for (size_t i = 0, n = lean_array_size(children); i < n; ++i)
+    {
+      cs.push_back(*term_unbox(
+          lean_array_get(term_box(new Term()), children, lean_usize_to_nat(i))));
+    }
+    return term_box(new Term(mut_tm_unbox(tm)->mkTerm(k, cs)));
+  )
 }
 
 
@@ -530,31 +672,41 @@ extern "C" lean_obj_res termManager_mkTerm(lean_obj_arg tm,
 extern "C" lean_obj_res termManager_mkBooleanSort(
   lean_obj_arg tm
 ) {
-  return sort_box(new Sort(mut_tm_unbox(tm)->getBooleanSort()));
+  HANDLE_EXCEPTIONS("termManager_mkBooleanSort",
+    return sort_box(new Sort(mut_tm_unbox(tm)->getBooleanSort()));
+  )
 }
 
 extern "C" lean_obj_res termManager_mkIntegerSort(
   lean_obj_arg tm
 ) {
-  return sort_box(new Sort(mut_tm_unbox(tm)->getIntegerSort()));
+  HANDLE_EXCEPTIONS("termManager_mkIntegerSort",
+    return sort_box(new Sort(mut_tm_unbox(tm)->getIntegerSort()));
+  )
 }
 
 extern "C" lean_obj_res termManager_mkRealSort(
   lean_obj_arg tm
 ) {
-  return sort_box(new Sort(mut_tm_unbox(tm)->getRealSort()));
+  HANDLE_EXCEPTIONS("termManager_mkRealSort",
+    return sort_box(new Sort(mut_tm_unbox(tm)->getRealSort()));
+  )
 }
 
 extern "C" lean_obj_res termManager_mkRegExpSort(
   lean_obj_arg tm
 ) {
-  return sort_box(new Sort(mut_tm_unbox(tm)->getRegExpSort()));
+  HANDLE_EXCEPTIONS("termManager_mkRegExpSort",
+    return sort_box(new Sort(mut_tm_unbox(tm)->getRegExpSort()));
+  )
 }
 
 extern "C" lean_obj_res termManager_mkStringSort(
   lean_obj_arg tm
 ) {
-  return sort_box(new Sort(mut_tm_unbox(tm)->getStringSort()));
+  HANDLE_EXCEPTIONS("termManager_mkStringSort",
+    return sort_box(new Sort(mut_tm_unbox(tm)->getStringSort()));
+  )
 }
 
 extern "C" lean_obj_res termManager_mkArraySort(
@@ -562,16 +714,20 @@ extern "C" lean_obj_res termManager_mkArraySort(
   b_lean_obj_arg leanIdxSort,
   b_lean_obj_arg leanElmSort
 ) {
-  const Sort* idxSort = sort_unbox(leanIdxSort);
-  const Sort* elmSort = sort_unbox(leanElmSort);
-  return sort_box(new Sort(mut_tm_unbox(tm)->mkArraySort(*idxSort, *elmSort)));
+  HANDLE_EXCEPTIONS("termManager_mkArraySort",
+    const Sort* idxSort = sort_unbox(leanIdxSort);
+    const Sort* elmSort = sort_unbox(leanElmSort);
+    return sort_box(new Sort(mut_tm_unbox(tm)->mkArraySort(*idxSort, *elmSort)));
+  )
 }
 
 extern "C" lean_obj_res termManager_mkBitVectorSort(
   lean_obj_arg tm,
   lean_obj_arg size
 ) {
-  return sort_box(new Sort(mut_tm_unbox(tm)->mkBitVectorSort(lean_uint32_of_nat(size))));
+  HANDLE_EXCEPTIONS("termManager_mkBitVectorSort",
+    return sort_box(new Sort(mut_tm_unbox(tm)->mkBitVectorSort(lean_uint32_of_nat(size))));
+  )
 }
 
 
@@ -616,76 +772,88 @@ extern "C" lean_obj_res solver_err(lean_obj_arg m,
 
 extern "C" lean_obj_res solver_new(lean_obj_arg tm)
 {
-  return solver_box(new Solver(*mut_tm_unbox(tm)));
+  HANDLE_EXCEPTIONS("solver_new",
+    return solver_box(new Solver(*mut_tm_unbox(tm)));
+  )
 }
 
 extern "C" lean_obj_res solver_assertFormula(lean_obj_arg inst,
                                              lean_object* term,
                                              lean_obj_arg solver)
 {
-  solver_unbox(solver)->assertFormula(*term_unbox(term));
-  return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  HANDLE_EXCEPTIONS("solver_assertFormula",
+    solver_unbox(solver)->assertFormula(*term_unbox(term));
+    return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
 }
 
 extern "C" lean_obj_res solver_checkSat(lean_obj_arg inst, lean_obj_arg solver)
 {
-  return solver_val(lean_box(0),
-                    inst,
-                    lean_box(0),
-                    result_box(new Result(solver_unbox(solver)->checkSat())),
-                    solver);
+  HANDLE_EXCEPTIONS("solver_checkSat",
+    return solver_val(lean_box(0),
+                      inst,
+                      lean_box(0),
+                      result_box(new Result(solver_unbox(solver)->checkSat())),
+                      solver);
+  )
 }
 
 extern "C" lean_obj_res solver_getProof(lean_obj_arg inst, lean_obj_arg solver)
 {
-  std::vector<Proof> proofs = solver_unbox(solver)->getProof();
-  lean_object* ps = lean_mk_empty_array();
-  for (const Proof& proof : proofs)
-  {
-    ps = lean_array_push(ps, proof_box(new Proof(proof)));
-  }
-  return solver_val(lean_box(0), inst, lean_box(0), ps, solver);
+  HANDLE_EXCEPTIONS("solver_getProof",
+    std::vector<Proof> proofs = solver_unbox(solver)->getProof();
+    lean_object* ps = lean_mk_empty_array();
+    for (const Proof& proof : proofs)
+    {
+      ps = lean_array_push(ps, proof_box(new Proof(proof)));
+    }
+    return solver_val(lean_box(0), inst, lean_box(0), ps, solver);
+  )
 }
 
 extern "C" lean_obj_res solver_proofToString(lean_obj_arg inst,
                                              lean_obj_arg proof,
                                              lean_obj_arg solver)
 {
-  return solver_val(
-      lean_box(0),
-      inst,
-      lean_box(0),
-      lean_mk_string(
-          solver_unbox(solver)->proofToString(*proof_unbox(proof)).c_str()),
-      solver);
+  HANDLE_EXCEPTIONS("solver_proofToString",
+    return solver_val(
+        lean_box(0),
+        inst,
+        lean_box(0),
+        lean_mk_string(
+            solver_unbox(solver)->proofToString(*proof_unbox(proof)).c_str()),
+        solver);
+  )
 }
 
 extern "C" lean_obj_res solver_parse(lean_obj_arg inst,
                                      lean_obj_arg query,
                                      lean_obj_arg solver)
 {
-  Solver* slv = solver_unbox(solver);
-  // construct an input parser associated the solver above
-  parser::InputParser parser(slv);
-  // get the symbol manager of the parser, used when invoking commands below
-  parser::SymbolManager* sm = parser.getSymbolManager();
-  parser.setStringInput(
-      modes::InputLanguage::SMT_LIB_2_6, lean_string_cstr(query), "lean-smt");
-  // parse commands until finished
-  std::stringstream out;
-  parser::Command cmd;
-  while (true)
-  {
-    cmd = parser.nextCommand();
-    if (cmd.isNull())
+  HANDLE_EXCEPTIONS("solver_parse",
+    Solver* slv = solver_unbox(solver);
+    // construct an input parser associated the solver above
+    parser::InputParser parser(slv);
+    // get the symbol manager of the parser, used when invoking commands below
+    parser::SymbolManager* sm = parser.getSymbolManager();
+    parser.setStringInput(
+        modes::InputLanguage::SMT_LIB_2_6, lean_string_cstr(query), "lean-smt");
+    // parse commands until finished
+    std::stringstream out;
+    parser::Command cmd;
+    while (true)
     {
-      break;
+      cmd = parser.nextCommand();
+      if (cmd.isNull())
+      {
+        break;
+      }
+      // invoke the command on the solver and the symbol manager, print the result
+      // to out
+      cmd.invoke(slv, sm, out);
     }
-    // invoke the command on the solver and the symbol manager, print the result
-    // to out
-    cmd.invoke(slv, sm, out);
-  }
-  return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+    return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
 }
 
 
@@ -700,19 +868,21 @@ extern "C" lean_obj_res solver_declareFun(
   lean_obj_arg fresh,
   lean_obj_arg solver
 ) {
-  std::vector<Sort> sort_vec;
-  for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i) {
-    sort_vec.push_back(*sort_unbox(
-      lean_array_get(sort_box(new Sort()), sorts, lean_usize_to_nat(i))
-    ));
-  }
-  Term f = solver_unbox(solver)->declareFun(
-    lean_string_cstr(symbol),
-    sort_vec,
-    *sort_unbox(sort),
-    bool_unbox(lean_unbox(fresh))
-  );
-  return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(f)), solver);
+  HANDLE_EXCEPTIONS("solver_declareFun",
+    std::vector<Sort> sort_vec;
+    for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i) {
+      sort_vec.push_back(*sort_unbox(
+        lean_array_get(sort_box(new Sort()), sorts, lean_usize_to_nat(i))
+      ));
+    }
+    Term f = solver_unbox(solver)->declareFun(
+      lean_string_cstr(symbol),
+      sort_vec,
+      *sort_unbox(sort),
+      bool_unbox(lean_unbox(fresh))
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(f)), solver);
+  )
 }
 
 extern "C" lean_obj_res solver_declareSort(
@@ -722,12 +892,14 @@ extern "C" lean_obj_res solver_declareSort(
   lean_obj_arg fresh,
   lean_obj_arg solver
 ) {
-  Sort s = solver_unbox(solver)->declareSort(
-    lean_string_cstr(symbol),
-    lean_uint32_of_nat(arity),
-    bool_unbox(lean_unbox(fresh))
-  );
-  return solver_val(lean_box(0), inst, lean_box(0), sort_box(new Sort(s)), solver);
+  HANDLE_EXCEPTIONS("solver_declareSort",
+    Sort s = solver_unbox(solver)->declareSort(
+      lean_string_cstr(symbol),
+      lean_uint32_of_nat(arity),
+      bool_unbox(lean_unbox(fresh))
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), sort_box(new Sort(s)), solver);
+  )
 }
 
 
@@ -739,10 +911,12 @@ extern "C" lean_obj_res solver_setLogic(
   lean_object* logic,
   lean_obj_arg solver
 ) {
-  solver_unbox(solver)->setLogic(
-    lean_string_cstr(logic)
-  );
-  return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  HANDLE_EXCEPTIONS("solver_setLogic",
+    solver_unbox(solver)->setLogic(
+      lean_string_cstr(logic)
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
 }
 
 extern "C" lean_obj_res solver_setOption(
@@ -751,11 +925,13 @@ extern "C" lean_obj_res solver_setOption(
   lean_object* value,
   lean_obj_arg solver
 ) {
-  solver_unbox(solver)->setOption(
-    lean_string_cstr(option),
-    lean_string_cstr(value)
-  );
-  return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  HANDLE_EXCEPTIONS("solver_setOption",
+    solver_unbox(solver)->setOption(
+      lean_string_cstr(option),
+      lean_string_cstr(value)
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
 }
 
 
@@ -766,65 +942,75 @@ extern "C" lean_obj_res solver_getVersion(
   lean_obj_arg inst,
   lean_obj_arg solver
 ) {
-  return solver_val(
-    lean_box(0),
-    inst,
-    lean_box(0),
-    lean_mk_string(solver_unbox(solver)->getVersion().c_str()),
-    solver
-  );
+  HANDLE_EXCEPTIONS("solver_getVersion",
+    return solver_val(
+      lean_box(0),
+      inst,
+      lean_box(0),
+      lean_mk_string(solver_unbox(solver)->getVersion().c_str()),
+      solver
+    );
+  )
 }
 
 extern "C" lean_obj_res solver_getAssertions(
   lean_obj_arg inst,
   lean_obj_arg solver
 ) {
-  std::vector<Term> assertions = solver_unbox(solver)->getAssertions();
-  lean_object* res = lean_mk_empty_array();
-  for (const Term& assertion : assertions)
-  {
-    res = lean_array_push(res, term_box(new Term(assertion)));
-  }
-  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  HANDLE_EXCEPTIONS("solver_getAssertions",
+    std::vector<Term> assertions = solver_unbox(solver)->getAssertions();
+    lean_object* res = lean_mk_empty_array();
+    for (const Term& assertion : assertions)
+    {
+      res = lean_array_push(res, term_box(new Term(assertion)));
+    }
+    return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  )
 }
 
 extern "C" lean_obj_res solver_getUnsatAssumptions(
   lean_obj_arg inst,
   lean_obj_arg solver
 ) {
-  std::vector<Term> assertions = solver_unbox(solver)->getUnsatAssumptions();
-  lean_object* res = lean_mk_empty_array();
-  for (const Term& assertion : assertions)
-  {
-    res = lean_array_push(res, term_box(new Term(assertion)));
-  }
-  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  HANDLE_EXCEPTIONS("solver_getUnsatAssumptions",
+    std::vector<Term> assertions = solver_unbox(solver)->getUnsatAssumptions();
+    lean_object* res = lean_mk_empty_array();
+    for (const Term& assertion : assertions)
+    {
+      res = lean_array_push(res, term_box(new Term(assertion)));
+    }
+    return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  )
 }
 
 extern "C" lean_obj_res solver_getUnsatCore(
   lean_obj_arg inst,
   lean_obj_arg solver
 ) {
-  std::vector<Term> assertions = solver_unbox(solver)->getUnsatCore();
-  lean_object* res = lean_mk_empty_array();
-  for (const Term& assertion : assertions)
-  {
-    res = lean_array_push(res, term_box(new Term(assertion)));
-  }
-  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  HANDLE_EXCEPTIONS("solver_getUnsatCore",
+    std::vector<Term> assertions = solver_unbox(solver)->getUnsatCore();
+    lean_object* res = lean_mk_empty_array();
+    for (const Term& assertion : assertions)
+    {
+      res = lean_array_push(res, term_box(new Term(assertion)));
+    }
+    return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  )
 }
 
 extern "C" lean_obj_res solver_getUnsatCoreLemmas(
   lean_obj_arg inst,
   lean_obj_arg solver
 ) {
-  std::vector<Term> assertions = solver_unbox(solver)->getUnsatCoreLemmas();
-  lean_object* res = lean_mk_empty_array();
-  for (const Term& assertion : assertions)
-  {
-    res = lean_array_push(res, term_box(new Term(assertion)));
-  }
-  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  HANDLE_EXCEPTIONS("solver_getUnsatCoreLemmas",
+    std::vector<Term> assertions = solver_unbox(solver)->getUnsatCoreLemmas();
+    lean_object* res = lean_mk_empty_array();
+    for (const Term& assertion : assertions)
+    {
+      res = lean_array_push(res, term_box(new Term(assertion)));
+    }
+    return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  )
 }
 
 extern "C" lean_obj_res solver_getInfo(
@@ -832,10 +1018,12 @@ extern "C" lean_obj_res solver_getInfo(
   lean_obj_arg flag,
   lean_obj_arg solver
 ) {
-  std::string info = solver_unbox(solver)->getInfo(
-    lean_string_cstr(flag)
-  );
-  return solver_val(lean_box(0), inst, lean_box(0), lean_mk_string(info.c_str()), solver);
+  HANDLE_EXCEPTIONS("solver_getInfo",
+    std::string info = solver_unbox(solver)->getInfo(
+      lean_string_cstr(flag)
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), lean_mk_string(info.c_str()), solver);
+  )
 }
 
 extern "C" lean_obj_res solver_getOption(
@@ -843,23 +1031,27 @@ extern "C" lean_obj_res solver_getOption(
   lean_obj_arg option,
   lean_obj_arg solver
 ) {
-  std::string info = solver_unbox(solver)->getOption(
-    lean_string_cstr(option)
-  );
-  return solver_val(lean_box(0), inst, lean_box(0), lean_mk_string(info.c_str()), solver);
+  HANDLE_EXCEPTIONS("solver_getOption",
+    std::string info = solver_unbox(solver)->getOption(
+      lean_string_cstr(option)
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), lean_mk_string(info.c_str()), solver);
+  )
 }
 
 extern "C" lean_obj_res solver_getOptionNames(
   lean_obj_arg inst,
   lean_obj_arg solver
 ) {
-  std::vector<std::string> options = solver_unbox(solver)->getOptionNames();
-  lean_object* res = lean_mk_empty_array();
-  for (const std::string& name : options)
-  {
-    res = lean_array_push(res, lean_mk_string(name.c_str()));
-  }
-  return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  HANDLE_EXCEPTIONS("solver_getOptionNames",
+    std::vector<std::string> options = solver_unbox(solver)->getOptionNames();
+    lean_object* res = lean_mk_empty_array();
+    for (const std::string& name : options)
+    {
+      res = lean_array_push(res, lean_mk_string(name.c_str()));
+    }
+    return solver_val(lean_box(0), inst, lean_box(0), res, solver);
+  )
 }
 
 
@@ -871,8 +1063,10 @@ extern "C" lean_obj_res solver_getValue(
   lean_obj_arg term,
   lean_obj_arg solver
 ) {
-  Term value = solver_unbox(solver)->getValue(*term_unbox(term));
-  return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
+  HANDLE_EXCEPTIONS("solver_getValue",
+    Term value = solver_unbox(solver)->getValue(*term_unbox(term));
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
+  )
 }
 
 
@@ -883,6 +1077,8 @@ extern "C" lean_obj_res solver_resetAssertions(
   lean_obj_arg inst,
   lean_obj_arg solver
 ) {
-  solver_unbox(solver)->resetAssertions();
-  return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  HANDLE_EXCEPTIONS("solver_resetAssertions",
+    solver_unbox(solver)->resetAssertions();
+    return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
 }
