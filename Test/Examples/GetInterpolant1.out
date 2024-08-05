@@ -1,0 +1,3 @@
+φ = (=> (not (and p q)) (and (not r) q))
+ψ = (or (=> s p) (=> s (not r)))
+interpolant: (or p (not r))

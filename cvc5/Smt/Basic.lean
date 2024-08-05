@@ -207,6 +207,11 @@ def getProof : SmtT m (Array Proof) :=
   Solver.getProof
   |> solverRun
 
+@[inherit_doc Solver.getInterpolant]
+def getInterpolant (t : Term) : SmtT m Term :=
+  Solver.getInterpolant t
+  |> solverRun
+
 @[inherit_doc Solver.proofToString]
 def proofToString (proof : Proof) : SmtT m String :=
   Solver.proofToString proof

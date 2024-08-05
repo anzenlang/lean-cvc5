@@ -70,10 +70,6 @@ private def val (a : α) : SolverT m α := pure a
 @[export solver_err]
 private def err (e : Error) : SolverT m α := throw e
 
-/-- `String` representation of the version of this solver. -/
-@[extern "solver_getVersion"]
-opaque getVersion : SolverT m String
-
 /-- Sets the value of a solver option. -/
 @[extern "solver_setOption"]
 opaque setOption (option value : String) : SolverT m Unit
@@ -81,10 +77,6 @@ opaque setOption (option value : String) : SolverT m Unit
 /-- Sets the solver's logic. -/
 @[extern "solver_setLogic"]
 opaque setLogic (logic : String) : SolverT m Unit
-
-/-- Get the value associated to a solver option. -/
-@[extern "solver_getOption"]
-opaque getOption : (option : String) → SolverT m String
 
 /-- Asserts a formula. -/
 @[extern "solver_assertFormula"]
@@ -211,13 +203,32 @@ What happens
 @[extern "solver_getUnsatCoreLemmas"]
 opaque getUnsatCoreLemmas : SolverT m (Array Term)
 
-/-- Get the information associated to a flag. -/
+/-- Get the information associated with a flag. -/
 @[extern "solver_getInfo"]
 opaque getInfo : (flag : String) → SolverT m String
 
 /-- Get the name of all the solver options. -/
 @[extern "solver_getOptionNames"]
 opaque getOptionNames : SolverT m (Array String)
+
+/-- `String` representation of the version of this solver. -/
+@[extern "solver_getVersion"]
+opaque getVersion : SolverT m String
+
+/-- Get the value of a solver option. -/
+@[extern "solver_getOption"]
+opaque getOption : (option : String) → SolverT m String
+
+/-- Produces an interpolant `I` for the conjunction of the current set of assumptions `A` and the
+input term `B`.
+
+Requires option `produce-interpolants` to be set to a mode different from `none`.
+
+`I` is such that `A → I` and `I → B` are valid, and `I` only mentions symbols that appear both in
+`A` and `B`.
+-/
+@[extern "solver_getInterpolant"]
+opaque getInterpolant : (term : Term) → SolverT m Term
 
 end information_extraction
 
@@ -228,17 +239,15 @@ section evaluation
 
 /-- Evaluates a term in the current model.
 
-# TODO
-
-What happens
-
-- when `unsat`?
-- no `check-sat` has been issued?
+Only legal if the `produce-model` option is active and the last check-sat produced `sat`.
 -/
 @[extern "solver_getValue"]
 opaque getValue : (term : Term) → SolverT m Term
 
-/-- Evaluates some terms in the current model. -/
+/-- Evaluates some terms in the current model.
+
+Only legal if the `produce-model` option is active and the last check-sat produced `sat`.
+-/
 def getValues (terms : Array Term) : SolverT m (Array Term) :=
   Array.mkEmpty terms.size
   |> terms.foldlM fun array term =>

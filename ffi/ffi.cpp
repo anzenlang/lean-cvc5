@@ -856,6 +856,17 @@ extern "C" lean_obj_res solver_parse(lean_obj_arg inst,
   )
 }
 
+extern "C" lean_obj_res solver_getInterpolant(
+  lean_obj_arg inst,
+  lean_obj_arg term,
+  lean_obj_arg solver
+) {
+  HANDLE_EXCEPTIONS("solver_getInterpolant",
+    Term value = solver_unbox(solver)->getInterpolant(*term_unbox(term));
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
+  )
+}
+
 
 
 // # `Solver`: declarations
