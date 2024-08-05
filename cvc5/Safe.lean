@@ -51,8 +51,10 @@ ofUnsafe ::
 
 
 
-protected class ToCvc5 (α : Type) extends ToCvc5Sort α where
-  toCvc5 : Manager → α → Term α
+protected class ToCvc5H (α : Type) (β : outParam Type) extends ToCvc5Sort α where
+  toCvc5 : Manager → α → Term β
+
+protected class ToCvc5 (α : Type) extends Term.ToCvc5H α α
 
 
 
@@ -65,22 +67,25 @@ def mk [Monad m] [MonadLiftT BaseIO m] : m Manager := do
 variable (self : Manager)
 
 /-- Creates a term from a value of a type that can be converted to cvc5. -/
-def mkTerm [Term.ToCvc5 α] (val : α) : Term α :=
-  ToCvc5.toCvc5 self val
+def mkTerm [Term.ToCvc5H α β] (val : α) : Term β :=
+  ToCvc5H.toCvc5 self val
 
 @[inherit_doc cvc5.Term.Manager.mkBoolean]
 def mkBool : Bool → Term Bool :=
   Term.ofUnsafe ∘ self.toUnsafe.mkBoolean
 
-instance : Term.ToCvc5 Bool :=
-  ⟨mkBool⟩
+instance : Term.ToCvc5 Bool where
+  toCvc5 := mkBool
 
 @[inherit_doc cvc5.Term.Manager.mkInteger]
 def mkInt : Int → Term Int :=
   Term.ofUnsafe ∘ self.toUnsafe.mkInteger
 
-instance : Term.ToCvc5 Int :=
-  ⟨mkInt⟩
+instance : Term.ToCvc5H Nat Int where
+  toCvc5 m := m.mkInt ∘ Int.ofNat
+
+instance : Term.ToCvc5 Int where
+  toCvc5 := mkInt
 
 /-- If-then-else constructor. -/
 def mkIte (cnd : Term Bool) (thn els : Term α) : Term α :=
@@ -309,7 +314,7 @@ protected def termManagerDo [Monad m] (f : Term.Manager → α) : SmtT m α :=
     return (res, ofUnsafe uns)
 
 @[inherit_doc Term.Manager.mkTerm]
-def mkTerm [Term.ToCvc5 α] (val : α) : SmtT m (Term α) :=
+def mkTerm [Term.ToCvc5H α β] (val : α) : SmtT m (Term β) :=
   Smt.termManagerDo fun tm => tm.mkTerm val
 
 @[inherit_doc Term.Manager.mkIte]
@@ -334,6 +339,8 @@ def mkNot (term : Term Bool) : SmtT m (Term Bool) :=
 @[inherit_doc Term.Manager.mkImplies]
 def mkImplies (lhs rhs : Term Bool) : SmtT m (Term Bool) :=
   Smt.termManagerDo fun tm => tm.mkImplies lhs rhs
+
+
 
 
 
