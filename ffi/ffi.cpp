@@ -13,6 +13,14 @@ extern "C" lean_obj_res except_ok_bool(
   uint8_t val
 );
 
+extern "C" lean_obj_res except_ok_u32(
+  uint32_t val
+);
+
+extern "C" lean_obj_res except_ok_u8(
+  uint8_t val
+);
+
 extern "C" lean_obj_res except_err(
   lean_obj_arg alpha,
   lean_obj_arg msg
@@ -201,8 +209,8 @@ extern "C" uint8_t sort_isInteger(lean_obj_arg s)
 extern "C" lean_obj_res sort_getBitVectorSize(lean_obj_arg s)
 {
   CVC5_TRY_CATCH_EXCEPT(
-    return except_ok(lean_box(0),
-      lean_box_uint32(sort_unbox(s)->getBitVectorSize())
+    return except_ok_u32(
+      static_cast<int32_t>(sort_unbox(s)->getBitVectorSize())
     );
   )
 }
@@ -342,9 +350,13 @@ extern "C" uint8_t term_hasOp(lean_obj_arg t)
   return bool_box(term_unbox(t)->hasOp());
 }
 
-extern "C" lean_obj_arg term_getOp(lean_obj_arg t)
+extern "C" lean_obj_res term_getOp(lean_obj_arg t)
 {
-  return op_box(new Op(term_unbox(t)->getOp()));
+  CVC5_TRY_CATCH_EXCEPT(
+    return except_ok(lean_box(0),
+      op_box(new Op(term_unbox(t)->getOp()))
+    );
+  )
 }
 
 extern "C" lean_obj_arg term_getSort(lean_obj_arg t)
@@ -411,7 +423,11 @@ extern "C" uint8_t term_hasSymbol(lean_obj_arg t)
 
 extern "C" lean_obj_res term_getSymbol(lean_obj_arg t)
 {
-  return lean_mk_string(term_unbox(t)->getSymbol().c_str());
+  CVC5_TRY_CATCH_EXCEPT(
+    return except_ok(lean_box(0),
+      lean_mk_string(term_unbox(t)->getSymbol().c_str())
+    );
+  )
 }
 
 extern "C" lean_obj_res term_getId(lean_obj_arg t)
@@ -429,20 +445,26 @@ extern "C" uint8_t term_isSkolem(lean_obj_arg t)
   return bool_box(term_unbox(t)->isSkolem());
 }
 
-extern "C" uint8_t term_getSkolemId(lean_obj_arg t)
+extern "C" lean_obj_res term_getSkolemId(lean_obj_arg t)
 {
-  return static_cast<int32_t>(term_unbox(t)->getSkolemId());
+  CVC5_TRY_CATCH_EXCEPT(
+    return except_ok_u8(
+      static_cast<int32_t>(term_unbox(t)->getSkolemId())
+    );
+  )
 }
 
 extern "C" lean_obj_res term_getSkolemIndices(lean_obj_arg t)
 {
-  std::vector<Term> args = term_unbox(t)->getSkolemIndices();
-  lean_object* as = lean_mk_empty_array();
-  for (const Term& arg : args)
-  {
-    as = lean_array_push(as, term_box(new Term(arg)));
-  }
-  return as;
+  CVC5_TRY_CATCH_EXCEPT(
+    std::vector<Term> args = term_unbox(t)->getSkolemIndices();
+    lean_object* as = lean_mk_empty_array();
+    for (const Term& arg : args)
+    {
+      as = lean_array_push(as, term_box(new Term(arg)));
+    }
+    return except_ok(lean_box(0), as);
+  )
 }
 
 extern "C" lean_obj_res term_get(lean_obj_arg t, lean_obj_arg i)
@@ -699,11 +721,7 @@ extern "C" lean_obj_res termManager_mkParamSort(
 
 extern "C" lean_obj_res termManager_mkBoolean(lean_obj_arg tm, uint8_t val)
 {
-  CVC5_TRY_CATCH_EXCEPT(
-    return except_ok(lean_box(0),
-      term_box(new Term(mut_tm_unbox(tm)->mkBoolean(bool_unbox(val))))
-    );
-  )
+  return term_box(new Term(mut_tm_unbox(tm)->mkBoolean(bool_unbox(val))));
 }
 
 extern "C" lean_obj_res termManager_mkIntegerFromString(lean_obj_arg tm,

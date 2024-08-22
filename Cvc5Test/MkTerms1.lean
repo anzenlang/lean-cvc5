@@ -7,8 +7,8 @@ test! tm => do
   let boolKind := Kind.CONST_BOOLEAN
 
   let (tru, fls) := (
-    tm.mkBoolean! true,
-    tm.mkBoolean! false,
+    tm.mkBoolean true,
+    tm.mkBoolean false,
   )
   assertEq tru.getKind boolKind
   assertEq tru.getSort.toString "Bool"

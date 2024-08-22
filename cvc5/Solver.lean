@@ -5,6 +5,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed
 -/
 
+import Lean.Elab.Command
+import Lean.Expr
 import Lean.Data.Rat
 
 import cvc5.Kind
@@ -84,6 +86,16 @@ private def mkExceptOk {α : Type} : α → Except Error α :=
 /-- Only used by FFI to inject values. -/
 @[export except_ok_bool]
 private def mkExceptOkBool : Bool → Except Error Bool :=
+  .ok
+
+/-- Only used by FFI to inject values. -/
+@[export except_ok_u32]
+private def mkExceptOkU32 : UInt32 → Except Error UInt32 :=
+  .ok
+
+/-- Only used by FFI to inject values. -/
+@[export except_ok_u8]
+private def mkExceptOkU8 : UInt8 → Except Error UInt8 :=
   .ok
 
 /-- Only used by FFI to inject errors. -/
@@ -253,6 +265,146 @@ instance : ToString Op := ⟨Op.toString⟩
 
 end Op
 
+/-! ## DSL for definition DRY -/
+
+declare_syntax_cat defsItem
+
+scoped syntax (name := defsItemStx)
+  declModifiers
+  "def " ident ("(" "force" " := " str ")")? " : " term
+  withPosition(ppLine "with "
+    group(
+      colGt
+      docComment ?
+      ident
+    )*
+  )?
+  withPosition(ppLine "where "
+    group(
+      colGt
+      docComment ?
+      declId optDeclSig ":= " withPosition(group(colGe term))
+    )*
+  )?
+: defsItem
+
+def elabDefsItem (pref : String) : Lean.Elab.Command.CommandElab
+| `(defsItem|
+    $mods:declModifiers
+    def $ident:ident $[(force := $forced:str)]? : $typ:term
+    $[ with $[
+        $[$autoDoc]?
+        $autoId
+    ]* ]?
+    $[ where $[
+        $[$subDoc]?
+        $subId $subSig := $subDef
+    ]* ]?
+) => do
+  let externName :=
+    let id :=
+      if let some forced := forced then
+        forced.getString
+      else
+        ident.getId.toString
+    pref ++ "_" ++ id |> Lean.Syntax.mkStrLit
+  let mods ←
+    match mods with
+    | `(Lean.Parser.Command.declModifiersT|
+      $[$doc:docComment]? $[@[ $[ $attrs ],* ]]? $[$vis]? $[$isNc]? $[$isUnsafe]? $[$opt]?
+    ) => do
+      let ext ← `(Lean.Parser.Term.attrInstance| extern $externName:str)
+      let attrs := attrs.getD #[] |>.push ext
+      `(Lean.Parser.Command.declModifiersT|
+        $[$doc:docComment]? @[ $[$attrs],* ] $[$vis]? $[$isNc]? $[$isUnsafe]? $[$opt]?
+      )
+    | _ => Lean.Elab.throwUnsupportedSyntax
+  let mainDef ←`(
+    $(⟨mods⟩):declModifiers
+    opaque $ident:declId : $typ:term
+  )
+  Lean.Elab.Command.elabCommand mainDef
+
+  let define doc? id sig? (body : Lean.Syntax.Term) : Lean.Elab.Command.CommandElabM _ := do
+    if let some doc := doc? then
+      `(command|
+        $doc:docComment
+        def $id:declId $sig?:optDeclSig := $body
+      )
+    else
+      `(command|
+        @[inherit_doc $ident]
+        def $id:declId $sig?:optDeclSig := $body
+      )
+
+  if let (some autoDoc?, some autoId) := (autoDoc, autoId) then
+    for (autoDoc?, autoId) in autoDoc?.zip autoId do
+      let id : String := autoId.getId.toString
+      let body ←
+        if id.endsWith "!" then
+          `(cvc5.Error.unwrap! ∘ $ident)
+        else if id.endsWith "?" then
+          `(Except.toOption ∘ $ident)
+        else
+          Lean.throwError s!"unexpected auto function name `{id}`"
+      Lean.Elab.Command.elabCommand
+        (← define autoDoc? autoId (← `(optDeclSig|)) body)
+
+  if let
+    (some subDoc?, some subId, some subSig, some subDef)
+    := (subDoc, subId, subSig, subDef)
+  then
+    let all := subDoc?.zip subId |>.zip subSig |>.zip subDef
+    for (((subDoc?, subId), subSig), subDef) in all do
+      Lean.Elab.Command.elabCommand
+        (← define subDoc? subId subSig subDef)
+| _ => Lean.Elab.throwUnsupportedSyntax
+
+/-- Defines similar functions realized by `extern`.
+
+```
+defs "prefix"
+  /-- Create a Boolean constant.
+
+  - `b`: The Boolean constant.
+
+  Will create an opaque definition with `[@extern extStr]` where
+  `extStr = "prefix" ++ _ ++ "myFunction"`.
+  -/
+  def myFunction : Term → Except Error Op
+  with
+    endsWithBang!
+    endWithQuestion?
+  where
+    myOtherFunction : Term → Op :=
+      Error.unwrap! ∘ myFunction
+    /-- Optional function docstring: if none, inherit from the main function. -/
+    yetAnotherFunction : Term → Option Op :=
+      Except.toOption ∘ myFunction
+```
+
+- `with ...`: takes a sequence of identifiers, each generate a function that
+  - unwraps the result if `!`-ended;
+  - turns a result into an option if `?`-ended;
+  - fails otherwise.
+
+- supports `declModifiers` on the main (`def`) function `myFunction` such as `private`...
+- accepts a list of main (`def`) functions, each with `with` and/or `where` clauses.
+-/
+scoped syntax (name := multidefs)
+  withPosition("defs! " str ppLine group(colGt defsItem)+)
+: command
+
+@[inherit_doc multidefs, command_elab multidefs]
+def multidefsImpl : Lean.Elab.Command.CommandElab
+| `(command|
+  defs! $pref:str $[$defsItems]*
+) => do
+  let pref := pref.getString
+  for defsItem in defsItems do
+    elabDefsItem pref defsItem
+| _ => Lean.Elab.throwUnsupportedSyntax
+
 namespace Term
 
 @[extern "term_null"]
@@ -268,27 +420,17 @@ opaque isNull : Term → Bool
 @[extern "term_getKind"]
 opaque getKind : Term → Kind
 
-/-- Get the operator of a term with an operator. -/
+/-- Determine if this term has an operator. -/
 @[extern "term_hasOp"]
 opaque hasOp : Term → Bool
 
-/-- Get the operator of a term with an operator.
+defs! "term"
+  /-- Get the operator of a term with an operator.
 
-Requires that this term has an operator (see `hasOp`).
--/
-@[extern "term_getOp"]
-private opaque getOp! : Term → Op
-
-@[inherit_doc getOp!]
-def getOp (term : Term) (_valid : term.hasOp) : Op :=
-  term.getOp!
-
-/-- Get the operator of a term, if any. -/
-def getOp? (term : Term) : Option Op :=
-  if valid : term.hasOp then
-    term.getOp valid
-  else
-    none
+  Requires that this term has an operator (see `hasOp`).
+  -/
+  def getOp : Term → Except Error Op
+  with getOp! getOp?
 
 /-- Get the sort of this term. -/
 @[extern "term_getSort"]
@@ -306,29 +448,30 @@ protected opaque hash : Term → UInt64
 
 instance : Hashable Term := ⟨Term.hash⟩
 
-/-- Get the value of a Boolean term as a native Boolean value.
+defs! "term"
+  /-- Get the value of a Boolean term as a native Boolean value.
 
-Requires `term` to have sort Bool.
--/
-@[extern "term_getBooleanValue"]
-opaque getBooleanValue : (term : Term) → Except Error Bool
+  Requires `term` to have sort Bool.
+  -/
+  def getBooleanValue : (term : Term) → Except Error Bool
+  with getBooleanValue! getBoolneaValue?
 
-/-- Get the string representation of a bit-vector value.
+  /-- Get the string representation of a bit-vector value.
 
-Requires `term` to have a bit-vector sort.
+  Requires `term` to have a bit-vector sort.
 
-- `base`: `2` for binary, `10` for decimal, and `16` for hexadecimal.
--/
-@[extern "term_getBitVectorValue"]
-opaque getBitVectorValue : Term → (base : UInt32 := 2) → Except Error String
+  - `base`: `2` for binary, `10` for decimal, and `16` for hexadecimal.
+  -/
+  def getBitVectorValue : (term : Term) → Except Error String
+  with getBitVectorValue? getBitVectorValue!
 
-/-- Get the native integral value of an integral value. -/
-@[extern "term_getIntegerValue"]
-opaque getIntegerValue : Term → Except Error Int
+  /-- Get the native integral value of an integral value. -/
+  def getIntegerValue : Term → (base : UInt32 := 2) → Except Error Int
+  with getIntegerValue? getIntegerValue!
 
-/-- Get the native rational value of a real, rational-compatible value. -/
-@[extern "term_getRationalValue"]
-opaque getRationalValue : Term → Except Error Lean.Rat
+  /-- Get the native rational value of a real, rational-compatible value. -/
+  def getRationalValue : Term → (base : UInt32 := 2) → Except Error Lean.Rat
+  with getRationalValue? getRationalValue!
 
 /-- Determine if this term has a symbol (a name).
 
@@ -337,26 +480,16 @@ For example, free constants and variables have symbols.
 @[extern "term_hasSymbol"]
 opaque hasSymbol : Term → Bool
 
-/-- Get the symbol of this term.
+defs! "term"
+  /-- Get the symbol of this term.
 
-Requires that this term has a symbol (see `hasSymbol`).
+  Requires that this term has a symbol (see `hasSymbol`).
 
-The symbol of the term is the string that was provided when constructing it *via*
-`TermManager.mkConst` or `TermManager.mkVar`.
--/
-@[extern "term_getSymbol"]
-private opaque getSymbol! : Term → String
-
-@[inherit_doc getSymbol!]
-def getSymbol (term : Term) (_valid : term.hasSymbol) : String :=
-  term.getSymbol!
-
-/-- Get the symbol of this term, if any. -/
-def getSymbol? (term : Term) : Option String :=
-  if valid : term.hasSymbol then
-    term.getSymbol valid
-  else
-    none
+  The symbol of the term is the string that was provided when constructing it *via*
+  `TermManager.mkConst` or `TermManager.mkVar`.
+  -/
+  def getSymbol : Term → Except Error String
+  with getSymbol? getSymbol!
 
 /-- Get the id of this term. -/
 @[extern "term_getId"]
@@ -370,48 +503,23 @@ opaque getNumChildren : Term → Nat
 @[extern "term_isSkolem"]
 opaque isSkolem : Term → Bool
 
-/-- Get skolem identifier of this term.
+defs! "term"
+  /-- Get skolem identifier of this term.
 
-Requires `isSkolem`.
--/
-@[extern "term_getSkolemId"]
-opaque getSkolemId! : Term → SkolemId
+  Requires `isSkolem`.
+  -/
+  def getSkolemId : Term → Except Error SkolemId
+  with getSkolemId? getSkolemId!
 
-@[inherit_doc getSkolemId!]
-def getSkolemId (term : Term) (_valid : term.isSkolem) : SkolemId :=
-  term.getSkolemId!
+  /-- Get the skolem indices of this term.
 
-/-- Get skolem identifier of this term, if any. -/
-def getSkolemId? (term : Term) : Option SkolemId :=
-  if valid : term.isSkolem then
-    term.getSkolemId valid
-  else
-    none
+  Requires `isSkolem`.
 
-/-- Get the skolem indices of this term.
-
-Requires `isSkolem`.
-
-Returns the skolem indices of this term. This is a list of terms that the skolem function is indexed
-by. For example, the array diff skolem `SkolemId.ARRAY_DEQ_DIFF` is indexed by two arrays.
--/
-@[extern "term_getSkolemIndices"]
-private opaque getSkolemIndices! : Term → Array Term
-
-@[inherit_doc getSkolemIndices!]
-def getSkolemIndices (term : Term) (_valid : term.isSkolem) : Array Term :=
-  term.getSkolemIndices!
-
-/-- Get the skolem indices of this term, if any.
-
-Returns the skolem indices of this term. This is a list of terms that the skolem function is indexed
-by. For example, the array diff skolem `SkolemId.ARRAY_DEQ_DIFF` is indexed by two arrays.
--/
-def getSkolemIndices? (term : Term) : Option (Array Term) :=
-  if valid : term.isSkolem then
-    term.getSkolemIndices valid
-  else
-    none
+  Returns the skolem indices of this term. This is a list of terms that the skolem function is
+  indexed by. For example, the array diff skolem `SkolemId.ARRAY_DEQ_DIFF` is indexed by two arrays.
+  -/
+  def getSkolemIndices : Term → Except Error (Array Term)
+  with getSkolemIndices? getSkolemIndices!
 
 /-- Get the child term of this term at a given index. -/
 @[extern "term_get"]
@@ -510,175 +618,146 @@ end Proof
 
 namespace TermManager
 
-@[extern "termManager_new"]
-opaque new : BaseIO TermManager
+defs! "termManager"
 
-/-- Get the Boolean sort. -/
-@[extern "termManager_getBooleanSort"]
-opaque getBooleanSort : TermManager → cvc5.Sort
+  /-- Constructor. -/
+  def new : BaseIO TermManager
 
-/-- Get the Integer sort. -/
-@[extern "termManager_getIntegerSort"]
-opaque getIntegerSort : TermManager → cvc5.Sort
+  /-- Get the Boolean sort. -/
+  def getBooleanSort : TermManager → cvc5.Sort
 
-/-- Get the Real sort. -/
-@[extern "termManager_getRealSort"]
-opaque getRealSort : TermManager → cvc5.Sort
+  /-- Get the Integer sort. -/
+  def getIntegerSort : TermManager → cvc5.Sort
 
-/-- Get the regular expression sort. -/
-@[extern "termManager_getRegExpSort"]
-opaque getRegExpSort : TermManager → cvc5.Sort
+  /-- Get the Real sort. -/
+  def getRealSort : TermManager → cvc5.Sort
 
-/-- Get the rounding mode sort. -/
-@[extern "termManager_getRoundingModeSort"]
-opaque getRoundingModeSort : TermManager → cvc5.Sort
+  /-- Get the regular expression sort. -/
+  def getRegExpSort : TermManager → cvc5.Sort
 
-/-- Get the string sort. -/
-@[extern "termManager_getStringSort"]
-opaque getStringSort : TermManager → cvc5.Sort
+  /-- Get the rounding mode sort. -/
+  def getRoundingModeSort : TermManager → cvc5.Sort
 
-/-- Create an array sort.
+  /-- Get the string sort. -/
+  def getStringSort : TermManager → cvc5.Sort
 
-- `indexSort`: The array index sort.
-- `elemSort`: The array element sort.
--/
-@[extern "termManager_mkArraySort"]
-opaque mkArraySort : TermManager → (indexSort elemSort : cvc5.Sort) → Except Error cvc5.Sort
+  /-- Create an array sort.
 
-@[inherit_doc mkArraySort]
-def mkArraySort! tm indexSort elemSort :=
-  mkArraySort tm indexSort elemSort
-  |> Error.unwrap!
+  - `indexSort`: The array index sort.
+  - `elemSort`: The array element sort.
+  -/
+  def mkArraySort
+  : TermManager → (indexSort elemSort : cvc5.Sort) → Except Error cvc5.Sort
+  where
+    mkArraySort! (tm idx elm) :=
+      mkArraySort tm idx elm |> Error.unwrap!
+  /-- Create a bit-vector sort.
 
-/-- Create a bit-vector sort.
+  - `size`: The bit-width of the bit-vector sort, cannot be zero.
+  -/
+  private def mkBitVectorSortUnsafe (force := "mkBitVectorSort")
+  : TermManager → (size : UInt32) → Except Error cvc5.Sort
+  where
+    mkBitVectorSort (tm : TermManager) (size : UInt32) (valid : 0 < size := by simp) : cvc5.Sort :=
+      let _ := valid
+      mkBitVectorSortUnsafe tm size |> Error.unwrap!
 
-- `size`: The bit-width of the bit-vector sort.
--/
-@[extern "termManager_mkBitVectorSort"]
-private opaque mkBitVectorSortUnsafe : TermManager → (size : UInt32) → Except Error cvc5.Sort
+  /-- Create a floating-point sort.
 
-@[inherit_doc mkBitVectorSortUnsafe]
-def mkBitVectorSort (tm : TermManager) (size : UInt32) (_valid : 0 < size := by simp) : cvc5.Sort :=
-  tm.mkBitVectorSortUnsafe size
-  |> Error.unwrap!
+  - `exp`: The bit-width of the exponent of the floating-point sort.
+  - `sig`: The bit-width of the significand of the floating-point sort.
+  -/
+  def mkFloatingPointSortUnsafe (force := "mkFloatingPointSort")
+  : TermManager → (exp sig : UInt32) → Except Error cvc5.Sort
+  where
+    mkFloatingPointSort! (tm : TermManager) (exp sig : UInt32) : cvc5.Sort :=
+      Error.unwrap! (tm.mkFloatingPointSortUnsafe exp sig)
+    mkFloatingPointSort (tm : TermManager) (exp sig : UInt32)
+      (valid_exp : 1 < exp := by simp) (valid_sig : 1 < sig := by simp)
+    : Except Error cvc5.Sort :=
+      let _ := valid_exp
+      let _ := valid_sig
+      mkFloatingPointSortUnsafe tm exp sig
 
-/-- Create a floating-point sort.
+  /-- Create a finite-field sort from a given string of base n.
 
-- `exp`: The bit-width of the exponent of the floating-point sort.
-- `sig`: The bit-width of the significand of the floating-point sort.
--/
-@[extern "termManager_mkFloatingPointSort"]
-private opaque mkFloatingPointSortUnsafe : TermManager → (exp sig : UInt32) → Except Error cvc5.Sort
+  - `size`: The modulus of the field. Must be prime.
+  - `base`: The base of the string representation of `size`.
+  -/
+  def mkFiniteFieldSortOfString (force := "mkFiniteFieldSort")
+  : TermManager → (size : String) → (base : UInt32 := 10) → Except Error cvc5.Sort
+  where
+    mkFiniteFieldSortOfString! tm size (base : UInt32 := 10) :=
+      mkFiniteFieldSortOfString tm size base
+      |> Error.unwrap!
+    /-- Create a finite-field sort from a given string of base n.
 
-@[inherit_doc mkFloatingPointSortUnsafe]
-def mkFloatingPointSort
-  (tm : TermManager) (exp sig : UInt32)
-  (_valid_exp : 1 < exp := by simp) (_valid_sig : 1 < sig := by simp)
-: Except Error cvc5.Sort :=
-  tm.mkFloatingPointSortUnsafe exp sig
+    - `size`: The modulus of the field. Must be prime.
+    - `base`: The base of `size`.
+    -/
+    mkFiniteFieldSort
+      (tm : TermManager) (size : Nat) (base : UInt32 := 10)
+    : Except Error cvc5.Sort :=
+      tm.mkFiniteFieldSortOfString (toString size) base
 
-@[inherit_doc mkFloatingPointSort]
-def mkFloatingPointSort! tm (exp sig : UInt32)
-  (valid_exp : 1 < exp := by simp) (valid_sig : 1 < sig := by simp)
-:=
-  mkFloatingPointSort tm exp sig valid_exp valid_sig
-  |> Error.unwrap!
+    mkFiniteFieldSort! tm size base :=
+      mkFiniteFieldSort tm size base
+      |> Error.unwrap!
 
-/-- Create a finite-field sort from a given string of base n.
+  /-- Create function sort.
 
-- `size`: The modulus of the field. Must be prime.
-- `base`: The base of the string representation of `size`.
--/
-@[extern "termManager_mkFiniteFieldSort"]
-opaque mkFiniteFieldSortOfString
-: TermManager → (size : String) → (base : UInt32 := 10) → Except Error cvc5.Sort
+  - `sorts`: The sort of the function arguments.
+  - `codomain`: The sort of the function return value.
+  -/
+  def mkFunctionSort
+  : TermManager → (sorts : Array cvc5.Sort) → (codomain : cvc5.Sort) → Except Error cvc5.Sort
+  where
+    mkFunctionSort! tm sorts codomain :=
+      mkFunctionSort tm sorts codomain
+      |> Error.unwrap!
 
-@[inherit_doc mkFiniteFieldSortOfString]
-def mkFiniteFieldSortOfString! tm size (base : UInt32 := 10) :=
-  mkFiniteFieldSortOfString tm size base
-  |> Error.unwrap!
+  /-- Create a predicate sort.
 
-/-- Create a finite-field sort from a given string of base n.
+  This is equivalent to calling `mkFunctionSort` with the Boolean sort as the codomain.
 
-- `size`: The modulus of the field. Must be prime.
-- `base`: The base of `size`.
--/
-def mkFiniteFieldSort
-  (tm : TermManager) (size : Nat) (base : UInt32 := 10)
-: Except Error cvc5.Sort :=
-  tm.mkFiniteFieldSortOfString (toString size) base
+  - `sorts`: The list of sorts of the predicate.
+  -/
+  def mkPredicateSort : TermManager → (sorts : Array cvc5.Sort) → Except Error cvc5.Sort
 
-@[inherit_doc mkFiniteFieldSort]
-def mkFiniteFieldSort! tm size base :=
-  mkFiniteFieldSort tm size base
-  |> Error.unwrap!
+  /-- Create an uninterpreted sort.
 
-/-- Create function sort.
+  - `symbol`: The name of the sort.
+  -/
+  def mkUninterpretedSort : TermManager → (symbol : String) → Except Error cvc5.Sort
 
-- `sorts`: The sort of the function arguments.
-- `codomain`: The sort of the function return value.
--/
-@[extern "termManager_mkFunctionSort"]
-opaque mkFunctionSort
-: TermManager → (sorts : Array cvc5.Sort) → (codomain : cvc5.Sort) → Except Error cvc5.Sort
+  /-- Create a sort parameter.
 
-@[inherit_doc mkFunctionSort]
-def mkFunctionSort! tm sorts codomain :=
-  mkFunctionSort tm sorts codomain
-  |> Error.unwrap!
+  - `symbol`: The name of the sort.
+  -/
+  def mkParamSort : TermManager → (symbol : String) → Except Error cvc5.Sort
 
-/-- Create a predicate sort.
+  /-- Create a Boolean constant.
 
-This is equivalent to calling `mkFunctionSort` with the Boolean sort as the codomain.
+  - `b`: The Boolean constant.
+  -/
+  def mkBoolean : TermManager → (b : Bool) → Term
 
-- `sorts`: The list of sorts of the predicate.
--/
-@[extern "termManager_mkPredicateSort"]
-opaque mkPredicateSort
-: TermManager → (sorts : Array cvc5.Sort) → Except Error cvc5.Sort
+  /-- Create an integer constant from a string.
 
-/-- Create an uninterpreted sort.
+  - `s`: The string representation of the constant, may represent an integer such as `"123"`.
+  -/
+  private def mkIntegerFromString : TermManager → (s : String) → Except Error Term
+  where
+    /-- Create an integer constant.
 
-- `symbol`: The name of the sort.
--/
-@[extern "termManager_mkUninterpretedSort"]
-opaque mkUninterpretedSort
-: TermManager → (symbol : String) → Except Error cvc5.Sort
+    - `i`: The integer constant.
+    -/
+    mkInteger (tm : TermManager) : (i : Int) → Except Error Term :=
+      mkIntegerFromString tm ∘ toString
 
-/-- Create a sort parameter.
-
-- `symbol`: The name of the sort.
--/
-@[extern "termManager_mkParamSort"]
-opaque mkParamSort
-: TermManager → (symbol : String) → Except Error cvc5.Sort
-
-/-- Create a Boolean constant.
-
-- `b`: The Boolean constant.
--/
-@[extern "termManager_mkBoolean"]
-opaque mkBoolean : TermManager → (b : Bool) → Except Error Term
-
-@[inherit_doc mkBoolean]
-def mkBoolean! tm b :=
-  mkBoolean tm b
-  |> Error.unwrap!
-
-@[extern "termManager_mkIntegerFromString"]
-private opaque mkIntegerFromString : TermManager → String → Except Error Term
-
-/-- Create an integer constant.
-
-- `i`: The integer constant.
--/
-def mkInteger (tm : TermManager) : (i : Int) → Except Error Term :=
-  mkIntegerFromString tm ∘ toString
-
-@[inherit_doc mkInteger]
-def mkInteger! tm i :=
-  mkInteger tm i
-  |> Error.unwrap!
+    mkInteger! tm i :=
+      mkInteger tm i
+      |> Error.unwrap!
 
 /-- Create operator of Kind:
 
