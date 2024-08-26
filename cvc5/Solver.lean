@@ -759,86 +759,79 @@ defs! "termManager"
       mkInteger tm i
       |> Error.unwrap!
 
-/-- Create operator of Kind:
+  /-- Create operator of Kind:
 
-- `Kind.BITVECTOR_EXTRACT`
-- `Kind.BITVECTOR_REPEAT`
-- `Kind.BITVECTOR_ROTATE_LEFT`
-- `Kind.BITVECTOR_ROTATE_RIGHT`
-- `Kind.BITVECTOR_SIGN_EXTEND`
-- `Kind.BITVECTOR_ZERO_EXTEND`
-- `Kind.DIVISIBLE`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_FP`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_IEEE_BV`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_REAL`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_SBV`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_UBV`
-- `Kind.FLOATINGPOINT_TO_SBV`
-- `Kind.FLOATINGPOINT_TO_UBV`
-- `Kind.INT_TO_BITVECTOR`
-- `Kind.TUPLE_PROJECT`
+  - `Kind.BITVECTOR_EXTRACT`
+  - `Kind.BITVECTOR_REPEAT`
+  - `Kind.BITVECTOR_ROTATE_LEFT`
+  - `Kind.BITVECTOR_ROTATE_RIGHT`
+  - `Kind.BITVECTOR_SIGN_EXTEND`
+  - `Kind.BITVECTOR_ZERO_EXTEND`
+  - `Kind.DIVISIBLE`
+  - `Kind.FLOATINGPOINT_TO_FP_FROM_FP`
+  - `Kind.FLOATINGPOINT_TO_FP_FROM_IEEE_BV`
+  - `Kind.FLOATINGPOINT_TO_FP_FROM_REAL`
+  - `Kind.FLOATINGPOINT_TO_FP_FROM_SBV`
+  - `Kind.FLOATINGPOINT_TO_FP_FROM_UBV`
+  - `Kind.FLOATINGPOINT_TO_SBV`
+  - `Kind.FLOATINGPOINT_TO_UBV`
+  - `Kind.INT_TO_BITVECTOR`
+  - `Kind.TUPLE_PROJECT`
 
-See `cvc5.Kind` for a description of the parameters.
+  See `cvc5.Kind` for a description of the parameters.
 
-- `kind`: The kind of the operator.
-- `args`: The arguments (indices) of the operator.
+  - `kind`: The kind of the operator.
+  - `args`: The arguments (indices) of the operator.
 
-If `args` is empty, the `Op` simply wraps the `cvc5.Kind`. The `Kind` can be used in `Solver.mkTerm`
-directly without creating an `Op` first.
--/
-@[extern "termManager_mkOpOfIndices"]
-opaque mkOpOfIndices : TermManager → (kind : Kind) → (args : Array Nat) → Except Error Op
+  If `args` is empty, the `Op` simply wraps the `cvc5.Kind`. The `Kind` can be used in `Solver.mkTerm`
+  directly without creating an `Op` first.
+  -/
+  def mkOpOfIndices : TermManager → (kind : Kind) → (args : Array Nat) → Except Error Op
+  where
+    mkOpOfIndices! tm kind args :=
+      mkOpOfIndices tm kind args
+      |> Error.unwrap!
 
-@[inherit_doc mkOpOfIndices]
-def mkOpOfIndices! tm kind args :=
-  mkOpOfIndices tm kind args
-  |> Error.unwrap!
+  /-- Create operator of kind:
 
-/-- Create operator of kind:
+  - `Kind.DIVISIBLE` (to support arbitrary precision integers)
 
-- `Kind.DIVISIBLE` (to support arbitrary precision integers)
+  See `cvc5.Kind` for a description of the parameters.
 
-See `cvc5.Kind` for a description of the parameters.
+  - `kind`: The kind of the operator.
+  - `arg`: The string argument to this operator.
 
-- `kind`: The kind of the operator.
-- `arg`: The string argument to this operator.
+  -/
+  private def mkOpOfString : TermManager → (kind : Kind) → (arg : String) → Except Error Op
+  where
+    /-- Create divisibility-by operator, supports arbitrary precision. -/
+    mkOpDivisible (tm : TermManager) (n : Nat) (_valid : 0 < n := by simp) : Op :=
+      tm.mkOpOfString Kind.DIVISIBLE (toString n)
+      |> Error.unwrap!
 
--/
-@[extern "termManager_mkOpOfString"]
-private opaque mkOpOfString : TermManager → (kind : Kind) → (arg : String) → Except Error Op
+  /-- Create n-ary term of given kind.
 
-/-- Create divisibility-by operator, supports arbitrary precision. -/
-def mkOpDivisible (tm : TermManager) (n : Nat) (_valid : 0 < n := by simp) : Op :=
-  tm.mkOpOfString Kind.DIVISIBLE (toString n)
-  |> Error.unwrap!
+  - `kind`: The kind of the term.
+  - `children`: The children of the term.
+  -/
+  def mkTerm : TermManager → (kind : Kind) → (children : Array Term := #[]) → Except Error Term
+  where
+    mkTerm! tm kind children :=
+      mkTerm tm kind children
+      |> Error.unwrap!
 
-/-- Create n-ary term of given kind.
+  /-- Create n-ary term of given kind from a given operator.
 
-- `kind`: The kind of the term.
-- `children`: The children of the term.
--/
-@[extern "termManager_mkTerm"]
-opaque mkTerm : TermManager → (kind : Kind) → (children : Array Term := #[]) → Except Error Term
+  Create operators with `mkOp`.
 
-@[inherit_doc mkTerm]
-def mkTerm! tm kind children :=
-  mkTerm tm kind children
-  |> Error.unwrap!
-
-/-- Create n-ary term of given kind from a given operator.
-
-Create operators with `mkOp`.
-
-- `op`: The operator.
-- `children`: The children of the term.
--/
-@[extern "termManager_mkTermOfOp"]
-opaque mkTermOfOp : TermManager → (op : Op) → (children : Array Term := #[]) → Except Error Term
-
-@[inherit_doc mkTermOfOp]
-def mkTermOfOp! tm op children :=
-  mkTermOfOp tm op children
-  |> Error.unwrap!
+  - `op`: The operator.
+  - `children`: The children of the term.
+  -/
+  def mkTermOfOp : TermManager → (op : Op) → (children : Array Term := #[]) → Except Error Term
+  where
+    mkTermOfOp! tm op children :=
+      mkTermOfOp tm op children
+      |> Error.unwrap!
 
 end TermManager
 
@@ -858,118 +851,105 @@ private def err (e : Error) : SolverT m α := throw e
 @[export solver_errOfString]
 private def errorOfString (msg : String) : SolverT m α := throw (.error msg)
 
-/-- Constructor.
+defs! "solver"
+  /-- Constructor.
 
-Constructs solver instance from a given term manager instance.
+  Constructs solver instance from a given term manager instance.
 
-- `tm`: The associated term manager.
--/
-@[extern "solver_new"]
-private opaque new : (tm : TermManager) → Solver
+  - `tm`: The associated term manager.
+  -/
+  def new : (tm : TermManager) → Solver
 
-/-- Get a string representation of the version of this solver. -/
-@[extern "solver_getVersion"]
-opaque getVersion : SolverT m String
+  /-- Get a string representation of the version of this solver. -/
+  def getVersion : SolverT m String
 
-/-- Produces an interpolant `I` for the conjunction of the current set of assumptions `A` and the
-input term `B`.
+  /-- Produces an interpolant `I` for the conjunction of the current set of assumptions `A` and the
+  input term `B`.
 
-Requires option `produce-interpolants` to be set to a mode different from `none`.
+  Requires option `produce-interpolants` to be set to a mode different from `none`.
 
-`I` is such that `A → I` and `I → B` are valid, and `I` only mentions symbols that appear both in
-`A` and `B`.
--/
-@[extern "solver_getInterpolant"]
-opaque getInterpolant : (term : Term) → SolverT m Term
+  `I` is such that `A → I` and `I → B` are valid, and `I` only mentions symbols that appear both in
+  `A` and `B`.
+  -/
+  def getInterpolant : (term : Term) → SolverT m Term
 
-/-- Set option.
+  /-- Set option.
 
-- `option`: The option name.
-- `value`: The option value.
--/
-@[extern "solver_setOption"]
-opaque setOption (option value : String) : SolverT m Unit
+  - `option`: The option name.
+  - `value`: The option value.
+  -/
+  def setOption : (option value : String) → SolverT m Unit
 
-/-- Set logic.
+  /-- Set logic.
 
-- `logic`: The logic to set.
--/
-@[extern "solver_setLogic"]
-opaque setLogic (logic : String) : SolverT m Unit
+  - `logic`: The logic to set.
+  -/
+  def setLogic : (logic : String) → SolverT m Unit
 
-/-- Declares a function symbol `symbol` with signature `in_sorts → out_sort`.
+  /-- Declares a function symbol `symbol` with signature `in_sorts → out_sort`.
 
-If `fresh`, then a new (fresh) `Term` is always produced; otherwise, the `Term` will always be
-(physically) the same.
+  If `fresh`, then a new (fresh) `Term` is always produced; otherwise, the `Term` will always be
+  (physically) the same.
 
-See also `declareFreshFun`.
--/
-@[extern "solver_declareFun"]
-opaque declareFun :
-  (symbol : String)
-  → (in_sorts : Array cvc5.Sort) → (out_sort : cvc5.Sort)
-  → (fresh : Bool)
-  → SolverT m Term
+  See also `declareFreshFun`.
+  -/
+  def declareFun :
+    (symbol : String)
+    → (in_sorts : Array cvc5.Sort) → (out_sort : cvc5.Sort)
+    → (fresh : Bool)
+    → SolverT m Term
 
-/-- Declares a sort symbol `symbol` with arity `arity`.
+  /-- Declares a sort symbol `symbol` with arity `arity`.
 
-If `fresh`, then a new (fresh) `Sort` is always produced; otherwise, the `Sort` will always be
-(physically) the same.
+  If `fresh`, then a new (fresh) `Sort` is always produced; otherwise, the `Sort` will always be
+  (physically) the same.
 
-See also `declareFreshSort`.
--/
-@[extern "solver_declareSort"]
-opaque declareSort :
-  (symbol : String) → (arity: Nat) → (fresh : Bool) → SolverT m cvc5.Sort
+  See also `declareFreshSort`.
+  -/
+  def declareSort :
+    (symbol : String) → (arity: Nat) → (fresh : Bool) → SolverT m cvc5.Sort
 
-/-- Assert a formula.
+  /-- Assert a formula.
 
-- `term`: The formula to assert.
--/
-@[extern "solver_assertFormula"]
-opaque assertFormula : (term : Term) → SolverT m Unit
+  - `term`: The formula to assert.
+  -/
+  def assertFormula : (term : Term) → SolverT m Unit
 
-/-- Check satisfiability. -/
-@[extern "solver_checkSat"]
-opaque checkSat : SolverT m Result
+  /-- Check satisfiability. -/
+  def checkSat : SolverT m Result
 
-/-- Get a proof associated with the most recent call to `checkSat`.
+  /-- Get a proof associated with the most recent call to `checkSat`.
 
-Requires to enable option `produce-proofs`
--/
-@[extern "solver_getProof"]
-opaque getProof : SolverT m (Array Proof)
+  Requires to enable option `produce-proofs`
+  -/
+  def getProof : SolverT m (Array Proof)
 
-/-- Get the value of the given term in the current model.
+  /-- Get the value of the given term in the current model.
 
-- `term`: The term for which the value is queried.
--/
-@[extern "solver_getValue"]
-opaque getValue : (term : Term) → SolverT m Term
+  - `term`: The term for which the value is queried.
+  -/
+  def getValue : (term : Term) → SolverT m Term
 
-/-- Get the values of the given terms in the current model.
+  /-- Get the values of the given terms in the current model.
 
-- `term`: The terms for which the value is queried.
--/
-@[extern "solver_getValues"]
-opaque getValues : (term : Array Term) → SolverT m (Array Term)
+  - `term`: The terms for which the value is queried.
+  -/
+  def getValues : (term : Array Term) → SolverT m (Array Term)
 
-/-- Prints a proof as a string in a selected proof format mode.
+  /-- Prints a proof as a string in a selected proof format mode.
 
-Other aspects of printing are taken from the solver options.
+  Other aspects of printing are taken from the solver options.
 
-- `proof`: A proof, usually obtained from `getProof`.
--/
-@[extern "solver_proofToString"]
-opaque proofToString : (proof : Proof) → SolverT m String
+  - `proof`: A proof, usually obtained from `getProof`.
+  -/
+  def proofToString : (proof : Proof) → SolverT m String
 
-/-- Parse a string containing SMT-LIB commands.
+  /-- Parse a string containing SMT-LIB commands.
 
-Commands that produce a result such as `(check-sat)`, `(get-model)`, ... are executed but the
-results are ignored.
--/
-@[extern "solver_parse"]
-opaque parse : String → SolverT m Unit
+  Commands that produce a result such as `(check-sat)`, `(get-model)`, ... are executed but the
+  results are ignored.
+  -/
+  def parse : String → SolverT m Unit
 
 /-- Run a `query` given a term manager `tm`. -/
 def run (tm : TermManager) (query : SolverT m α) : m (Except Error α) :=
