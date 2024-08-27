@@ -101,7 +101,7 @@ simplify (let ((_let_1 (=> (not (and p q)) (and (not r) q)))) (or _let_1 _let_1)
 `φ ∧ ¬ψ` is unsat
 interpolant: (or p (not r))
 `φ ∧ ψ` is sat
-interpolant: null
+confirmed no interpolant
 -/
 test! tm => do
   Solver.setLogic "QF_LIA"
@@ -148,9 +148,12 @@ test! tm => do
     println! "unexpected `unknown` result"
     return ()
 
-  let i ← Solver.getInterpolant ψ
-
-  println! "interpolant: {i}"
+  match ← Solver.getInterpolant ψ with
+  | none =>
+    println! "failed to retrieve interpolant"
+    return ()
+  | some i =>
+    println! "interpolant: {i}"
 
   -- nonsensical input
 
@@ -164,8 +167,6 @@ test! tm => do
     println! "unexpected `unknown` result"
     return ()
 
-  let i ← Solver.getInterpolant not_ψ
-  assertEq i.isNull true
-  assertEq i.toString "null"
-
-  println! "interpolant: {i}"
+  let i? ← Solver.getInterpolant not_ψ
+  assertEq i? none
+  println! "confirmed no interpolant"

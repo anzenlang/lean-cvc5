@@ -882,7 +882,13 @@ defs! "solver"
   `I` is such that `A → I` and `I → B` are valid, and `I` only mentions symbols that appear both in
   `A` and `B`.
   -/
-  def getInterpolant : (term : Term) → SolverT m Term
+  private def getInterpolantOrNull (force := "getInterpolant") : (term : Term) → SolverT m Term
+  where
+    getInterpolant (term : Term) : SolverT m (Option Term) := do
+      let i ← getInterpolantOrNull term
+      if i.isNull
+      then return none
+      else return i
 
   /-- Set option.
 
