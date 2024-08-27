@@ -913,6 +913,21 @@ extern "C" lean_obj_res solver_setLogic(
   )
 }
 
+extern "C" lean_obj_res solver_simplify(
+  lean_obj_arg inst,
+  lean_obj_arg term,
+  lean_obj_arg applySubs,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_simplify", inst, solver,
+    Term value = solver_unbox(solver)->simplify(
+      *term_unbox(term),
+      bool_unbox(lean_unbox(applySubs))
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
+  )
+}
+
 extern "C" lean_obj_res solver_getInterpolant(
   lean_obj_arg inst,
   lean_obj_arg term,
@@ -984,6 +999,27 @@ extern "C" lean_obj_res solver_checkSat(lean_obj_arg inst, lean_obj_arg solver)
                       lean_box(0),
                       result_box(new Result(solver_unbox(solver)->checkSat())),
                       solver);
+  )
+}
+
+extern "C" lean_obj_res solver_checkSatAssuming(
+  lean_obj_arg inst,
+  lean_obj_arg assumptions,
+  lean_obj_arg solver
+)
+{
+  CVC5_TRY_CATCH_SOLVER("checkSatAssuming", inst, solver,
+    std::vector<Term> formulas;
+    for (size_t i = 0, n = lean_array_size(assumptions); i < n; ++i)
+    {
+      formulas.push_back(
+        *term_unbox(
+          lean_array_get(term_box(new Term()), assumptions, lean_usize_to_nat(i))
+        )
+      );
+    }
+    Result res = solver_unbox(solver)->checkSatAssuming(formulas);
+    return solver_val(lean_box(0), inst, lean_box(0), result_box(new Result(res)), solver);
   )
 }
 

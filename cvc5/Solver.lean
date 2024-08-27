@@ -863,6 +863,17 @@ defs! "solver"
   /-- Get a string representation of the version of this solver. -/
   def getVersion : SolverT m String
 
+  /-- Simplify a term or formula based on rewriting and (optionally) applying substitutions for
+  solved variables.
+
+  If `applySubs` is true, then for example, if `(= x 0)` was asserted to this solver, this function
+  may replace occurrences of `x` with `0`.
+
+  - `t` The term to simplify.
+  - `applySubs` True to apply substitutions for solved variables.
+  -/
+  def simplify : (term : Term) → (applySubs : Bool := false) → SolverT m Term
+
   /-- Produces an interpolant `I` for the conjunction of the current set of assumptions `A` and the
   input term `B`.
 
@@ -917,6 +928,12 @@ defs! "solver"
 
   /-- Check satisfiability. -/
   def checkSat : SolverT m Result
+
+  /-- Check satisfiability assuming the given formulas.
+
+  - `assumptions`: The formulas to assume.
+  -/
+  def checkSatAssuming : (assumptions : Array Term) → SolverT m Result
 
   /-- Get a proof associated with the most recent call to `checkSat`.
 

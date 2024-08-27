@@ -95,8 +95,13 @@ test! do
 
 /-- info:
 φ = (=> (not (and p q)) (and (not r) q))
+simplify (let ((_let_1 (=> (not (and p q)) (and (not r) q)))) (or _let_1 _let_1))
+         (=> (not (and p q)) (and (not r) q))
 ψ = (or (=> s p) (=> s (not r)))
+`φ ∧ ¬ψ` is unsat
 interpolant: (or p (not r))
+`φ ∧ ψ` is sat
+interpolant: null
 -/
 test! tm => do
   Solver.setLogic "QF_LIA"
@@ -119,6 +124,11 @@ test! tm => do
     tm.mkTerm .IMPLIES #[p_nand_q, nr_and_q]
   println! "φ = {φ}"
 
+  let φ' ← tm.mkTerm .OR #[φ, φ]
+  let simplified ← Solver.simplify φ'
+  println! "simplify {φ'}"
+  println! "         {simplified}"
+
   Solver.assertFormula φ
 
   let s_to_p ← tm.mkTerm .IMPLIES #[s, p]
@@ -127,6 +137,35 @@ test! tm => do
     tm.mkTerm .OR #[s_to_p, s_to_nr]
   println! "ψ = {ψ}"
 
+  let not_ψ ← tm.mkTerm .NOT #[ψ]
+  match ← Solver.checkSatAssuming? #[not_ψ] with
+  | some false =>
+    println! "`φ ∧ ¬ψ` is unsat"
+  | some true =>
+    println! "unexpected `sat` result"
+    return ()
+  | none =>
+    println! "unexpected `unknown` result"
+    return ()
+
   let i ← Solver.getInterpolant ψ
+
+  println! "interpolant: {i}"
+
+  -- nonsensical input
+
+  match ← Solver.checkSatAssuming? #[ψ] with
+  | some true =>
+    println! "`φ ∧ ψ` is sat"
+  | some false =>
+    println! "unexpected `unsat` result"
+    return ()
+  | none =>
+    println! "unexpected `unknown` result"
+    return ()
+
+  let i ← Solver.getInterpolant not_ψ
+  assertEq i.isNull true
+  assertEq i.toString "null"
 
   println! "interpolant: {i}"

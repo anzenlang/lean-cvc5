@@ -84,18 +84,22 @@ def assertError
 
 end Test
 
+namespace Result
+def toOption (res : Result) : Option Bool :=
+  if res.isSat then true
+  else if res.isUnsat then false
+  else none
+end Result
+
 namespace Solver
 
 variable [Monad m]
 
-def checkSat? : SolverT m (Option Bool) := do
-  let res ← Solver.checkSat
-  if res.isSat then
-    return true
-  else if res.isUnsat then
-    return false
-  else
-    return none
+def checkSat? : SolverT m (Option Bool) :=
+  Result.toOption <$> Solver.checkSat
+def checkSatAssuming? (terms : Array Term) : SolverT m (Option Bool) :=
+  Result.toOption <$> Solver.checkSatAssuming terms
+
 
 def runWith! [Inhabited α] (tm : TermManager) (query : SolverM α) : IO α := do
   match ← Solver.run tm query with
