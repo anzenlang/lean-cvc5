@@ -833,6 +833,27 @@ defs! "termManager"
       mkTermOfOp tm op children
       |> Error.unwrap!
 
+  /-- Create a free constant.
+
+  Note that the returned term is always fresh, even if the same arguments were provided on a
+  previous call to `mkConst`.
+
+  - `sort`: The sort of the constant.
+  - `symbol`: The name of the constant.
+  -/
+  def mkConst : TermManager → (sort : cvc5.Sort) → (symbol : String) → Term
+
+  /-- Create a bound variable to be used in a binder (i.e., a quantifier, a lambda, or a witness
+    binder).
+
+  The returned term is always fresh, even if the same arguments were provided on a previous call to
+  `mkVar`.
+
+  - `sort`: The sort of the constant.
+  - `symbol`: The name of the constant.
+  -/
+  def mkVar : TermManager → (sort : cvc5.Sort) → (symbol : String) → Term
+
 end TermManager
 
 namespace Solver
@@ -884,11 +905,32 @@ defs! "solver"
   -/
   private def getInterpolantOrNull (force := "getInterpolant") : (term : Term) → SolverT m Term
   where
-    getInterpolant (term : Term) : SolverT m (Option Term) := do
+    getInterpolant? (term : Term) : SolverT m (Option Term) := do
       let i ← getInterpolantOrNull term
       if i.isNull
       then return none
       else return i
+
+  /-- Do quantifier elimination.
+
+  Quantifier elimination is only complete for logics such as `LRA`, `LIA`, and `BV`.
+
+  - `q`: A quantified formula of the form `Qx₁ ... Qxₙ , P x₁ ... xₙ y₁ ... yₖ` where
+    - `Qxᵢ` is a set of quantified variables of the form `Q a₁ ... aₘ` with `Q` is `∀` or `∃`, and
+    - `P x₁ ... xₙ y₁ ... yₖ` is a quantifier-free formula.
+
+  Returns a formula `φ` such that, given the current set of formulas `A` asserted to this solver:
+  - `A ∧ q` and `A ∧ φ` are equivalent, and
+  - `φ` is a quantifier-free formula containing only free variables in `{y₁, ..., yₖ}`.
+  -/
+  private def getQuantifierEliminationOrNull (force := "getQuantifierElimination")
+  : (q : Term) → SolverT m Term
+  where
+    getQuantifierElimination? (q : Term) : SolverT m (Option Term) := do
+      let qf ← getQuantifierEliminationOrNull q
+      if qf.isNull
+      then return none
+      else return qf
 
   /-- Set option.
 

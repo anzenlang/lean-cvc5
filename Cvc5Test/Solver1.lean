@@ -148,7 +148,7 @@ test! tm => do
     println! "unexpected `unknown` result"
     return ()
 
-  match ← Solver.getInterpolant ψ with
+  match ← Solver.getInterpolant? ψ with
   | none =>
     println! "failed to retrieve interpolant"
     return ()
@@ -167,6 +167,43 @@ test! tm => do
     println! "unexpected `unknown` result"
     return ()
 
-  let i? ← Solver.getInterpolant not_ψ
+  let i? ← Solver.getInterpolant? not_ψ
   assertEq i? none
   println! "confirmed no interpolant"
+
+
+
+test! tm => do
+  Solver.setLogic "QF_LIA"
+  Solver.setOption "produce-interpolants" "true"
+
+  let int := tm.getIntegerSort
+
+  let count ← Solver.declareFun "count" #[] int false
+  let count' := tm.mkVar int "countNext"
+  let zero ← tm.mkInteger 0
+  let one ← tm.mkInteger 1
+
+  -- `count' = count + 1`
+  let trans ←
+    tm.mkTerm .EQUAL #[count',
+      ← tm.mkTerm .ADD #[count, one]
+    ]
+  -- `0 ≤ count'`
+  let prop ←
+    tm.mkTerm .LEQ #[zero, count']
+
+  -- `trans ∧ ¬prop`
+  let bad ←
+    tm.mkTerm .AND #[trans, ← tm.mkTerm .NOT #[prop]]
+
+  let qs ← tm.mkTerm .VARIABLE_LIST #[count']
+  let q ← tm.mkTerm .EXISTS #[qs, bad]
+  println! "running QE on"
+  println! "- `{q}`"
+
+  match ← Solver.getQuantifierElimination? q with
+  | none => println! "unexpected: no QE result"
+  | some qf =>
+    println! "→ `{qf}`"
+    assertEq (toString qf) "(not (>= count (- 1)))"

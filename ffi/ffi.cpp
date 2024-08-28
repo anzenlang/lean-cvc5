@@ -780,6 +780,15 @@ extern "C" lean_obj_res termManager_mkConst(
   return term_box(new Term(mut_tm_unbox(tm)->mkConst(*sort_unbox(sort), lean_string_cstr(symbol))));
 }
 
+extern "C" lean_obj_res termManager_mkVar(
+  lean_obj_arg tm,
+  lean_obj_arg sort,
+  lean_obj_arg symbol
+)
+{
+  return term_box(new Term(mut_tm_unbox(tm)->mkVar(*sort_unbox(sort), lean_string_cstr(symbol))));
+}
+
 extern "C" lean_obj_res termManager_mkOpOfIndices(
   lean_obj_arg tm,
   uint16_t kind,
@@ -935,6 +944,17 @@ extern "C" lean_obj_res solver_getInterpolant(
 ) {
   CVC5_TRY_CATCH_SOLVER("solver_getInterpolant", inst, solver,
     Term value = solver_unbox(solver)->getInterpolant(*term_unbox(term));
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_getQuantifierElimination(
+  lean_obj_arg inst,
+  lean_obj_arg term,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_getQuantifierElimination", inst, solver,
+    Term value = solver_unbox(solver)->getQuantifierElimination(*term_unbox(term));
     return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
   )
 }
