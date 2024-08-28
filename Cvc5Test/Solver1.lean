@@ -173,6 +173,10 @@ test! tm => do
 
 
 
+/-- info: running QE on
+- `(exists ((countNext Int)) (and (= countNext (+ count 1)) (not (<= 0 countNext))))`
+→ `(not (>= count (- 1)))`
+-/
 test! tm => do
   Solver.setLogic "QF_LIA"
   Solver.setOption "produce-interpolants" "true"
