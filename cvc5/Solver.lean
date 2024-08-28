@@ -923,14 +923,7 @@ defs! "solver"
   - `A ∧ q` and `A ∧ φ` are equivalent, and
   - `φ` is a quantifier-free formula containing only free variables in `{y₁, ..., yₖ}`.
   -/
-  private def getQuantifierEliminationOrNull (force := "getQuantifierElimination")
-  : (q : Term) → SolverT m Term
-  where
-    getQuantifierElimination? (q : Term) : SolverT m (Option Term) := do
-      let qf ← getQuantifierEliminationOrNull q
-      if qf.isNull
-      then return none
-      else return qf
+  def getQuantifierElimination : (q : Term) → SolverT m Term
 
   /-- Set option.
 

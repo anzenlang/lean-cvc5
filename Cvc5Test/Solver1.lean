@@ -173,9 +173,13 @@ test! tm => do
 
 
 
-/-- info: running QE on
+/-- info:
+running QE on
 - `(exists ((countNext Int)) (and (= countNext (+ count 1)) (not (<= 0 countNext))))`
 → `(not (>= count (- 1)))`
+running QE on
+- `(forall ((countNext Int)) (and (= countNext (+ count 1)) (not (<= 0 countNext))))`
+→ `false`
 -/
 test! tm => do
   Solver.setLogic "QF_LIA"
@@ -206,8 +210,14 @@ test! tm => do
   println! "running QE on"
   println! "- `{q}`"
 
-  match ← Solver.getQuantifierElimination? q with
-  | none => println! "unexpected: no QE result"
-  | some qf =>
-    println! "→ `{qf}`"
-    assertEq (toString qf) "(not (>= count (- 1)))"
+  let qf ← Solver.getQuantifierElimination q
+  println! "→ `{qf}`"
+  assertEq (toString qf) "(not (>= count (- 1)))"
+
+  let q ← tm.mkTerm .FORALL #[qs, bad]
+  println! "running QE on"
+  println! "- `{q}`"
+
+  let qf ← Solver.getQuantifierElimination q
+  println! "→ `{qf}`"
+  assertEq (toString qf) "false"
