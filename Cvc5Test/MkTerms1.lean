@@ -93,3 +93,7 @@ expected Term to be a bit-vector value when calling getBitVectorValue()\
   assertEq (toString ite3) "(ite true (= 1 11) false)"
   assertEq ite3.getKind Kind.ITE
   assertEq ite3.getSort.toString "Bool"
+  --
+  assertEq (toString ite2) s!"(ite true {eq1} false)"
+  assertEq ite2.getKind Kind.ITE
+  assertEq ite2.getSort.toString "Bool"
