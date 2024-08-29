@@ -432,9 +432,26 @@ defs! "term"
   def getOp : Term → Except Error Op
   with getOp! getOp?
 
-/-- Get the sort of this term. -/
-@[extern "term_getSort"]
-opaque getSort : Term → cvc5.Sort
+  /-- Get the sort of this term. -/
+  def getSort : Term → cvc5.Sort
+
+  /-- Unsafe version of `substitute`. -/
+  private def substituteUnsafe (force := "substitute")
+  : Term → Array Term → Array Term → Except Error Term
+  where
+    /-- Simultaneously replaces terms in `term`.
+
+    - `substs`: list of `(subTerm, replacement)` pairs instructing to replace `subTerm` by
+      `replacement`.
+
+    This replacement is applied during a pre-order traversal and only once (it is not run until
+    fixed point).
+    -/
+    substitute (term : Term) (substs : Array (Term × Term)) : Except Error Term :=
+      let (terms, replacements) :=
+        (Array.mkEmpty substs.size, Array.mkEmpty substs.size)
+        |> substs.foldl fun (ts, rs) (t, r) => (ts.push t, rs.push r)
+      substituteUnsafe term terms replacements
 
 /-- Syntactic equality operator. -/
 @[extern "term_beq"]

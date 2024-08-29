@@ -364,6 +364,29 @@ extern "C" lean_obj_arg term_getSort(lean_obj_arg t)
   return sort_box(new Sort(term_unbox(t)->getSort()));
 }
 
+extern "C" lean_obj_res term_substitute(
+  lean_obj_arg term,
+  lean_obj_arg terms,
+  lean_obj_arg replacements
+) {
+  CVC5_TRY_CATCH_EXCEPT(
+    std::vector<Term> ts;
+    std::vector<Term> rs;
+    for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
+    {
+      ts.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), terms, lean_usize_to_nat(i))
+      ));
+      rs.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), replacements, lean_usize_to_nat(i))
+      ));
+    }
+    return except_ok(lean_box(0),
+      term_box(new Term(term_unbox(term)->substitute(ts, rs)))
+    );
+  )
+}
+
 extern "C" uint8_t term_beq(lean_obj_arg l, lean_obj_arg r)
 {
   return bool_box(*term_unbox(l) == *term_unbox(r));

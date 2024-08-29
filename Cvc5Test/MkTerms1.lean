@@ -59,20 +59,37 @@ expected Term to be a bit-vector value when calling getBitVectorValue()\
 
   let ite1 :=
     tm.mkTerm! Kind.ITE #[fls, three, seven]
+  assertEq (toString ite1) "(ite false 3 7)"
   assertEq ite1.getKind Kind.ITE
   assertEq ite1.getSort.toString "Int"
 
   let eq1 :=
     tm.mkTerm! Kind.EQUAL #[ite1, eleven]
   assertEq eq1.getKind Kind.EQUAL
+  assertEq (toString eq1) s!"(= {ite1} 11)"
   assertEq eq1.getSort.toString "Bool"
 
   let eq1' :=
     tm.mkTerm! Kind.EQUAL #[ite1, eleven, one]
+  assertEq (toString eq1') s!"(and (= {ite1} 11) (= 11 1))"
   assertEq eq1'.getKind Kind.AND
   assertEq eq1'.getSort.toString "Bool"
 
   let ite2 :=
     tm.mkTerm! Kind.ITE #[tru, eq1, fls]
+  assertEq (toString ite2) s!"(ite true {eq1} false)"
   assertEq ite2.getKind Kind.ITE
   assertEq ite2.getSort.toString "Bool"
+
+  let ite3 ← ite2.substitute #[]
+  assertEq (toString ite3) (toString ite2)
+  assertEq ite3.getKind Kind.ITE
+  assertEq ite3.getSort.toString "Bool"
+
+  ite2.substitute #[(ite1, fls)]
+  |> assertError "expecting terms of the same sort at index 0"
+
+  let ite3 ← ite2.substitute #[(ite1, one)]
+  assertEq (toString ite3) "(ite true (= 1 11) false)"
+  assertEq ite3.getKind Kind.ITE
+  assertEq ite3.getSort.toString "Bool"
