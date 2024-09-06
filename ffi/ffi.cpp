@@ -1066,6 +1066,22 @@ extern "C" lean_obj_res solver_checkSatAssuming(
   )
 }
 
+extern "C" lean_obj_res solver_getModelDomainElements(
+  lean_obj_arg inst,
+  lean_obj_arg sort,
+  lean_obj_arg solver
+)
+{
+  CVC5_TRY_CATCH_SOLVER("getModelDomainElements", inst, solver,
+    std::vector<Term> vals = solver_unbox(solver)->getModelDomainElements(*sort_unbox(sort));
+    lean_object* values = lean_mk_empty_array();
+    for (const Term& value : vals) {
+      values = lean_array_push(values, term_box(new Term(value)));
+    }
+    return solver_val(lean_box(0), inst, lean_box(0), values, solver);
+  )
+}
+
 extern "C" lean_obj_res solver_getValue(
   lean_obj_arg inst,
   lean_object * term,

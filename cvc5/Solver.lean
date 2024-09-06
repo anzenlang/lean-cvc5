@@ -1011,6 +1011,15 @@ defs! "solver"
   -/
   def getValues : (term : Array Term) → SolverT m (Array Term)
 
+  /-- Get the domain elements of the uninterpreted sort `s` in the current model.
+
+  The current model interprets `s` as the finite sort whose domain elements are given in the return
+  value of this function.
+
+  - `s`: The uninterpreted sort in question.
+  -/
+  def getModelDomainElements : (s : cvc5.Sort) → SolverT m (Array Term)
+
   /-- Prints a proof as a string in a selected proof format mode.
 
   Other aspects of printing are taken from the solver options.
