@@ -924,9 +924,24 @@ defs! "solver"
   where
     getInterpolant? (term : Term) : SolverT m (Option Term) := do
       let i ← getInterpolantOrNull term
-      if i.isNull
-      then return none
-      else return i
+      if i.isNull then return none else return i
+
+  /-- Get the next interpolant.
+
+  (Repeated) calls to this function are only legal after a call to `getInterpolant?` that did not
+  yield `none`.
+
+  It is guaranteed to produce a syntactically different interpolant *w.r.t.* the last returned
+  interpolant.
+
+  Requires incremental mode.
+  -/
+  private def getInterpolantNextOrNull (force := "getInterpolantNext")
+  : SolverT m Term
+  where
+    getInterpolantNext? : SolverT m (Option Term) := do
+      let i ← getInterpolantNextOrNull
+      if i.isNull then return none else return i
 
   /-- Do quantifier elimination.
 

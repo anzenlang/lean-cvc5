@@ -100,12 +100,15 @@ simplify (let ((_let_1 (=> (not (and p q)) (and (not r) q)))) (or _let_1 _let_1)
 ψ = (or (=> s p) (=> s (not r)))
 `φ ∧ ¬ψ` is unsat
 interpolant: (or p (not r))
+interpolant next: (let ((_let_1 (or p r))) (let ((_let_2 (and p r))) (or _let_2 (not (or (and r (not p)) (and _let_1 (or _let_2 (not _let_1))))))))
+interpolant next: (let ((_let_1 (and p r))) (let ((_let_2 (or p r))) (or (not _let_2) (and (or p (not r)) (or _let_1 (and _let_2 (not _let_1)))))))
 `φ ∧ ψ` is sat
 confirmed no interpolant
 -/
 test! tm => do
   Solver.setLogic "QF_LIA"
   Solver.setOption "produce-interpolants" "true"
+  Solver.setOption "incremental" "true"
 
   -- from <https://en.wikipedia.org/wiki/Craig_interpolation#Example>
 
@@ -148,12 +151,31 @@ test! tm => do
     println! "unexpected `unknown` result"
     return ()
 
+  assertError "\
+Cannot get-interpolant-next unless immediately preceded by \
+a successful call to get-interpolant(-next).\
+  " Solver.getInterpolantNext?
+
   match ← Solver.getInterpolant? ψ with
   | none =>
     println! "failed to retrieve interpolant"
     return ()
   | some i =>
     println! "interpolant: {i}"
+
+  match ← Solver.getInterpolantNext? with
+  | none =>
+    println! "failed to retrieve next interpolant"
+    return ()
+  | some i =>
+    println! "interpolant next: {i}"
+
+  match ← Solver.getInterpolantNext? with
+  | none =>
+    println! "failed to retrieve next interpolant"
+    return ()
+  | some i =>
+    println! "interpolant next: {i}"
 
   -- nonsensical input
 
@@ -170,6 +192,11 @@ test! tm => do
   let i? ← Solver.getInterpolant? not_ψ
   assertEq i? none
   println! "confirmed no interpolant"
+
+  assertError "\
+Cannot get-interpolant-next unless immediately preceded by \
+a successful call to get-interpolant(-next).\
+  " Solver.getInterpolantNext?
 
 
 
