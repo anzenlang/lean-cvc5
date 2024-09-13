@@ -287,7 +287,7 @@ extern "C" lean_obj_res op_toString(lean_obj_arg op)
   return lean_mk_string(op_unbox(op)->toString().c_str());
 }
 
-static void term_finalize(void* obj) { delete static_cast<Term*>(obj); }
+static void term_finalize(void* obj) { delete static_cast<Grammar*>(obj); }
 
 static void term_foreach(void*, b_lean_obj_arg)
 {
@@ -913,7 +913,7 @@ extern "C" lean_obj_res solver_new(lean_obj_arg tm)
 extern "C" lean_obj_res solver_getVersion(lean_obj_arg inst,
                                           lean_obj_arg solver)
 {
-  CVC5_TRY_CATCH_SOLVER("getVersion", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_getVersion", inst, solver,
     return solver_val(lean_box(0),
                       inst,
                       lean_box(0),
@@ -927,7 +927,7 @@ extern "C" lean_obj_res solver_setOption(lean_obj_arg inst,
                                          lean_object* value,
                                          lean_obj_arg solver)
 {
-  CVC5_TRY_CATCH_SOLVER("setOption", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_setOption", inst, solver,
     solver_unbox(solver)->setOption(lean_string_cstr(option),
                                     lean_string_cstr(value));
     return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
@@ -938,7 +938,7 @@ extern "C" lean_obj_res solver_resetAssertions(
   lean_obj_arg inst,
   lean_obj_arg solver
 ) {
-  CVC5_TRY_CATCH_SOLVER("resetAssertions", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_resetAssertions", inst, solver,
     solver_unbox(solver)->resetAssertions();
     return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
   )
@@ -949,7 +949,7 @@ extern "C" lean_obj_res solver_setLogic(
   lean_object* logic,
   lean_obj_arg solver
 ) {
-  CVC5_TRY_CATCH_SOLVER("setLogic", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_setLogic", inst, solver,
     solver_unbox(solver)->setLogic(lean_string_cstr(logic));
     return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
   )
@@ -1080,7 +1080,7 @@ extern "C" lean_obj_res solver_assertFormula(lean_obj_arg inst,
                                              lean_object* term,
                                              lean_obj_arg solver)
 {
-  CVC5_TRY_CATCH_SOLVER("assertFormula", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_assertFormula", inst, solver,
     solver_unbox(solver)->assertFormula(*term_unbox(term));
     return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
   )
@@ -1088,7 +1088,7 @@ extern "C" lean_obj_res solver_assertFormula(lean_obj_arg inst,
 
 extern "C" lean_obj_res solver_checkSat(lean_obj_arg inst, lean_obj_arg solver)
 {
-  CVC5_TRY_CATCH_SOLVER("checkSat", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_checkSat", inst, solver,
     return solver_val(lean_box(0),
                       inst,
                       lean_box(0),
@@ -1103,7 +1103,7 @@ extern "C" lean_obj_res solver_checkSatAssuming(
   lean_obj_arg solver
 )
 {
-  CVC5_TRY_CATCH_SOLVER("checkSatAssuming", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_checkSatAssuming", inst, solver,
     std::vector<Term> formulas;
     for (size_t i = 0, n = lean_array_size(assumptions); i < n; ++i)
     {
@@ -1124,7 +1124,7 @@ extern "C" lean_obj_res solver_getModelDomainElements(
   lean_obj_arg solver
 )
 {
-  CVC5_TRY_CATCH_SOLVER("getModelDomainElements", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_getModelDomainElements", inst, solver,
     std::vector<Term> vals = solver_unbox(solver)->getModelDomainElements(*sort_unbox(sort));
     lean_object* values = lean_mk_empty_array();
     for (const Term& value : vals) {
@@ -1140,7 +1140,7 @@ extern "C" lean_obj_res solver_getValue(
   lean_obj_arg solver
 )
 {
-  CVC5_TRY_CATCH_SOLVER("getValue", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_getValue", inst, solver,
     Term val = solver_unbox(solver)->getValue(*term_unbox(term));
     return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(val)), solver);
   )
@@ -1152,7 +1152,7 @@ extern "C" lean_obj_res solver_getValues(
   lean_obj_arg solver
 )
 {
-  CVC5_TRY_CATCH_SOLVER("getValues", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_getValues", inst, solver,
     std::vector<Term> ts;
     for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
     {
@@ -1173,7 +1173,7 @@ extern "C" lean_obj_res solver_getValues(
 
 extern "C" lean_obj_res solver_getProof(lean_obj_arg inst, lean_obj_arg solver)
 {
-  CVC5_TRY_CATCH_SOLVER("getProof", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_getProof", inst, solver,
     std::vector<Proof> proofs = solver_unbox(solver)->getProof();
     lean_object* ps = lean_mk_empty_array();
     for (const Proof& proof : proofs)
@@ -1188,7 +1188,7 @@ extern "C" lean_obj_res solver_proofToString(lean_obj_arg inst,
                                              lean_obj_arg proof,
                                              lean_obj_arg solver)
 {
-  CVC5_TRY_CATCH_SOLVER("proofToString", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_proofToString", inst, solver,
     return solver_val(
         lean_box(0),
         inst,
@@ -1203,7 +1203,7 @@ extern "C" lean_obj_res solver_parse(lean_obj_arg inst,
                                      lean_obj_arg query,
                                      lean_obj_arg solver)
 {
-  CVC5_TRY_CATCH_SOLVER("parse", inst, solver,
+  CVC5_TRY_CATCH_SOLVER("solver_parse", inst, solver,
     Solver* slv = solver_unbox(solver);
     // construct an input parser associated the solver above
     parser::InputParser parser(slv);
@@ -1226,5 +1226,362 @@ extern "C" lean_obj_res solver_parse(lean_obj_arg inst,
       cmd.invoke(slv, sm, out);
     }
     return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_declareSygusVar(
+  lean_obj_arg inst,
+  lean_obj_arg symbol,
+  lean_obj_arg sort,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_declareSygusVar", inst, solver,
+    Term v = solver_unbox(solver)->declareSygusVar(
+      lean_string_cstr(symbol),
+      *sort_unbox(sort)
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(v)), solver);
+  )
+}
+
+static void grammar_finalize(void* obj) { delete static_cast<Grammar*>(obj); }
+
+static void grammar_foreach(void*, b_lean_obj_arg)
+{
+  // do nothing since `Grammar` does not contain nested Lean objects
+}
+
+static lean_external_class* g_grammar_class = nullptr;
+
+static inline lean_obj_res grammar_box(Grammar* g)
+{
+  if (g_grammar_class == nullptr)
+  {
+    g_grammar_class = lean_register_external_class(grammar_finalize, grammar_foreach);
+  }
+  return lean_alloc_external(g_grammar_class, g);
+}
+
+static inline const Grammar* grammar_unbox(b_lean_obj_arg g)
+{
+  return static_cast<Grammar*>(lean_get_external_data(g));
+}
+
+extern "C" lean_obj_res grammar_null(lean_obj_arg unit)
+{
+  return grammar_box(new Grammar());
+}
+
+extern "C" uint8_t grammar_isNull(lean_obj_arg g)
+{
+  return bool_box(grammar_unbox(g)->isNull());
+}
+
+extern "C" lean_obj_res grammar_addRule(
+  lean_obj_arg g,
+  lean_object* ntSymbol,
+  lean_object* rule
+) {
+  Grammar gram = *grammar_unbox(g);
+  gram.addRule(*term_unbox(ntSymbol), *term_unbox(rule));
+  return grammar_box(new Grammar(gram));
+}
+
+extern "C" lean_obj_res grammar_toString(lean_obj_arg g)
+{
+  return lean_mk_string(grammar_unbox(g)->toString().c_str());
+}
+
+extern "C" lean_obj_res solver_mkGrammar(
+  lean_obj_arg inst,
+  lean_obj_arg boundVars,
+  lean_obj_arg ntSymbols,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_mkGrammar", inst, solver,
+    std::vector<Term> boundVars_vec;
+    for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i) {
+      boundVars_vec.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), boundVars, lean_usize_to_nat(i))
+      ));
+    }
+    std::vector<Term> ntSymbols_vec;
+    for (size_t i = 0, n = lean_array_size(ntSymbols); i < n; ++i) {
+      ntSymbols_vec.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), ntSymbols, lean_usize_to_nat(i))
+      ));
+    }
+    Grammar g = solver_unbox(solver)->mkGrammar(
+      boundVars_vec,
+      ntSymbols_vec
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), grammar_box(new Grammar(g)), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_synthFun(
+  lean_obj_arg inst,
+  lean_obj_arg symbol,
+  lean_obj_arg boundVars,
+  lean_obj_arg sort,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_synthFun", inst, solver,
+    std::vector<Term> boundVars_vec;
+    for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i) {
+      boundVars_vec.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), boundVars, lean_usize_to_nat(i))
+      ));
+    }
+    Term f = solver_unbox(solver)->synthFun(
+      lean_string_cstr(symbol),
+      boundVars_vec,
+      *sort_unbox(sort)
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(f)), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_synthFunWith(
+  lean_obj_arg inst,
+  lean_obj_arg symbol,
+  lean_obj_arg boundVars,
+  lean_obj_arg sort,
+  lean_object* grammar,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_synthFunWith", inst, solver,
+    std::vector<Term> boundVars_vec;
+    for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i) {
+      boundVars_vec.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), boundVars, lean_usize_to_nat(i))
+      ));
+    }
+    Grammar gram = *grammar_unbox(grammar);
+    Term f = solver_unbox(solver)->synthFun(
+      lean_string_cstr(symbol),
+      boundVars_vec,
+      *sort_unbox(sort),
+      gram
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(f)), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_addSygusConstraint(
+  lean_obj_arg inst,
+  lean_object* term,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_addSygusConstraint", inst, solver,
+    solver_unbox(solver)->addSygusConstraint(*term_unbox(term));
+    return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_getSygusConstraints(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+)
+{
+  CVC5_TRY_CATCH_SOLVER("solver_getSygusConstraints", inst, solver,
+    std::vector<Term> cs = solver_unbox(solver)->getSygusConstraints();
+    lean_object* constraints = lean_mk_empty_array();
+    for (const Term& value : cs) {
+      constraints = lean_array_push(constraints, term_box(new Term(value)));
+    }
+    return solver_val(lean_box(0), inst, lean_box(0), constraints, solver);
+  )
+}
+
+extern "C" lean_obj_res solver_addSygusAssume(
+  lean_obj_arg inst,
+  lean_object* term,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_addSygusAssume", inst, solver,
+    solver_unbox(solver)->addSygusAssume(*term_unbox(term));
+    return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_getSygusAssumptions(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+)
+{
+  CVC5_TRY_CATCH_SOLVER("solver_getSygusAssumptions", inst, solver,
+    std::vector<Term> cs = solver_unbox(solver)->getSygusAssumptions();
+    lean_object* constraints = lean_mk_empty_array();
+    for (const Term& value : cs) {
+      constraints = lean_array_push(constraints, term_box(new Term(value)));
+    }
+    return solver_val(lean_box(0), inst, lean_box(0), constraints, solver);
+  )
+}
+
+extern "C" lean_obj_res solver_addSygusInvConstraint(
+  lean_obj_arg inst,
+  lean_object* inv,
+  lean_object* pre,
+  lean_object* trans,
+  lean_object* post,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_addSygusInvConstraint", inst, solver,
+    solver_unbox(solver)->addSygusInvConstraint(
+      *term_unbox(inv), *term_unbox(pre), *term_unbox(trans), *term_unbox(post)
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
+}
+
+static void synthResult_finalize(void* obj) { delete static_cast<SynthResult*>(obj); }
+
+static void synthResult_foreach(void*, b_lean_obj_arg)
+{
+  // do nothing since `SynthResult` does not contain nested Lean objects
+}
+
+static lean_external_class* g_synthResult_class = nullptr;
+
+static inline lean_obj_res synthResult_box(SynthResult* t)
+{
+  if (g_synthResult_class == nullptr)
+  {
+    g_synthResult_class = lean_register_external_class(synthResult_finalize, synthResult_foreach);
+  }
+  return lean_alloc_external(g_synthResult_class, t);
+}
+
+static inline const SynthResult* synthResult_unbox(b_lean_obj_arg t)
+{
+  return static_cast<SynthResult*>(lean_get_external_data(t));
+}
+
+extern "C" lean_obj_res synthResult_null(lean_obj_arg unit)
+{
+  return synthResult_box(new SynthResult());
+}
+
+extern "C" uint8_t synthResult_isNull(lean_obj_arg t)
+{
+  return bool_box(synthResult_unbox(t)->isNull());
+}
+
+extern "C" uint8_t synthResult_hasSolution(lean_obj_arg t)
+{
+  return bool_box(synthResult_unbox(t)->hasSolution());
+}
+
+extern "C" uint8_t synthResult_hasNoSolution(lean_obj_arg t)
+{
+  return bool_box(synthResult_unbox(t)->hasNoSolution());
+}
+
+extern "C" uint8_t synthResult_isUnknown(lean_obj_arg t)
+{
+  return bool_box(synthResult_unbox(t)->isUnknown());
+}
+
+extern "C" lean_obj_res synthResult_toString(lean_obj_arg g)
+{
+  return lean_mk_string(synthResult_unbox(g)->toString().c_str());
+}
+
+extern "C" lean_obj_res solver_checkSynth(lean_obj_arg inst, lean_obj_arg solver)
+{
+  CVC5_TRY_CATCH_SOLVER("solver_checkSynth", inst, solver,
+    return solver_val(
+      lean_box(0), inst, lean_box(0),
+      synthResult_box(new SynthResult(solver_unbox(solver)->checkSynth())),
+      solver
+    );
+  )
+}
+
+extern "C" lean_obj_res solver_getSynthSolution(
+  lean_obj_arg inst,
+  lean_object * term,
+  lean_obj_arg solver
+)
+{
+  CVC5_TRY_CATCH_SOLVER("solver_getSynthSolution", inst, solver,
+    Term val = solver_unbox(solver)->getSynthSolution(*term_unbox(term));
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(val)), solver);
+  )
+}
+
+static void findSynthTarget_finalize(void* obj) {
+  delete static_cast<modes::FindSynthTarget*>(obj);
+}
+
+static void findSynthTarget_foreach(void*, b_lean_obj_arg)
+{
+  // do nothing since `FindSynthTarget` does not contain nested Lean objects
+}
+
+static lean_external_class* g_findSynthTarget_class = nullptr;
+
+static inline lean_obj_res findSynthTarget_box(modes::FindSynthTarget* t)
+{
+  if (g_findSynthTarget_class == nullptr)
+  {
+    g_findSynthTarget_class =
+      lean_register_external_class(findSynthTarget_finalize, findSynthTarget_foreach);
+  }
+  return lean_alloc_external(g_findSynthTarget_class, t);
+}
+
+static inline const modes::FindSynthTarget* findSynthTarget_unbox(b_lean_obj_arg t)
+{
+  return static_cast<modes::FindSynthTarget*>(lean_get_external_data(t));
+}
+
+extern "C" lean_obj_res findSynthTarget_null(lean_obj_arg unit)
+{
+  return findSynthTarget_box(new modes::FindSynthTarget());
+}
+
+// extern "C" uint8_t findSynthTarget_isNull(lean_obj_arg t)
+// {
+//   return bool_box(findSynthTarget_unbox(t)->isNull());
+// }
+
+extern "C" lean_obj_res solver_findSynth(
+  lean_obj_arg inst,
+  lean_object* fst,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_findSynth", inst, solver,
+    Term f = solver_unbox(solver)->findSynth(
+      *findSynthTarget_unbox(fst)
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(f)), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_findSynthWith(
+  lean_obj_arg inst,
+  lean_object* fst,
+  lean_object* grammar,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_findSynthWith", inst, solver,
+    Grammar gram = *grammar_unbox(grammar);
+    Term f = solver_unbox(solver)->findSynth(
+      *findSynthTarget_unbox(fst), gram
+    );
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(f)), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_findSynthNext(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_findSynthNext", inst, solver,
+    Term f = solver_unbox(solver)->findSynthNext();
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(f)), solver);
   )
 }

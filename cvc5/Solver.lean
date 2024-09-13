@@ -62,6 +62,103 @@ def Proof : Type := ProofImpl.type
 
 instance Proof.instNonemptyProof : Nonempty Proof := ProofImpl.property
 
+private opaque GrammarImpl : NonemptyType.{0}
+
+/-- A Sygus grammar.
+
+This type can be used to define a context-free grammar of terms. Its interface coincides with the definition of grammars (`GrammarDef`) in the *SyGuS IF 2.1 standard*.
+-/
+def Grammar : Type := GrammarImpl.type
+
+namespace Grammar
+instance instNonEmpty : Nonempty Grammar := GrammarImpl.property
+
+/-- Determine if this is the null grammar. -/
+@[extern "grammar_isNull"]
+opaque isNull : Grammar → Bool
+
+/-- Add `rule` to the set of rules corresponding to `ntSymbol`.
+
+- `ntSymbol`: The non-terminal to which the rule is added.
+- `rule`: The rule to add.
+-/
+@[extern "grammar_addRule"]
+opaque addRule : Grammar → (ntSymbol : Term) → (rule : Term) → Grammar
+
+/-- Add `rules` to the set of rules corresponding to `ntSymbol`.
+
+- `ntSymbol`: The non-terminal to which the rules are added.
+- `rules`: The rules to add.
+-/
+def addRules (g : Grammar) (ntSymbol : Term) (rules : Array Term) : Grammar := Id.run do
+  let mut g := g
+  for rule in rules do
+    g := g.addRule ntSymbol rule
+  return g
+
+/-- A string representation of this grammar. -/
+@[extern "grammar_toString"]
+protected opaque toString : Grammar → String
+
+instance instToString : ToString Grammar := ⟨Grammar.toString⟩
+
+end Grammar
+
+private opaque SynthResultImpl : NonemptyType.{0}
+
+/-- Encapsulation of a solver synth result.
+
+This is the return value of the API functions `checkSynth` and `checkSynthNext` which we call
+*"synthesis queries"*. This type indicates whether th esynthesis query has a solution, has no
+solution, or is unknown.
+-/
+def SynthResult : Type := SynthResultImpl.type
+
+namespace SynthResult
+instance instNonEmpty : Nonempty SynthResult := SynthResultImpl.property
+
+@[extern "synthResult_isNull"]
+opaque isNull : SynthResult → Bool
+
+@[extern "synthResult_hasSolution"]
+opaque hasSolution : SynthResult → Bool
+
+@[extern "synthResult_hasNoSolution"]
+opaque hasNoSolution : SynthResult → Bool
+
+@[extern "synthResult_isUnknown"]
+opaque isUnknown : SynthResult → Bool
+
+@[extern "synthResult_toString"]
+protected opaque toString : SynthResult → String
+
+instance instToString : ToString SynthResult := ⟨SynthResult.toString⟩
+
+end SynthResult
+
+private opaque FindSynthTargetImpl : NonemptyType.{0}
+
+/-- Encapsulation of a solver synth result.
+
+This is the return value of the API functions `checkSynth` and `checkSynthNext` which we call
+*"synthesis queries"*. This type indicates whether th esynthesis query has a solution, has no
+solution, or is unknown.
+
+# TODO
+
+There is currently no way to construct this type. It is an enumeration that we have to redefine at
+lean-level.
+-/
+def FindSynthTarget : Type := FindSynthTargetImpl.type
+
+namespace FindSynthTarget
+instance instNonEmpty : Nonempty FindSynthTarget := FindSynthTargetImpl.property
+
+@[extern "synthResult_isNull"]
+opaque isNull : FindSynthTarget → Bool
+
+end FindSynthTarget
+
 private opaque TermManagerImpl : NonemptyType.{0}
 
 /-- Manager for cvc5 terms. -/
@@ -1117,6 +1214,135 @@ defs! "solver"
   results are ignored.
   -/
   def parse : String → SolverT m Unit
+
+  /-- Append `symbol` to the current list of universal variables.
+
+  - `name`: The name of the universal variable.
+  - `sort`: The sort of the universal variable.
+  -/
+  def declareSygusVar : (symbol : String) → (sort : cvc5.Sort) → SolverT m Term
+
+  /-- Create a Sygus grammar.
+
+  The first non-terminal is treated as the starting non-terminal, so the order of non-terminals
+  matters.
+
+  - `bountVars`: The parameters to corresponding synth-fun/synth-inv.
+  - `ntSymbols`: The pre-declaration of the non-terminal symbols.
+  -/
+  def mkGrammar : (boundVars : Array Term) → (ntSymbols : Array Term) → SolverT m Grammar
+
+  /-- Synthesize n-ary function.
+
+  - `symbol` : The name of the function.
+  - `boundVars` : The parameters to this function.
+  - `sort`: The sort of the return value of this function.
+  -/
+  def synthFun : (symbol : String) → (boundVars : Array Term) → (sort : cvc5.Sort) → SolverT m Term
+
+  /-- Synthesize n-ary function following specified syntactic constraints.
+
+  - `symbol` : The name of the function.
+  - `boundVars` : The parameters to this function.
+  - `sort`: The sort of the return value of this function.
+  - `grammar`: The syntactic constraints.
+  -/
+  def synthFunWith
+  : (symbol : String) → (boundVars : Array Term) → (sort : cvc5.Sort)
+  → (grammar : Grammar)
+  → SolverT m Term
+
+  /-- Add a formula to the set of Sygus constraints.
+
+  - `term`: The formula to add as a constraint.
+  -/
+  def addSygusConstraint : (term : Term) → SolverT m Unit
+
+  /-- Get the list of Sygus constraints. -/
+  def getSygusConstraints : SolverT m (Array Term)
+
+  /-- Add a formula to the set of Sygus assumptions.
+
+  - `term`: The formula to add as an assumption.
+  -/
+  def addSygusAssumption : (term : Term) → SolverT m Unit
+
+  /-- Get the list of Sygus assumptions. -/
+  def getSygusAssumptions : SolverT m (Array Term)
+
+  /-- Add a set of sygus constraints to the current state that correspond to an invariant synthesis
+  problem.
+
+  - `inv`: The function-to-synthesize.
+  - `pre`: The pre-condition.
+  - `trans`: The transition relation.
+  - `post`: The post-condition.
+  -/
+  def addSygusInvConstraint
+  : (inv : Term) → (pre : Term) → (trans : Term) → (post : Term) → SolverT m Unit
+
+  /-- Try to find a solution for the synthesis conjecture corresponding to the current list of
+    functions-to-synthesize, universal variables and constraints.
+
+  The result of the check, which is "solution" if the check found a solution in which case solutions
+  are available via `getSynthSolutions`, "no solution" if it was determined there is no solution, or
+  "unknown" otherwise.
+  -/
+  def checkSynth : SolverT m SynthResult
+
+  /-- Get the synthesis solution of the given term. This function should be called immediately after the solver answers unsat for sygus input.
+
+  - `term`: The term for which the synthesis solution is queried.
+  -/
+  def getSynthSolution : (term : Term) → SolverT m Term
+  where
+    /-- Get the synthesis solutions of the given terms.
+
+    This function should be called immediately after the solver answers unsat for sygus input.
+
+    - `terms`: The terms for which the synthesis solutions is queried.
+    -/
+    getSynthSolutions (terms : Array Term) : SolverT m (Array Term) := do
+      let mut res := Array.mkEmpty terms.size
+      for term in terms do
+        res := res.push (← getSynthSolution term)
+      return res
+
+  /-- Find a target term of interest using sygus enumeration, with no provided grammar.
+
+  The solver will infer which grammar to use in this call, which by default will be the grammars
+  specified by the function(s)-to-synthesize in the current context.
+
+  - `fst`: The identifier specifying what kind of term to find.
+  -/
+  private def findSynthOrNull (force := "findSynth") : (fst : FindSynthTarget) → SolverT m Term
+  where
+    findSynth? (fst : FindSynthTarget) : SolverT m (Option Term) := do
+      let term ← findSynthOrNull fst
+      if term.isNull then return none else return term
+
+  /-- Find a target term of interest using sygus enumeration with a provided grammar.
+
+  - `fst`: The identifier specifying what kind of term to find.
+  - `grammar`: The grammar for the term.
+  -/
+  private def findSynthWithOrNull (force := "findSynthWith")
+  : (fst : FindSynthTarget) → (grammar : Grammar) → SolverT m Term
+  where
+    findSynthWith? (fst : FindSynthTarget) (grammar : Grammar) : SolverT m (Option Term) := do
+      let term ← findSynthWithOrNull fst grammar
+      if term.isNull then return none else return term
+
+  /-- Try to find a next target term of interest using sygus enumeration.
+
+  (Repeated) calls to this function are only legal after a call to `findSynth?`/`findSynthWith?`
+  that did not yield `none`.
+  -/
+  def findSynthNextOrNull (force := "findSynthNext") : SolverT m Term
+  where
+    findSynthNext? : SolverT m (Option Term) := do
+      let term ← findSynthNextOrNull
+      if term.isNull then return none else return term
 
 /-- Run a `query` given a term manager `tm`. -/
 def run (tm : TermManager) (query : SolverT m α) : m (Except Error α) :=
