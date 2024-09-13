@@ -471,7 +471,7 @@ defs! "term"
   Requires `term` to have sort Bool.
   -/
   def getBooleanValue : (term : Term) → Except Error Bool
-  with getBooleanValue! getBoolneaValue?
+  with getBooleanValue! getBooleanValue?
 
   /-- Get the string representation of a bit-vector value.
 
@@ -942,12 +942,40 @@ defs! "solver"
   -/
   def getQuantifierElimination : (q : Term) → SolverT m Term
 
+
+  /-- Do partial quantifier elimination, which can be used for incrementally computing the result of
+    a quantifier elimination.
+
+  Quantifier Elimination is only complete for logics such as `LRA`, `LIA`, and `BV`.
+
+  - `q`: A quantified formula of the form `Q x_1 ... Q x_n, P(x_1, ..., x_n, y_1, ..., y_m)` where
+    - `Q x_i` is a set of quantifier variables of the form
+      - `z_1, ..., z_k`, and
+      - `P(x_1, ..., x_n, y_1, ..., y_m)` is a quantifier-free formula
+
+  Returns a formula `φ` such that, given the current set of formulas `A` asserted to the solver:
+  - `A ∧ q → A ∧ φ` if `Q` is `∀`, and `A ∧ φ → A ∧ q` if `Q` is `∃`;
+  - `φ` is a quantifier-free formula containing only free variables in `y_1, ..., y_n`;
+  - if `Q` is `∃`, let `A ∧ Q_n` be the formula `A ∧ ¬(φ ∧ Q_1) ∧ ... ∧ ¬(φ ∧ Q_n)` where for each
+    `i = [1, n]` formula `φ ∧ Q_i` is the result of calling `getQuantifierEliminationDisjunct` for
+    `q` with the set of assertions `A ∧ Q_{i-1}`.
+
+    Similarly, if `Q` is `∀`, then let `A ∧ Q_n` be `A ∧ (φ ∧ Q_1) ∧ ... ∧ (φ ∧ Q_n)` where `φ ∧
+    Q_i` is the same as above.
+
+    In either case, we have that `φ ∧ Q_j` will eventually be true or false, for some finite `j`.
+  -/
+  def getQuantifierEliminationDisjunct : (q : Term) → SolverT m Term
+
   /-- Set option.
 
   - `option`: The option name.
   - `value`: The option value.
   -/
   def setOption : (option value : String) → SolverT m Unit
+
+  /-- Remove all assertions. -/
+  def resetAssertions : SolverT m Unit
 
   /-- Set logic.
 

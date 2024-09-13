@@ -934,6 +934,16 @@ extern "C" lean_obj_res solver_setOption(lean_obj_arg inst,
   )
 }
 
+extern "C" lean_obj_res solver_resetAssertions(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("resetAssertions", inst, solver,
+    solver_unbox(solver)->resetAssertions();
+    return solver_val(lean_box(0), inst, lean_box(0), mk_unit_unit(), solver);
+  )
+}
+
 extern "C" lean_obj_res solver_setLogic(
   lean_obj_arg inst,
   lean_object* logic,
@@ -978,6 +988,17 @@ extern "C" lean_obj_res solver_getQuantifierElimination(
 ) {
   CVC5_TRY_CATCH_SOLVER("solver_getQuantifierElimination", inst, solver,
     Term value = solver_unbox(solver)->getQuantifierElimination(*term_unbox(term));
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_getQuantifierEliminationDisjunct(
+  lean_obj_arg inst,
+  lean_obj_arg term,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_getQuantifierEliminationDisjunct", inst, solver,
+    Term value = solver_unbox(solver)->getQuantifierEliminationDisjunct(*term_unbox(term));
     return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
   )
 }

@@ -173,13 +173,31 @@ test! tm => do
 
 
 
+def loopQEDisjuncts (isExists : Bool) (tm : TermManager) (acc : Array Term) (q : Term)
+: Nat → SolverM (Array Term × Bool)
+| 0 => IO.throwServerError "max depth reached"
+| n + 1 => do
+  let qf ← Solver.getQuantifierEliminationDisjunct q
+  if let some b := qf.getBooleanValue? then
+    return (acc, b)
+  else
+    let acc := acc.push qf
+    let block ←
+      if isExists then tm.mkTerm .NOT #[qf] else pure q
+    Solver.assertFormula block
+    loopQEDisjuncts isExists tm acc q n
+
+
+
+
 /-- info:
 running QE on
 - `(exists ((countNext Int)) (and (= countNext (+ count 1)) (not (<= 0 countNext))))`
-→ `(not (>= count (- 1)))`
-running QE on
-- `(forall ((countNext Int)) (and (= countNext (+ count 1)) (not (<= 0 countNext))))`
-→ `false`
+- full QE
+  → `(not (>= count (- 1)))`
+- QE disjuncts
+  → `(not (>= count (- 1)))`
+  → `false`
 -/
 test! tm => do
   Solver.setLogic "QF_LIA"
@@ -210,14 +228,67 @@ test! tm => do
   println! "running QE on"
   println! "- `{q}`"
 
+  println! "- full QE"
   let qf ← Solver.getQuantifierElimination q
-  println! "→ `{qf}`"
+  println! "  → `{qf}`"
   assertEq (toString qf) "(not (>= count (- 1)))"
 
+  println! "- QE disjuncts"
+  let (terms, last) ← loopQEDisjuncts (isExists := true) tm #[] q 10
+  for term in terms do
+    println! "  → `{term}`"
+  println! "  → `{last}`"
+  assertEq last false
+
+
+
+
+/-- info:
+running QE on
+- `(forall ((countNext Int)) (and (= countNext (+ count 1)) (not (<= 0 countNext))))`
+- full QE
+  → `false`
+- QE disjuncts
+  → `(= count (- 2))`
+  → `false`
+-/
+test! tm => do
+  Solver.setLogic "QF_LIA"
+  Solver.setOption "produce-interpolants" "true"
+
+  let int := tm.getIntegerSort
+
+  let count ← Solver.declareFun "count" #[] int false
+  let count' := tm.mkVar int "countNext"
+  let zero ← tm.mkInteger 0
+  let one ← tm.mkInteger 1
+
+  -- `count' = count + 1`
+  let trans ←
+    tm.mkTerm .EQUAL #[count',
+      ← tm.mkTerm .ADD #[count, one]
+    ]
+  -- `0 ≤ count'`
+  let prop ←
+    tm.mkTerm .LEQ #[zero, count']
+
+  -- `trans ∧ ¬prop`
+  let bad ←
+    tm.mkTerm .AND #[trans, ← tm.mkTerm .NOT #[prop]]
+
+  let qs ← tm.mkTerm .VARIABLE_LIST #[count']
   let q ← tm.mkTerm .FORALL #[qs, bad]
   println! "running QE on"
   println! "- `{q}`"
 
+  println! "- full QE"
   let qf ← Solver.getQuantifierElimination q
-  println! "→ `{qf}`"
+  println! "  → `{qf}`"
   assertEq (toString qf) "false"
+
+  println! "- QE disjuncts"
+  let (terms, last) ← loopQEDisjuncts (isExists := false) tm #[] q 10
+  for term in terms do
+    println! "  → `{term}`"
+  println! "  → `{last}`"
+  assertEq last false
