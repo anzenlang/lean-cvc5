@@ -935,12 +935,54 @@ defs! "solver"
   interpolant.
 
   Requires incremental mode.
+
+  `I` is such that `A → I` and `I → B` are valid, and `I` only mentions symbols that appear both in
+  `A` and `B`, where `A` is the current set of assertions and `B` is given in the input by the last
+  call to `getInterpolant?`.
   -/
   private def getInterpolantNextOrNull (force := "getInterpolantNext")
   : SolverT m Term
   where
     getInterpolantNext? : SolverT m (Option Term) := do
       let i ← getInterpolantNextOrNull
+      if i.isNull then return none else return i
+
+  /-- Get an abduct.
+
+  Requires to enable option `produce-abducts`.
+
+  - `conj`: The conjecture term.
+
+  Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬ B ∧ c` is unsatisfiable, where `A`
+  is the current set of assertions and `B` is given in the input by `conj`, or the null term if such
+  a term cannot be found.
+
+  **Note**: currently, the solver will either loop forever or fail if `A ∧ ¬ B` is satisfiable.
+  -/
+  private def getAbductOrNull (force := "getAbduct") : (conj : Term) → SolverT m Term
+  where
+    getAbduct? (term : Term) : SolverT m (Option Term) := do
+      let i ← getAbductOrNull term
+      if i.isNull then return none else return i
+
+  /-- Get the next abduct.
+
+  (Repeated) calls to this function are only legal after a call to `getAbduct?` that did not yield
+  `none`.
+
+  It is guaranteed to produce a syntactically different abduct *w.r.t.* the last returned abduct if
+  not `none`.
+
+  Requires to enable incremental mode.
+
+  Returns a term `C` such that `A ∧ C` is satisfiable and `A ∧ ¬ B ∧ C` is unsatisfiable, where `A`
+  is the current set of assertions and `B` is given in the input by the last call to `getAbduct?`.
+  -/
+  private def getAbductNextOrNull (force := "getAbductNext")
+  : SolverT m Term
+  where
+    getAbductNext? : SolverT m (Option Term) := do
+      let i ← getAbductNextOrNull
       if i.isNull then return none else return i
 
   /-- Do quantifier elimination.

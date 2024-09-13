@@ -991,6 +991,27 @@ extern "C" lean_obj_res solver_getInterpolantNext(
   )
 }
 
+extern "C" lean_obj_res solver_getAbduct(
+  lean_obj_arg inst,
+  lean_obj_arg term,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_getAbduct", inst, solver,
+    Term value = solver_unbox(solver)->getAbduct(*term_unbox(term));
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
+  )
+}
+
+extern "C" lean_obj_res solver_getAbductNext(
+  lean_obj_arg inst,
+  lean_obj_arg solver
+) {
+  CVC5_TRY_CATCH_SOLVER("solver_getAbductNext", inst, solver,
+    Term value = solver_unbox(solver)->getAbductNext();
+    return solver_val(lean_box(0), inst, lean_box(0), term_box(new Term(value)), solver);
+  )
+}
+
 extern "C" lean_obj_res solver_getQuantifierElimination(
   lean_obj_arg inst,
   lean_obj_arg term,

@@ -193,10 +193,126 @@ a successful call to get-interpolant(-next).\
   assertEq i? none
   println! "confirmed no interpolant"
 
+/-- info:
+φ = (=> (not (and p q)) (and (not r) q))
+simplify (let ((_let_1 (=> (not (and p q)) (and (not r) q)))) (or _let_1 _let_1))
+         (=> (not (and p q)) (and (not r) q))
+ψ = (or (=> s p) (=> s (not r)))
+`φ ∧ ¬ψ` is unsat
+abduct: s
+abduct next: p
+abduct next: r
+abduct next: q
+abduct next: true
+`φ ∧ ψ` is sat
+-/
+test! tm => do
+  Solver.setLogic "QF_LIA"
+  Solver.setOption "produce-abducts" "true"
+  Solver.setOption "incremental" "true"
+
+  -- from <https://en.wikipedia.org/wiki/Craig_interpolation#Example>
+
+  let bool := tm.getBooleanSort
+
+  let p ← Solver.declareFun (m := IO) "p" #[] bool false
+  let q ← Solver.declareFun (m := IO) "q" #[] bool false
+  let r ← Solver.declareFun (m := IO) "r" #[] bool false
+  let s ← Solver.declareFun (m := IO) "s" #[] bool false
+
+  let p_and_q ← tm.mkTerm .AND #[p, q]
+  let p_nand_q ← tm.mkTerm .NOT #[p_and_q]
+  let nr ← tm.mkTerm .NOT #[r]
+  let nr_and_q ← tm.mkTerm .AND #[nr, q]
+  let φ ←
+    tm.mkTerm .IMPLIES #[p_nand_q, nr_and_q]
+  println! "φ = {φ}"
+
+  let φ' ← tm.mkTerm .OR #[φ, φ]
+  let simplified ← Solver.simplify φ'
+  println! "simplify {φ'}"
+  println! "         {simplified}"
+
+  Solver.assertFormula φ
+
+  let s_to_p ← tm.mkTerm .IMPLIES #[s, p]
+  let s_to_nr ← tm.mkTerm .IMPLIES #[s, nr]
+  let ψ ←
+    tm.mkTerm .OR #[s_to_p, s_to_nr]
+  println! "ψ = {ψ}"
+
+  let not_ψ ← tm.mkTerm .NOT #[ψ]
+  match ← Solver.checkSatAssuming? #[not_ψ] with
+  | some false =>
+    println! "`φ ∧ ¬ψ` is unsat"
+  | some true =>
+    println! "unexpected `sat` result"
+    return ()
+  | none =>
+    println! "unexpected `unknown` result"
+    return ()
+
   assertError "\
-Cannot get-interpolant-next unless immediately preceded by \
-a successful call to get-interpolant(-next).\
-  " Solver.getInterpolantNext?
+Cannot get-abduct-next unless immediately preceded by \
+a successful call to get-abduct(-next).\
+  " Solver.getAbductNext?
+
+  match ← Solver.getAbduct? ψ with
+  | none =>
+    println! "failed to retrieve abduct"
+    return ()
+  | some i =>
+    println! "abduct: {i}"
+
+  match ← Solver.getAbductNext? with
+  | none =>
+    println! "failed to retrieve next abduct"
+    return ()
+  | some i =>
+    println! "abduct next: {i}"
+
+  match ← Solver.getAbductNext? with
+  | none =>
+    println! "failed to retrieve next abduct"
+    return ()
+  | some i =>
+    println! "abduct next: {i}"
+
+  match ← Solver.getAbductNext? with
+  | none =>
+    println! "failed to retrieve next abduct"
+    return ()
+  | some i =>
+    println! "abduct next: {i}"
+
+  match ← Solver.getAbductNext? with
+  | none =>
+    println! "failed to retrieve next abduct"
+    return ()
+  | some i =>
+    println! "abduct next: {i}"
+
+  -- nonsensical input
+
+  match ← Solver.checkSatAssuming? #[ψ] with
+  | some true =>
+    println! "`φ ∧ ψ` is sat"
+  | some false =>
+    println! "unexpected `unsat` result"
+    return ()
+  | none =>
+    println! "unexpected `unknown` result"
+    return ()
+
+  -- -- currently causes the solver to loop forever
+  -- let i? ← Solver.getAbduct? not_ψ
+  -- assertEq i? none
+  -- println! "confirmed no abduct"
+
+  assertError "\
+Cannot get-abduct-next unless immediately preceded by \
+a successful call to get-abduct(-next).\
+  " Solver.getAbductNext?
 
 
 
