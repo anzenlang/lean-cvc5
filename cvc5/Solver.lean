@@ -953,11 +953,9 @@ defs! "solver"
 
   - `conj`: The conjecture term.
 
-  Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬ B ∧ c` is unsatisfiable, where `A`
+  Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬ B ∧ C` is unsatisfiable, where `A`
   is the current set of assertions and `B` is given in the input by `conj`, or the null term if such
   a term cannot be found.
-
-  **Note**: currently, the solver will either loop forever or fail if `A ∧ ¬ B` is satisfiable.
   -/
   private def getAbductOrNull (force := "getAbduct") : (conj : Term) → SolverT m Term
   where
