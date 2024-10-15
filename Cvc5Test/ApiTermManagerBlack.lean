@@ -63,12 +63,14 @@ test! tm => do
   tm.mkArraySort tm.getBooleanSort tm.getIntegerSort
   |> assertOkDiscard
 
-/-- error: unsolved goals
+/--
+error: failed to prove the bit-vector's size is `> 0`
 tm : TermManager
 x✝ : Sort := tm.mkBitVectorSort 32 ⋯
-⊢ False
+⊢ 0 < 0
 ---
-info:
+error: cannot evaluate expression that depends on the `sorry` axiom.
+Use `#eval!` to evaluate nevertheless (which may cause lean to crash).
 -/
 test! tm => do
   let _ := tm.mkBitVectorSort 32
@@ -107,27 +109,28 @@ test! tm => do
   |> assertError "invalid argument '8CC4' for 'modulus', expected modulus is prime"
 
 /--
-error: unsolved goals
+error: failed to prove the exponent is `> 1`
 tm : TermManager
 x✝ : PUnit
-⊢ False
+⊢ 1 < 0
 ---
-error: unsolved goals
+error: failed to prove the significand is `> 1`
 tm : TermManager
 x✝¹ x✝ : PUnit
-⊢ False
+⊢ 1 < 0
 ---
-error: unsolved goals
+error: failed to prove the exponent is `> 1`
 tm : TermManager
 x✝² x✝¹ x✝ : PUnit
-⊢ False
+⊢ 1 < 1
 ---
-error: unsolved goals
+error: failed to prove the significand is `> 1`
 tm : TermManager
 x✝³ x✝² x✝¹ x✝ : PUnit
-⊢ False
+⊢ 1 < 1
 ---
-info:
+error: cannot evaluate expression that depends on the `sorry` axiom.
+Use `#eval!` to evaluate nevertheless (which may cause lean to crash).
 -/
 test! tm => do
   tm.mkFloatingPointSort 4 8

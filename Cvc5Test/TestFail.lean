@@ -3,9 +3,13 @@ import Cvc5Test.Init
 namespace cvc5.Test
 
 /--
-error: simp made no progress
+error: failed to prove the bit-vector's size is `> 0`
+tm : TermManager
+n : UInt32
+⊢ 0 < n
 ---
-info:
+error: cannot evaluate expression that depends on the `sorry` axiom.
+Use `#eval!` to evaluate nevertheless (which may cause lean to crash).
 -/
 test! tm => do
   let mkBvSort (n : UInt32) :=

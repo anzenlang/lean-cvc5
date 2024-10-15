@@ -769,10 +769,16 @@ defs! "termManager"
 
   - `size`: The bit-width of the bit-vector sort, cannot be zero.
   -/
-  private def mkBitVectorSortUnsafe (force := "mkBitVectorSort")
+  def mkBitVectorSortUnsafe (force := "mkBitVectorSort")
   : TermManager → (size : UInt32) → Except Error cvc5.Sort
   where
-    mkBitVectorSort (tm : TermManager) (size : UInt32) (valid : 0 < size := by simp) : cvc5.Sort :=
+    mkBitVectorSort
+      (tm : TermManager) (size : UInt32)
+      (valid : 0 < size := by
+        first
+        | decide
+        | fail "failed to prove the bit-vector's size is `> 0`")
+    : cvc5.Sort :=
       let _ := valid
       mkBitVectorSortUnsafe tm size |> Error.unwrap!
 
@@ -787,7 +793,10 @@ defs! "termManager"
     mkFloatingPointSort! (tm : TermManager) (exp sig : UInt32) : cvc5.Sort :=
       Error.unwrap! (tm.mkFloatingPointSortUnsafe exp sig)
     mkFloatingPointSort (tm : TermManager) (exp sig : UInt32)
-      (valid_exp : 1 < exp := by simp) (valid_sig : 1 < sig := by simp)
+      (valid_exp : 1 < exp := by
+        first | decide | fail "failed to prove the exponent is `> 1`")
+      (valid_sig : 1 < sig := by
+        first | decide | fail "failed to prove the significand is `> 1`")
     : Except Error cvc5.Sort :=
       let _ := valid_exp
       let _ := valid_sig
