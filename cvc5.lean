@@ -1021,4 +1021,60 @@ def run! [Inhabited α] (tm : TermManager) (query : SolverT m α) : m α := do
 
 end Solver
 
+
+
+/-- Opaque term manager error/state monad transformer. -/
+structure TermManagerT (m : Type → Type u) (α : Type) where
+private mk ::
+  private code : ExceptT Error (StateT TermManager m) α
+
+/-- Opaque term manager error/state monad. -/
+abbrev TermManagerIO : Type → Type := TermManagerT IO
+
+/-- Opaque term manager error/state monad. -/
+abbrev TermManagerM : Type → Type := TermManagerT Id
+
+namespace TermManagerT
+
+instance [Monad m] : Monad (TermManagerT m) where
+  pure a := ⟨pure a⟩
+  bind a? f := ⟨
+    fun tm => do
+      match ← a?.code tm with
+      | (.ok a, tm) => (f a).code tm
+      | (.error e, tm) => return (.error e, tm)
+  ⟩
+
+instance [Monad m] : MonadLift m (TermManagerT m) where
+  monadLift code := ⟨fun tm => (.ok ·, tm) <$> code⟩
+
+instance [Monad m] [Monad m'] [MonadLift m m'] : MonadLift (TermManagerT m) (TermManagerT m') where
+  monadLift := fun ⟨code⟩ => ⟨fun tm => liftM (code tm)⟩
+
+instance [Monad m] : MonadLift TermManagerM (TermManagerT m) where
+  monadLift := fun ⟨code⟩ => ⟨(return code ·)⟩
+
+def run [Monad m] [MonadLiftT BaseIO m] (code : TermManagerT m α) : m (Except Error α) := do
+  let tm ← TermManager.new
+  let (a?, _) ← code.code tm
+  return a?
+
+def runIO (code : TermManagerIO α) : IO (Except Error α) := code.run
+
+private extern_def in "termManager" mkConst : TermManager → cvc5.Sort → String → Term
+
+end TermManagerT
+
+def Term.mk (kind : Kind) (children : Array Term := #[]) : TermManagerM Term :=
+  ⟨fun tm => (tm.mkTerm kind children, tm)⟩
+
+def Term.mkInt (i : Int) : TermManagerM Term :=
+  ⟨fun tm => (.ok <| tm.mkInteger i, tm)⟩
+
+def Term.mkConst (sort : cvc5.Sort) (symbol : String) : TermManagerM Term :=
+  ⟨fun tm => (.ok <| TermManagerT.mkConst tm sort symbol, tm)⟩
+
+def _root_.cvc5.Sort.int : TermManagerM cvc5.Sort :=
+  ⟨fun tm => return ⟨.ok tm.getIntegerSort, tm⟩⟩
+
 end cvc5
