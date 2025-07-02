@@ -413,7 +413,9 @@ instance : Repr cvc5.Sort := ⟨fun self _ => self.toString⟩
 
 end cvc5.Sort
 
-namespace cvc5.Op
+namespace cvc5
+
+namespace Op
 
 /-- The null operator. -/
 extern_def null : Unit → Op
@@ -849,11 +851,7 @@ Create operators with `mkOp`.
 -/
 extern_def!? mkTermOfOp : TermManager → (op : Op) → (children : Array Term := #[]) → Except Error Term
 
-/-- **THIS FUNCTION MUST NOT BE EXPOSED.**
-
-**It produces a different (fresh) term every time it's called which is really bad for purity.**
-
-Create a free constant.
+/-- Create a free constant.
 
 Note that the returned term is always fresh, even if the same arguments were provided on a
 previous call to `mkConst`.
@@ -861,9 +859,17 @@ previous call to `mkConst`.
 - `sort` The sort of the constant.
 - `symbol` The name of the constant (optional).
 -/
-private
-def mkConst (_ : TermManager) (_ : cvc5.Sort) (_ : String := "") : Term :=
-  panic! "illegal call to `cvc5.TermManager.mkConst"
+private extern_def mkConst : TermManager → (sort : cvc5.Sort) → (symbol : String := "") → Term
+
+/- Create a bound variable to be used in a binder: a quantifier, lambda, or witness binder.
+
+The returned term is always fresh, even if the same arguments were provided on a previous call to
+`mkVar`.
+
+- `sort`: the sort of the variable.
+- `symbol`: the name of the variable (optional).
+-/
+private extern_def mkVar : TermManager → (sort : cvc5.Sort) → (symbol : String := "") → Term
 
 end TermManager
 
@@ -1076,5 +1082,329 @@ def Term.mkConst (sort : cvc5.Sort) (symbol : String) : TermManagerM Term :=
 
 def _root_.cvc5.Sort.int : TermManagerM cvc5.Sort :=
   ⟨fun tm => return ⟨.ok tm.getIntegerSort, tm⟩⟩
+
+
+
+namespace Term
+
+/-- Thread-safe term manager. -/
+structure Manager (ω : Type) where
+private ofStRef ::
+  private toStRef : ST.Ref ω TermManager
+
+/-- Error monad for `Manager`. -/
+abbrev Env (ω : Type) := ReaderT (Term.Manager ω) (EST Error ω)
+
+example : MonadExcept Error (Env ω) := inferInstance
+
+instance : MonadLift (Except Error) (Env ω) where
+  monadLift
+    | .ok val => return val
+    | .error e => throw e
+
+/-- Term manager with access to `IO.RealWorld`.
+
+Makes `Manager` compatible with `BaseIO`.
+-/
+protected abbrev Manager.IO := Manager IO.RealWorld
+
+/-- Term manager monad with access to `IO.RealWorld`.
+
+Makes `ManagerE` compatible with `BaseIO`.
+-/
+protected abbrev Env.IO := Env IO.RealWorld
+
+instance : MonadLift IO Env.IO := ⟨fun io _ world =>
+  match io world with
+  | .ok val world => .ok val world
+  | .error e world => .error (Error.error s!"[IO] {e}") world
+⟩
+
+example : MonadLiftT BaseIO Env.IO := inferInstance
+
+
+
+def Env.run
+  (code : {ω : Type} → Env ω α) (manager : {ω : Type} → Manager ω)
+: Except Error α :=
+  runEST fun ω => @code ω manager
+
+def Env.IO.runUsing (code : Env.IO α) (manager : Manager.IO) : ExceptT Error BaseIO α :=
+  fun world =>
+    match code manager world with
+    | .ok val _manager => .ok (.ok val) world
+    | .error e _manager => .ok (.error e) world
+
+def Env.IO.runUsing! (code : Env.IO α) (manager : Manager.IO) : IO α := do
+  match ← code.runUsing manager |>.toIO with
+  | .ok val => return val
+  | .error e => throw <| IO.userError e.toString
+
+namespace Manager
+
+def run := @Env.IO.runUsing
+def run! := @Env.IO.runUsing!
+
+end Manager
+
+
+/-- Creates a term manager in `BaseIO`. -/
+def Manager.IO.mk : BaseIO Manager.IO := do
+  let stRef ← ST.mkRef (← TermManager.new)
+  return ⟨stRef⟩
+
+@[inherit_doc Manager.IO.mk]
+abbrev Manager.mk := Manager.IO.mk
+
+@[inherit_doc Manager.IO.mk]
+abbrev mkManager := Manager.IO.mk
+
+
+
+namespace Manager
+
+private def tmDo (f : TermManager → α) : Env ω α := do
+  (← read).toStRef.toMonadStateOf.modifyGet fun tm => (f tm, tm)
+
+private def tmDoIn (ω : Type) : (f : TermManager → α) → Env ω α :=
+  tmDo (ω := ω)
+
+private def tmDo? (f : TermManager → Except Error α) : Env ω α := do
+  match ← (← read).tmDo f with
+  | .ok val => return val
+  | .error err => throw err
+
+private def tmDoIn? (ω : Type) : (f : TermManager → Except Error α) → Env ω α :=
+  tmDo? (ω := ω)
+
+open cvc5 renaming «Sort» → Srt
+
+
+
+/-! ## Sort accessors/constructors -/
+
+
+
+def getBooleanSort : Env ω Srt := tmDo TermManager.getBooleanSort
+def getIntegerSort : Env ω Srt := tmDo TermManager.getIntegerSort
+def getRealSort : Env ω Srt := tmDo TermManager.getRealSort
+def getRegExpSort : Env ω Srt := tmDo TermManager.getRegExpSort
+def getRoundingModeSort : Env ω Srt := tmDo TermManager.getRoundingModeSort
+def getStringSort : Env ω Srt := tmDo TermManager.getStringSort
+
+def mkArraySort (index elem : Srt) : Env ω Srt :=
+  tmDo? (TermManager.mkArraySort · index elem)
+def mkArraySort? (index elem : Srt) : Env ω (Option Srt) :=
+  tmDo (TermManager.mkArraySort? · index elem)
+
+def mkBitVectorSort (size : UInt32) : Env ω Srt :=
+  tmDo? (TermManager.mkBitVectorSort · size)
+def mkBitVectorSort? (size : UInt32) : Env ω (Option Srt) :=
+  tmDo (TermManager.mkBitVectorSort? · size)
+
+def mkFloatingPointSort (exp sig : UInt32) : Env ω Srt :=
+  tmDo? (TermManager.mkFloatingPointSort · exp sig)
+def mkFloatingPointSort? (exp sig : UInt32) : Env ω (Option Srt) :=
+  tmDo (TermManager.mkFloatingPointSort? · exp sig)
+
+def mkFiniteFieldSort (size : Nat) : Env ω Srt :=
+  tmDo? (TermManager.mkFiniteFieldSort · size)
+def mkFiniteFieldSort? (size : Nat) : Env ω (Option Srt) :=
+  tmDo (TermManager.mkFiniteFieldSort? · size)
+
+def mkFunctionSort (sorts : Array Srt) (coDomain : Srt) : Env ω Srt :=
+  tmDo? (TermManager.mkFunctionSort · sorts coDomain)
+def mkFunctionSort? (sorts : Array Srt) (coDomain : Srt) : Env ω (Option Srt) :=
+  tmDo (TermManager.mkFunctionSort? · sorts coDomain)
+
+def mkPredicateSort (sorts : Array Srt) : Env ω Srt :=
+  tmDo? (TermManager.mkPredicateSort · sorts)
+def mkPredicateSort? (sorts : Array Srt) : Env ω (Option Srt) :=
+  tmDo (TermManager.mkPredicateSort? · sorts)
+
+def mkTupleSort (sorts : Array Srt) : Env ω Srt :=
+  tmDo? (TermManager.mkTupleSort · sorts)
+def mkTupleSort? (sorts : Array Srt) : Env ω (Option Srt) :=
+  tmDo (TermManager.mkTupleSort? · sorts)
+
+
+
+/-! ## Term constructors -/
+
+def mkBooleanIn (ω : Type) (b : Bool) : Env ω Term :=
+  tmDo (TermManager.mkBoolean · b)
+
+def mkIntegerIn (ω : Type) (i : Int) : Env ω Term :=
+  tmDo (TermManager.mkInteger · i)
+
+def mkBoolean (b : Bool) : Env ω Term :=
+  mkBooleanIn ω b
+
+def mkInteger (i : Int) : Env ω Term :=
+  mkIntegerIn ω i
+
+def mkBoolean! (b : Bool) : Env ω Term :=
+  mkBooleanIn ω b
+
+def mkInteger! (i : Int) : Env ω Term :=
+  mkIntegerIn ω i
+
+def mkOpOfIndices (kind : Kind) (args : Array Nat := #[]) : Env ω Op :=
+  tmDo? (TermManager.mkOpOfIndices · kind args)
+def mkOpOfIndices? (kind : Kind) (args : Array Nat := #[]) : Env ω (Option Op) :=
+  tmDo (TermManager.mkOpOfIndices? · kind args)
+
+def mkTerm (kind : Kind) (children : Array Term := #[]) : Env ω Term :=
+  tmDo? (TermManager.mkTerm · kind children)
+def mkTerm? (kind : Kind) (children : Array Term := #[]) : Env ω (Option Term) :=
+  tmDo (TermManager.mkTerm? · kind children)
+
+def mkTermOfOp (op : Op) (children : Array Term := #[]) : Env ω Term :=
+  tmDo? (TermManager.mkTermOfOp · op children)
+def mkTermOfOp? (op : Op) (children : Array Term := #[]) : Env ω (Option Term) :=
+  tmDo (TermManager.mkTermOfOp? · op children)
+
+def mkConst (srt : Srt) (name : String) : Env ω Term :=
+  tmDo (TermManager.mkConst · srt name)
+
+def mkVar (srt : Srt) (name : String) : Env ω Term :=
+  tmDo (TermManager.mkConst · srt name)
+
+end Manager
+
+end Term
+
+
+
+
+/-- Thread-safe term manager. -/
+structure Cvc.Solver (ω : Type) where
+private ofStRef ::
+  private toStRef : ST.Ref ω cvc5.Solver
+  private toManager : Term.Manager ω
+
+/-- Error monad for `Manager`. -/
+abbrev Cvc (ω : Type) := ReaderT (Cvc.Solver ω) (EST Error ω)
+
+@[default_instance mid]
+instance : MonadLift (Term.Env ω) (Cvc ω) where
+  monadLift termCode solver := termCode solver.toManager
+
+def Term.Env.toCvc : (code : Term.Env ω α) → Cvc ω α := liftM
+
+example : MonadExcept Error (Cvc ω) := inferInstance
+
+instance : MonadLift (Except Error) (Cvc ω) where
+  monadLift
+    | .ok val => return val
+    | .error e => throw e
+
+/-- Env solver with access to `IO.RealWorld`.
+
+Makes `Solver` compatible with `BaseIO`.
+-/
+protected abbrev Cvc.Solver.IO := Cvc.Solver IO.RealWorld
+
+/-- Term manager monad with access to `IO.RealWorld`.
+
+Makes `ManagerE` compatible with `BaseIO`.
+-/
+protected abbrev Cvc.IO := Cvc IO.RealWorld
+
+instance : MonadLift IO Cvc.IO := ⟨fun io _ world =>
+  match io world with
+  | .ok val world => .ok val world
+  | .error e world => .error (Error.error s!"[IO] {e}") world
+⟩
+
+example : MonadLiftT BaseIO Cvc.IO := inferInstance
+
+
+/-- Creates a solver in `BaseIO`. -/
+def Cvc.Solver.IO.mk (manager : Term.Manager.IO) : BaseIO Cvc.Solver.IO := do
+  let stRef ← ST.mkRef <| Solver.new (← manager.toStRef.get)
+  return ⟨stRef, manager⟩
+
+@[inherit_doc Cvc.Solver.IO.mk]
+abbrev Cvc.Solver.mk := Cvc.Solver.IO.mk
+
+@[inherit_doc Cvc.Solver.IO.mk]
+abbrev Cvc.mkSolver := Cvc.Solver.IO.mk
+
+@[inherit_doc Cvc.Solver.IO.mk]
+abbrev mkSolver := Cvc.Solver.IO.mk
+
+def Term.Manager.mkSolver := @Cvc.Solver.IO.mk
+
+
+
+def Cvc.run
+  (code : {ω : Type} → Cvc ω α) (solver : {ω : Type} → Solver ω)
+: Except Error α :=
+  runEST fun ω => @code ω solver
+
+def Cvc.IO.runUsing (code : Cvc.IO α) (manager : Solver.IO) : ExceptT Error BaseIO α :=
+  fun world =>
+    match code manager world with
+    | .ok val _manager => .ok (.ok val) world
+    | .error e _manager => .ok (.error e) world
+
+def Cvc.IO.runUsing! (code : Cvc.IO α) (manager : Solver.IO) : IO α := do
+  match ← code.runUsing manager |>.toIO with
+  | .ok val => return val
+  | .error e => throw <| IO.userError e.toString
+
+namespace Cvc.Solver
+
+def run := @Cvc.IO.runUsing
+def run! := @Cvc.IO.runUsing!
+
+end Cvc.Solver
+
+
+
+namespace Cvc
+
+private def lift (code : SolverT Id α) : Cvc ω α := do
+  let solverRef ← read
+  let solver ← solverRef.toStRef.get
+  let (val?, solver) := code solver
+  solverRef.toStRef.set solver
+  val?
+
+-- instance : MonadLift (SolverT Id) (Cvc ω) := ⟨lift⟩
+
+open cvc5 renaming «Sort» → Srt
+
+def getVersion : Cvc ω String := lift Solver.getVersion
+def setOption (option value : String) : Cvc w Unit := lift <| Solver.setOption option value
+def resetAssertions : Cvc w Unit := lift Solver.resetAssertions
+def setLogic (logic : String) : Cvc w Unit := lift <| Solver.setLogic logic
+def simplify (term : Term) (applySubs : Bool := false) : Cvc ω Term :=
+  lift <| Solver.simplify term applySubs
+
+def declareFun
+  (symbol : String) (sorts : Array Srt) (sort : Srt) (fresh : Bool := true)
+: Cvc ω Term :=
+  lift <| Solver.declareFun symbol sorts sort fresh
+
+def assertFormula (term : Term) : Cvc ω Unit := lift <| Solver.assertFormula term
+
+def checkSat : Cvc w Result := lift <| Solver.checkSat
+
+def checkSatAssuming (assumptions : Array Term) : Cvc ω Result :=
+  lift <| Solver.checkSatAssuming assumptions
+
+def getProof : Cvc ω (Array Proof) := lift <| Solver.getProof
+
+def getValue (term : Term) : Cvc ω Term := lift <| Solver.getValue term
+
+def getValues (terms : Array Term) : Cvc ω (Array Term) := lift <| Solver.getValues terms
+
+def proofToString (proof : Proof) : Cvc ω String := lift <| Solver.proofToString proof
+
+def parseCommands (smtLib : String) : Cvc ω Unit := lift <| Solver.parseCommands smtLib
+
+end Cvc
 
 end cvc5
