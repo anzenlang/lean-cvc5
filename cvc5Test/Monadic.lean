@@ -4,24 +4,26 @@ import cvc5
 
 namespace Cvc5.Term
 
-def mkAnd : (terms : Array Term) → Env Term := mk .AND
-def mkOr : (terms : Array Term) → Env Term := mk .OR
+variable [Monad m] [MonadLiftT (Env ω) m]
 
-def mk1 (op : cvc5.Kind) (term : Term) : Env Term := mk op #[term]
-def mk2 (op : cvc5.Kind) (lft rgt : Term) : Env Term := mk op #[lft, rgt]
-def mk3 (op : cvc5.Kind) (t1 t2 t3 : Term) : Env Term := mk op #[t1, t2, t3]
+def mkAnd : (terms : Array (Term ω)) → m (Term ω) := mk .AND
+def mkOr : (terms : Array (Term ω)) → m (Term ω) := mk .OR
 
-def mkNot : Term → Env Term := mk1 .NOT
+def mk1 (op : cvc5.Kind) (term : Term ω) : m (Term ω) := mk op #[term]
+def mk2 (op : cvc5.Kind) (lft rgt : Term ω) : m (Term ω) := mk op #[lft, rgt]
+def mk3 (op : cvc5.Kind) (t1 t2 t3 : Term ω) : m (Term ω) := mk op #[t1, t2, t3]
 
-def mkEq : Term → Term → Env Term := mk2 .EQUAL
-def mkLt : Term → Term → Env Term := mk2 .LT
-def mkLe : Term → Term → Env Term := mk2 .LEQ
-def mkEq0 (term : Term) : Env Term := mkInt 0 >>= mkEq term
-def mkLt0 (term : Term) : Env Term := mkInt 0 >>= mkLt term
-def mkLe0 (term : Term) : Env Term := mkInt 0 >>= mkLe term
-def mkAdd : Term → Term → Env Term := mk2 .ADD
-def mkSub : Term → Term → Env Term := mk2 .SUB
-def mkIte : Term → Term → Term → Env Term := mk3 .ITE
+def mkNot : Term ω → m (Term ω) := mk1 .NOT
+
+def mkEq : Term ω → Term ω → m (Term ω) := mk2 .EQUAL
+def mkLt : Term ω → Term ω → m (Term ω) := mk2 .LT
+def mkLe : Term ω → Term ω → m (Term ω) := mk2 .LEQ
+def mkEq0 (term : Term ω) : m (Term ω) := mkInt 0 >>= mkEq term
+def mkLt0 (term : Term ω) : m (Term ω) := mkInt 0 >>= mkLt term
+def mkLe0 (term : Term ω) : m (Term ω) := mkInt 0 >>= mkLe term
+def mkAdd : Term ω → Term ω → m (Term ω) := mk2 .ADD
+def mkSub : Term ω → Term ω → m (Term ω) := mk2 .SUB
+def mkIte : Term ω → Term ω → Term ω → m (Term ω) := mk3 .ITE
 
 end Cvc5.Term
 
@@ -29,7 +31,7 @@ end Cvc5.Term
 
 namespace Cvc5.Solver
 
-def check (assuming : Array Term := #[]) (solver : Solver) : Env Bool := do
+def check (assuming : Array (Term ω) := #[]) (solver : Solver ω) : Env ω Bool := do
   let res ← solver.checkSatAssuming assuming
   if res.isSat then return true
   if res.isUnsat then return false
@@ -45,13 +47,13 @@ open Cvc5 (EnvIO Term Solver Srt)
 
 
 
-structure TSys.Spec (SVars : Type) where
-  sVarsAt (k : Nat) : EnvIO SVars
-  sVarsToString : SVars → Array String
-  init : SVars → EnvIO Term
-  step : (curr : SVars) → (next : SVars) → EnvIO Term
-  getValues : Solver → SVars → EnvIO SVars
-  candidate : SVars → EnvIO Term
+structure TSys.Spec (ω : Type) (SVars : Type → Type) where
+  sVarsAt (k : Nat) : EnvIO ω (SVars ω)
+  sVarsToString : (SVars ω) → Array String
+  init : (SVars ω) → EnvIO ω (Term ω)
+  step : (curr : (SVars ω)) → (next : (SVars ω)) → EnvIO ω (Term ω)
+  getValues : Solver ω → (SVars ω) → EnvIO ω (SVars ω)
+  candidate : (SVars ω) → EnvIO ω (Term ω)
 
 inductive Result (SVars : Type)
 | safe (k : Nat) | cex (trace : Array SVars) | unknown
@@ -63,14 +65,14 @@ def isUnknown : Result SVars → Bool
 
 end Result
 
-structure TSys (SVars : Type) extends TSys.Spec SVars where private mk' ::
-  sVars : SVars × List SVars
-  baseSolver : Solver
-  stepSolver : Solver
+structure TSys (ω : Type) (SVars : Type → Type) extends TSys.Spec ω SVars where private mk' ::
+  sVars : SVars ω × List (SVars ω)
+  baseSolver : Solver ω
+  stepSolver : Solver ω
 
 namespace TSys
 
-def mk (spec : Spec SVars) : EnvIO (TSys SVars) := do
+def mk (spec : Spec ω SVars) : EnvIO ω (TSys ω SVars) := do
   let sVars0 ← spec.sVarsAt 0
   let init0 ← spec.init sVars0
   let baseSolver ← Solver.mk
@@ -82,22 +84,22 @@ def mk (spec : Spec SVars) : EnvIO (TSys SVars) := do
   stepSolver.assert candidate0
   return ⟨spec, (sVars0, []), baseSolver, stepSolver⟩
 
-def negCandidate (sVars : SVars) (sys : TSys SVars) : EnvIO Term := do
-  sys.candidate sVars >>= liftM ∘ Term.mkNot
+def negCandidate (sVars : SVars ω) (sys : TSys ω SVars) : EnvIO ω (Term ω) := do
+  sys.candidate sVars >>= Term.mkNot
 
-def currK (sys : TSys SVars) : Nat := sys.sVars.snd.length
-def currSVars (sys : TSys SVars) : SVars := sys.sVars.fst
-def allPreSVars (sys : TSys SVars) : List SVars := sys.sVars.snd
-def stageNextSVars (sys : TSys SVars) : EnvIO (SVars × TSys SVars) := do
+def currK (sys : TSys ω SVars) : Nat := sys.sVars.snd.length
+def currSVars (sys : TSys ω SVars) : SVars ω := sys.sVars.fst
+def allPreSVars (sys : TSys ω SVars) : List (SVars ω) := sys.sVars.snd
+def stageNextSVars (sys : TSys ω SVars) : EnvIO ω (SVars ω × TSys ω SVars) := do
   let next ← sys.sVarsAt sys.currK.succ
   let sVars := (next, sys.currSVars :: sys.allPreSVars)
   return (next, {sys with sVars})
 
-abbrev Trace (_ : TSys SVars) := Array SVars
-abbrev Trace? (sys : TSys SVars) := Option sys.Trace
-protected abbrev Result (_ : TSys SVars) := Result SVars
+abbrev Trace (_ : TSys ω SVars) := Array (SVars ω)
+abbrev Trace? (sys : TSys ω SVars) := Option sys.Trace
+protected abbrev Result (_ : TSys ω SVars) := Result (SVars ω)
 
-def printTrace (sys : TSys SVars) (trace : sys.Trace) (pref := "") : EnvIO Unit := do
+def printTrace (sys : TSys ω SVars) (trace : sys.Trace) (pref := "") : EnvIO ω Unit := do
   let mut cnt := 0
   let k := sys.currK
   for sVars in trace do
@@ -108,32 +110,32 @@ def printTrace (sys : TSys SVars) (trace : sys.Trace) (pref := "") : EnvIO Unit 
     for line in lines do
       println! "{pref}  {line}"
 
-def getCex (solver : Solver) (sys : TSys SVars) : EnvIO sys.Trace := do
+def getCex (solver : Solver ω) (sys : TSys ω SVars) : EnvIO ω sys.Trace := do
   let mut trace := Array.mkEmpty sys.sVars.snd.length
   trace := trace.push (← sys.getValues solver sys.currSVars)
   for sVars in sys.allPreSVars do
     trace := trace.push (← sys.getValues solver sVars)
   return trace
 
-def getBaseCex (sys : TSys SVars) : EnvIO sys.Trace :=
+def getBaseCex (sys : TSys ω SVars) : EnvIO ω sys.Trace :=
   sys.getCex sys.baseSolver
 
-def getStepCex (sys : TSys SVars) : EnvIO sys.Trace :=
+def getStepCex (sys : TSys ω SVars) : EnvIO ω sys.Trace :=
   sys.getCex sys.stepSolver
 
-def getCex? (solver : Solver) (sys : TSys SVars)
-: EnvIO sys.Trace? := do
+def getCex? (solver : Solver ω) (sys : TSys ω SVars)
+: EnvIO ω sys.Trace? := do
   let bad ← sys.negCandidate sys.currSVars
   let isSat ← solver.check #[bad]
   if isSat then sys.getCex solver else return none
 
-def getBaseCex? (sys : TSys SVars) : EnvIO sys.Trace? := do
+def getBaseCex? (sys : TSys ω SVars) : EnvIO ω sys.Trace? := do
   sys.getCex? sys.baseSolver
 
-def getStepCex? (sys : TSys SVars) : EnvIO sys.Trace? := do
+def getStepCex? (sys : TSys ω SVars) : EnvIO ω sys.Trace? := do
   sys.getCex? sys.stepSolver
 
-def unroll (sys : TSys SVars) : EnvIO (TSys SVars) := do
+def unroll (sys : TSys ω SVars) : EnvIO ω (TSys ω SVars) := do
   let curr := sys.currSVars
   let currCandidate ← sys.candidate curr
   let (next, sys) ← sys.stageNextSVars
@@ -143,7 +145,7 @@ def unroll (sys : TSys SVars) : EnvIO (TSys SVars) := do
   sys.stepSolver.assert step
   return sys
 
-def checkBaseUnrollCheckStep (sys : TSys SVars) : EnvIO (sys.Result × TSys SVars) := do
+def checkBaseUnrollCheckStep (sys : TSys ω SVars) : EnvIO ω (sys.Result × TSys ω SVars) := do
   if let some baseCex ← sys.getBaseCex? then
     return (.cex baseCex, sys)
   else
@@ -156,13 +158,13 @@ def checkBaseUnrollCheckStep (sys : TSys SVars) : EnvIO (sys.Result × TSys SVar
       return (.safe sys.currK, sys)
 
 
-def check' (sys : TSys SVars) : (maxK : Nat := 5) → EnvIO (sys.Result × TSys SVars)
+def check' (sys : TSys ω SVars) : (maxK : Nat := 5) → EnvIO ω (sys.Result × TSys ω SVars)
 | 0 => return (.unknown, sys)
 | maxK + 1 => do
   let (res, sys) ← sys.checkBaseUnrollCheckStep
   if res.isUnknown then sys.check' maxK else return (res, sys)
 
-def check (sys : TSys SVars) (maxK : Nat := 5) : EnvIO sys.Result :=
+def check (sys : TSys ω SVars) (maxK : Nat := 5) : EnvIO ω sys.Result :=
   Prod.fst <$> sys.check' maxK
 
 end TSys
@@ -171,13 +173,13 @@ end TSys
 
 namespace Sw
 
-structure SVars where
-  startStop : Term
-  reset : Term
-  isCounting : Term
-  counter : Term
+structure SVars (ω : Type) where
+  startStop : (Term ω)
+  reset : (Term ω)
+  isCounting : (Term ω)
+  counter : (Term ω)
 
-def Spec (candidate : SVars → EnvIO Term) : TSys.Spec SVars where
+def Spec (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : TSys.Spec ω SVars where
   sVarsAt k := do
     let bool ← Srt.getBool
     let int ← Srt.getInt
@@ -215,31 +217,38 @@ def Spec (candidate : SVars → EnvIO Term) : TSys.Spec SVars where
     ]
   candidate
 
-def counterPos (vars : SVars) : EnvIO Term := do
+def counterPos {ω : Type} (vars : SVars ω) : EnvIO ω (Term ω) := do
   (← Term.mkInt 0) |>.mkLe vars.counter
 
-def counterNotMinus7 (vars : SVars) : EnvIO Term := do
+def counterNotMinus7 {ω : Type} (vars : SVars ω) : EnvIO ω (Term ω) := do
   let eqM7 ← vars.counter.mkEq (← Term.mkInt (-7))
   eqM7.mkNot
 
-def resetImpliesCounterIs0 (vars : SVars) : EnvIO Term := do
+def resetImpliesCounterIs0 {ω : Type} (vars : SVars ω) : EnvIO ω (Term ω) := do
   let notReset ← vars.reset.mkNot
   let counterIs0 ← vars.counter.mkEq (← Term.mkInt 0)
   Term.mkOr #[notReset, counterIs0]
 
-def allCandidates (vars : SVars) : EnvIO Term := do Term.mkAnd #[
+def allCandidates {ω : Type} (vars : SVars ω) : EnvIO ω (Term ω) := do Term.mkAnd #[
   ← counterPos vars,
   ← counterNotMinus7 vars,
   ← resetImpliesCounterIs0 vars,
 ]
 
-def test' (candidate : SVars → EnvIO Term) : IO (Option Term) := Cvc5.Env.run do
+/--
+
+Can write this function, but the output `Term ω` is only useable inside a `Cvc5.Env.run`.
+
+See `run` below.
+
+-/
+def test' (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO (Option (Term ω)) := Cvc5.Env.run fun _ => do
   let sys ← TSys.mk <| Sw.Spec candidate
   let (res, sys) ← sys.check'
   match res with
   | .safe k =>
     println! "candidate is {k}-inductive"
-    return ← sys.candidate sys.currSVars
+    return ← some <$> sys.candidate sys.currSVars
   | .cex trace =>
     println! "found a counterexample"
     sys.printTrace trace
@@ -248,8 +257,8 @@ def test' (candidate : SVars → EnvIO Term) : IO (Option Term) := Cvc5.Env.run 
     println! "could not reach a conclusion"
     return none
 
-def test (candidate : SVars → EnvIO Term) : IO Unit := Cvc5.Env.run do
-  let _ ← test' candidate
+def test (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO Unit := Cvc5.Env.run fun ω => do
+  let _inv? : Option (Term ω) ← test' candidate
   return ()
 
 
@@ -279,21 +288,13 @@ candidate is 1-inductive
 #guard_msgs in #eval test allCandidates
 
 
-def run (candidate : SVars → EnvIO Term) : IO Unit := do
-  if let some invariant ← test' candidate then
-    let _ ← test fun vars => do
-      let other ← counterPos vars
-      Term.mkAnd #[invariant, other]
-  else println! "no invariant found"
 
-
-/-- info:
-candidate is 1-inductive
-error: cvc5.Error.error "invalid term in 'children' at index 0, expected a term associated with this term manager"
-error: cvc5.Error.error
-  "cvc5.Error.error \"invalid term in 'children' at index 0, expected a term associated with this term manager\""
----
-error: cvc5.Error.error
-  "cvc5.Error.error \"invalid term in 'children' at index 0, expected a term associated with this term manager\""
+/-- error:
+invalid match-expression, type of pattern variable 'invariant' contains metavariables
+  Term ?m.20652
 -/
-#guard_msgs in #eval run counterPos
+#guard_msgs in def run (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO Unit := do
+  if let some invariant ← test' candidate then
+    println! "found an invariant: {invariant}"
+    test fun _ => return invariant
+  else println! "no invariant found"

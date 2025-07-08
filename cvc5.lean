@@ -1020,16 +1020,16 @@ open cvc5 renaming TermManager → Tm
 
 
 
-structure Solver where private mk' ::
+structure Solver (ω : Type) where private mk' ::
   private idx : Nat
 
 namespace Solver
 
-private instance : Coe Solver Nat := ⟨idx⟩
+private instance : CoeDep (Solver ω) solver Nat := ⟨solver.idx⟩
 
-protected def toString (idx : Solver) : String := s!"solver#{idx.idx}"
+protected def toString (idx : Solver ω) : String := s!"solver#{idx.idx}"
 
-private instance : ToString Solver := ⟨Solver.toString⟩
+private instance : ToString (Solver ω) := ⟨Solver.toString⟩
 
 end Solver
 
@@ -1044,7 +1044,7 @@ private structure SolverData where mk' ::
 
 namespace SolverData
 
-def mk (tm : Tm) : SolverData := ⟨cvc5.Solver.new tm, none⟩
+private def mk (tm : Tm) : SolverData := ⟨cvc5.Solver.new tm, none⟩
 
 end SolverData
 
@@ -1071,24 +1071,24 @@ private def mapSolversM [Monad m]
 private def mapSolvers (f : Array SolverData → Array SolverData) (state : State) : State :=
   state.mapSolversM (m := Id) f
 
-private def mkSolver (state : State) : Solver × State :=
+private def mkSolver (state : State) : Solver ω × State :=
   let idx := state.solvers.size
   let data := SolverData.mk state.manager
   let state := state.mapSolvers fun solvers => solvers.push data
   (⟨idx⟩, state)
 
-private def getSolverData (idx : Solver) (state : State)
+private def getSolverData (idx : Solver ω) (state : State)
   (h : idx < state.solvers.size := by omega)
 : SolverData :=
   state.solvers[idx.idx]
 
-private def setSolverData (idx : Solver) (data : SolverData) (state : State)
+private def setSolverData (idx : Solver ω) (data : SolverData) (state : State)
   (h : idx < state.solvers.size := by omega)
 : State :=
   {state with solvers := state.solvers.set idx.idx data}
 
 private def modifyGetSolverData [Monad m] [MonadExcept Error m]
-  (idx : Solver) (f : SolverData → m (α × SolverData)) (state : State)
+  (idx : Solver ω) (f : SolverData → m (α × SolverData)) (state : State)
 : m (α × State) := do
   if h : idx < state.solvers.size then
     let (res, data) ← f <| state.getSolverData idx
@@ -1102,16 +1102,21 @@ end Env
 
 
 
-structure EnvT (m : Type → Type u) (α : Type) where
+structure EnvT (ω : Type) (m : Type → Type u) (α : Type) where
   private code : StateT Env.State (ExceptT Error m) α
 
 abbrev EnvIO := EnvT (m := BaseIO)
+
+private def EnvIO.mk (code : StateT Env.State (ExceptT Error BaseIO) α) : EnvIO ω α := ⟨code⟩
+
 abbrev Env := EnvT (m := Id)
+
+private def Env.mk (code : StateT Env.State (ExceptT Error Id) α) : Env ω α := ⟨code⟩
 
 namespace EnvT
 
-def run (code : EnvIO α) : IO α := do
-  let run := Env.State.mk >>= code.code
+def run (code : (ω : Type) → EnvIO ω α) : IO α := do
+  let run := Env.State.mk >>= (code Unit).code
   match ← run.toIO with
   | .ok (a, _) => return a
   | .error e =>
@@ -1124,31 +1129,31 @@ namespace Env
 
 export EnvT (run)
 
-instance [M : Monad m] : Monad (EnvT m) where
+instance [M : Monad m] : Monad (EnvT ω m) where
   pure a := ⟨M.pure a⟩
   bind a? f := ⟨fun state => do
     let (a, state) ← a?.code state
     f a |>.code state
   ⟩
 
-instance [Monad m] : MonadExcept Error (EnvT m) where
+instance [Monad m] : MonadExcept Error (EnvT ω m) where
   throw e := ⟨fun _ => throw e⟩
   tryCatch | ⟨code⟩, errorDo => ⟨
     fun state => tryCatchThe Error (code state) (errorDo · |>.code state)
   ⟩
 
-instance [Monad m] : MonadLift (Except Error) (EnvT m) where
+instance [Monad m] : MonadLift (Except Error) (EnvT ω m) where
   monadLift
     | .ok a => pure a
     | .error e => throw e
 
-instance [Monad m] [Monad m'] [Lift : MonadLift m m'] : MonadLift (EnvT m) (EnvT m') where
+instance [Monad m] [Monad m'] [Lift : MonadLift m m'] : MonadLift (EnvT ω m) (EnvT ω m') where
   monadLift | ⟨code⟩ => ⟨fun state => code state |> Lift.monadLift⟩
 
-example [Monad m] [Lift : MonadLift BaseIO m] : MonadLift EnvIO (EnvT m) := inferInstance
+example [Monad m] [Lift : MonadLift BaseIO m] : MonadLift (EnvIO ω) (EnvT ω m) := inferInstance
 
 /-- #TODO ‼️ allows spawning threads -/
-instance : MonadLift IO EnvIO where
+instance : MonadLift IO (EnvIO ω) where
   monadLift io := ⟨
     fun state => do
       let res ← io.toBaseIO
@@ -1157,7 +1162,8 @@ instance : MonadLift IO EnvIO where
       | .error e => throw <| Error.error e.toString
   ⟩
 
-instance [Monad m] : MonadLift Env (EnvT m) where
+@[default_instance]
+instance [Monad m] : MonadLift (Env ω) (EnvT ω m) where
   monadLift | ⟨code⟩ => ⟨fun state =>
     match code state with
     | .ok (res, state) => return (res, state)
@@ -1168,20 +1174,24 @@ section variable [Monad m]
 
 private def modifyGetM [Monad m] [Monad m'] [MonadLift m m']
   (f : State → m (α × State))
-: EnvT m' α :=
+: EnvT ω m' α :=
   ⟨fun state => return ← f state⟩
 
-private def modifyGet (f : State → α × State) : Env α := ⟨(return f ·)⟩
+variable [Lift : MonadLift (Env ω) m]
 
-private def getTm : Env Tm := modifyGet fun state => (state.manager, state)
+private def modifyGet (f : State → α × State) : m α :=
+  Lift.monadLift <| Env.mk (return f ·)
 
-private def managerDo? (f : Tm → Except Error α) : EnvT m α := do f (← getTm)
+private def getTm : m Tm :=
+  Lift.monadLift <| modifyGet fun state => (state.manager, state)
 
-private def managerDo (f : Tm → α) : Env α := return f (← getTm)
+private def managerDo? (f : Tm → Except Error α) : m α := Lift.monadLift do f (← getTm)
 
-private def mkSolver : Env Solver := ⟨fun state => return state.mkSolver⟩
+private def managerDo (f : Tm → α) : m α := Lift.monadLift do return f (← getTm)
 
-private def runSolver (idx : Solver) (code : cvc5.SolverT m α) : EnvT m α := ⟨fun state => do
+private def mkSolver : m (Solver ω) := Lift.monadLift ⟨fun state => return state.mkSolver⟩
+
+private def runSolver (idx : Solver ω) (code : cvc5.SolverT m α) : EnvT ω m α := ⟨fun state => do
   state.modifyGetSolverData idx fun data => do
     let (res, solver) ← code data.solver
     return (← res, {data with solver})
@@ -1193,43 +1203,50 @@ end Env
 
 
 
-def Term := cvc5.Term
+def Term (ω : Type) := let _ := ω ; cvc5.Term
 
-def Srt := cvc5.Sort
+def Srt (ω : Type) := let _ := ω ; cvc5.Sort
 
 
 
 namespace Term
 
-instance : ToString Term := inferInstanceAs (ToString cvc5.Term)
+instance : ToString (Term ω) := inferInstanceAs (ToString cvc5.Term)
 
-def mk (op : cvc5.Kind) (kids : Array Term) : Env Term :=
-  Env.managerDo? (cvc5.TermManager.mkTerm · op kids)
+variable [Monad m] [Lift : MonadLiftT (Env ω) m]
 
-def mkConst (symbol : String) (srt : Srt) : Env Term :=
-  Env.managerDo (cvc5.TermManager.mkConst · srt symbol)
+def mk (op : cvc5.Kind) (kids : Array (Term ω)) : m (Term ω) :=
+  Lift.monadLift <| Env.managerDo? (cvc5.TermManager.mkTerm · op kids)
 
-def mkVar (symbol : String) (srt : Srt) : Env Term :=
-  Env.managerDo (cvc5.TermManager.mkVar · srt symbol)
+def mkConst (symbol : String) (srt : Srt ω) : m (Term ω) :=
+  Lift.monadLift <| Env.managerDo (cvc5.TermManager.mkConst · srt symbol)
 
-def mkBool (b : Bool) : Env Term :=
-  Env.managerDo (cvc5.TermManager.mkBoolean · b)
+def mkVar (symbol : String) (srt : Srt ω) : m (Term ω) :=
+  Lift.monadLift <| Env.managerDo (cvc5.TermManager.mkVar · srt symbol)
 
-def mkInt (i : Int) : Env Term :=
-  Env.managerDo (cvc5.TermManager.mkInteger · i)
+def mkBool (b : Bool) : m (Term ω) :=
+  Lift.monadLift <| Env.managerDo (cvc5.TermManager.mkBoolean · b)
+
+def mkInt (i : Int) : m (Term ω) :=
+  Lift.monadLift <| Env.managerDo (cvc5.TermManager.mkInteger · i)
 
 end Term
 
 
 namespace Srt
 
-instance : ToString Srt := inferInstanceAs (ToString cvc5.Sort)
+instance : ToString (Srt ω) := inferInstanceAs (ToString cvc5.Sort)
 
-def getBool : Env Srt :=
-  Env.managerDo cvc5.TermManager.getBooleanSort
+variable [Monad m] [Lift : MonadLiftT (Env ω) m]
 
-def getInt : Env Srt :=
-  Env.managerDo cvc5.TermManager.getIntegerSort
+def getBool : m (Srt ω) :=
+  Lift.monadLift <| Env.managerDo cvc5.TermManager.getBooleanSort
+
+def getInt : m (Srt ω) :=
+  Lift.monadLift <| Env.managerDo cvc5.TermManager.getIntegerSort
+
+def getReal : m (Srt ω) :=
+  Lift.monadLift <| Env.managerDo cvc5.TermManager.getRealSort
 
 end Srt
 
@@ -1237,40 +1254,40 @@ end Srt
 
 namespace Solver
 
-def mk : Env Solver := Env.mkSolver
+def mk [Monad m] [Lift : MonadLiftT (Env ω) m] : m (Solver ω) := Lift.monadLift Env.mkSolver
 
-section variable (solver : Solver)
+section variable (solver : Solver ω)
 
 @[inherit_doc cvc5.Solver.setLogic]
-def setLogic (logic : String) : Env Unit :=
+def setLogic (logic : String) : Env ω Unit :=
   cvc5.Solver.setLogic logic |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.setOption]
-def setOption (option : String) (value : String) : Env Unit :=
+def setOption (option : String) (value : String) : Env ω Unit :=
   cvc5.Solver.setOption option value |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.declareFun]
-def declareFun (symbol : String) (sorts : Array Srt) (codomain : Srt) : Env Term :=
+def declareFun (symbol : String) (sorts : Array (Srt ω)) (codomain : Srt ω) : Env ω (Term ω) :=
   cvc5.Solver.declareFun symbol sorts codomain |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.assertFormula]
-def assert (term : Term) : Env Unit :=
+def assert (term : Term ω) : Env ω Unit :=
   cvc5.Solver.assertFormula term |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.checkSat]
-def checkSat : Env cvc5.Result :=
+def checkSat : Env ω cvc5.Result :=
   cvc5.Solver.checkSat |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.checkSatAssuming]
-def checkSatAssuming (formulas : Array Term) : Env cvc5.Result :=
+def checkSatAssuming (formulas : Array (Term ω)) : Env ω cvc5.Result :=
   cvc5.Solver.checkSatAssuming formulas |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.getValue]
-def getValue (term : Term) : Env Term :=
+def getValue (term : Term ω) : Env ω (Term ω) :=
   cvc5.Solver.getValue term |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.getValues]
-def getValues (terms : Array Term) : Env (Array Term) :=
+def getValues (terms : Array (Term ω)) : Env ω (Array (Term ω)) :=
   cvc5.Solver.getValues terms |> Env.runSolver solver
 
 end
