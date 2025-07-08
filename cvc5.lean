@@ -849,21 +849,8 @@ Create operators with `mkOp`.
 -/
 extern_def!? mkTermOfOp : TermManager → (op : Op) → (children : Array Term := #[]) → Except Error Term
 
-/-- **THIS FUNCTION MUST NOT BE EXPOSED.**
-
-**It produces a different (fresh) term every time it's called which is really bad for purity.**
-
-Create a free constant.
-
-Note that the returned term is always fresh, even if the same arguments were provided on a
-previous call to `mkConst`.
-
-- `sort` The sort of the constant.
-- `symbol` The name of the constant (optional).
--/
-private
-def mkConst (_ : TermManager) (_ : cvc5.Sort) (_ : String := "") : Term :=
-  panic! "illegal call to `cvc5.TermManager.mkConst"
+private extern_def mkConst : TermManager → cvc5.Sort → String → Term
+private extern_def mkVar : TermManager → cvc5.Sort → String → Term
 
 end TermManager
 
@@ -1022,59 +1009,270 @@ def run! [Inhabited α] (tm : TermManager) (query : SolverT m α) : m α := do
 end Solver
 
 
+end cvc5
 
-/-- Opaque term manager error/state monad transformer. -/
-structure TermManagerT (m : Type → Type u) (α : Type) where
-private mk ::
-  private code : ExceptT Error (StateT TermManager m) α
 
-/-- Opaque term manager error/state monad. -/
-abbrev TermManagerIO : Type → Type := TermManagerT IO
 
-/-- Opaque term manager error/state monad. -/
-abbrev TermManagerM : Type → Type := TermManagerT Id
+namespace Cvc5
 
-namespace TermManagerT
+open cvc5 (Error)
+open cvc5 renaming TermManager → Tm
 
-instance [Monad m] : Monad (TermManagerT m) where
-  pure a := ⟨pure a⟩
-  bind a? f := ⟨
-    fun tm => do
-      match ← a?.code tm with
-      | (.ok a, tm) => (f a).code tm
-      | (.error e, tm) => return (.error e, tm)
+
+
+structure Solver where private mk' ::
+  private idx : Nat
+
+namespace Solver
+
+private instance : Coe Solver Nat := ⟨idx⟩
+
+protected def toString (idx : Solver) : String := s!"solver#{idx.idx}"
+
+private instance : ToString Solver := ⟨Solver.toString⟩
+
+end Solver
+
+
+
+namespace Env
+
+private structure SolverData where mk' ::
+  solver : cvc5.Solver
+  /-- Placeholder for an optional parser. -/
+  parser? : Option Unit
+
+namespace SolverData
+
+def mk (tm : Tm) : SolverData := ⟨cvc5.Solver.new tm, none⟩
+
+end SolverData
+
+private structure State where mk' ::
+  manager : Tm
+  solvers : Array SolverData
+
+namespace State
+
+private def mk : BaseIO State := do
+  let manager ← cvc5.TermManager.new
+  return ⟨manager, #[]⟩
+
+private def managerDoM [Monad m] (f : Tm → m α) (state : State) : m α := f state.manager
+
+private def managerDo (f : Tm → α) (state : State) : α := state.managerDoM (m := Id) f
+
+private def mapSolversM [Monad m]
+  (f : Array SolverData → m (Array SolverData)) (state : State)
+: m State := do
+  let solvers ← f state.solvers
+  return {state with solvers}
+
+private def mapSolvers (f : Array SolverData → Array SolverData) (state : State) : State :=
+  state.mapSolversM (m := Id) f
+
+private def mkSolver (state : State) : Solver × State :=
+  let idx := state.solvers.size
+  let data := SolverData.mk state.manager
+  let state := state.mapSolvers fun solvers => solvers.push data
+  (⟨idx⟩, state)
+
+private def getSolverData (idx : Solver) (state : State)
+  (h : idx < state.solvers.size := by omega)
+: SolverData :=
+  state.solvers[idx.idx]
+
+private def setSolverData (idx : Solver) (data : SolverData) (state : State)
+  (h : idx < state.solvers.size := by omega)
+: State :=
+  {state with solvers := state.solvers.set idx.idx data}
+
+private def modifyGetSolverData [Monad m] [MonadExcept Error m]
+  (idx : Solver) (f : SolverData → m (α × SolverData)) (state : State)
+: m (α × State) := do
+  if h : idx < state.solvers.size then
+    let (res, data) ← f <| state.getSolverData idx
+    let state := state.setSolverData idx data
+    return (res, state)
+  else Error.error s!"[internal] trying to access {idx}, but not such solver exists" |> throw
+
+end State
+
+end Env
+
+
+
+structure EnvT (m : Type → Type u) (α : Type) where
+  private code : StateT Env.State (ExceptT Error m) α
+
+abbrev EnvIO := EnvT (m := BaseIO)
+abbrev Env := EnvT (m := Id)
+
+namespace EnvT
+
+def run (code : EnvIO α) : IO α := do
+  let run := Env.State.mk >>= code.code
+  match ← run.toIO with
+  | .ok (a, _) => return a
+  | .error e =>
+    IO.eprintln s!"error: {e}"
+    throw <| IO.Error.userError e.toString
+
+end EnvT
+
+namespace Env
+
+export EnvT (run)
+
+instance [M : Monad m] : Monad (EnvT m) where
+  pure a := ⟨M.pure a⟩
+  bind a? f := ⟨fun state => do
+    let (a, state) ← a?.code state
+    f a |>.code state
   ⟩
 
-instance [Monad m] : MonadLift m (TermManagerT m) where
-  monadLift code := ⟨fun tm => (.ok ·, tm) <$> code⟩
+instance [Monad m] : MonadExcept Error (EnvT m) where
+  throw e := ⟨fun _ => throw e⟩
+  tryCatch | ⟨code⟩, errorDo => ⟨
+    fun state => tryCatchThe Error (code state) (errorDo · |>.code state)
+  ⟩
 
-instance [Monad m] [Monad m'] [MonadLift m m'] : MonadLift (TermManagerT m) (TermManagerT m') where
-  monadLift := fun ⟨code⟩ => ⟨fun tm => liftM (code tm)⟩
+instance [Monad m] : MonadLift (Except Error) (EnvT m) where
+  monadLift
+    | .ok a => pure a
+    | .error e => throw e
 
-instance [Monad m] : MonadLift TermManagerM (TermManagerT m) where
-  monadLift := fun ⟨code⟩ => ⟨(return code ·)⟩
+instance [Monad m] [Monad m'] [Lift : MonadLift m m'] : MonadLift (EnvT m) (EnvT m') where
+  monadLift | ⟨code⟩ => ⟨fun state => code state |> Lift.monadLift⟩
 
-def run [Monad m] [MonadLiftT BaseIO m] (code : TermManagerT m α) : m (Except Error α) := do
-  let tm ← TermManager.new
-  let (a?, _) ← code.code tm
-  return a?
+example [Monad m] [Lift : MonadLift BaseIO m] : MonadLift EnvIO (EnvT m) := inferInstance
 
-def runIO (code : TermManagerIO α) : IO (Except Error α) := code.run
+/-- #TODO ‼️ allows spawning threads -/
+instance : MonadLift IO EnvIO where
+  monadLift io := ⟨
+    fun state => do
+      let res ← io.toBaseIO
+      match res with
+      | .ok a => return (a, state)
+      | .error e => throw <| Error.error e.toString
+  ⟩
 
-private extern_def in "termManager" mkConst : TermManager → cvc5.Sort → String → Term
+instance [Monad m] : MonadLift Env (EnvT m) where
+  monadLift | ⟨code⟩ => ⟨fun state =>
+    match code state with
+    | .ok (res, state) => return (res, state)
+    | .error e => throw e
+  ⟩
 
-end TermManagerT
+section variable [Monad m]
 
-def Term.mk (kind : Kind) (children : Array Term := #[]) : TermManagerM Term :=
-  ⟨fun tm => (tm.mkTerm kind children, tm)⟩
+private def modifyGetM [Monad m] [Monad m'] [MonadLift m m']
+  (f : State → m (α × State))
+: EnvT m' α :=
+  ⟨fun state => return ← f state⟩
 
-def Term.mkInt (i : Int) : TermManagerM Term :=
-  ⟨fun tm => (.ok <| tm.mkInteger i, tm)⟩
+private def modifyGet (f : State → α × State) : Env α := ⟨(return f ·)⟩
 
-def Term.mkConst (sort : cvc5.Sort) (symbol : String) : TermManagerM Term :=
-  ⟨fun tm => (.ok <| TermManagerT.mkConst tm sort symbol, tm)⟩
+private def getTm : Env Tm := modifyGet fun state => (state.manager, state)
 
-def _root_.cvc5.Sort.int : TermManagerM cvc5.Sort :=
-  ⟨fun tm => return ⟨.ok tm.getIntegerSort, tm⟩⟩
+private def managerDo? (f : Tm → Except Error α) : EnvT m α := do f (← getTm)
 
-end cvc5
+private def managerDo (f : Tm → α) : Env α := return f (← getTm)
+
+private def mkSolver : Env Solver := ⟨fun state => return state.mkSolver⟩
+
+private def runSolver (idx : Solver) (code : cvc5.SolverT m α) : EnvT m α := ⟨fun state => do
+  state.modifyGetSolverData idx fun data => do
+    let (res, solver) ← code data.solver
+    return (← res, {data with solver})
+⟩
+
+end
+
+end Env
+
+
+
+def Term := cvc5.Term
+
+def Srt := cvc5.Sort
+
+
+
+namespace Term
+
+instance : ToString Term := inferInstanceAs (ToString cvc5.Term)
+
+def mk (op : cvc5.Kind) (kids : Array Term) : Env Term :=
+  Env.managerDo? (cvc5.TermManager.mkTerm · op kids)
+
+def mkConst (symbol : String) (srt : Srt) : Env Term :=
+  Env.managerDo (cvc5.TermManager.mkConst · srt symbol)
+
+def mkVar (symbol : String) (srt : Srt) : Env Term :=
+  Env.managerDo (cvc5.TermManager.mkVar · srt symbol)
+
+def mkBool (b : Bool) : Env Term :=
+  Env.managerDo (cvc5.TermManager.mkBoolean · b)
+
+def mkInt (i : Int) : Env Term :=
+  Env.managerDo (cvc5.TermManager.mkInteger · i)
+
+end Term
+
+
+namespace Srt
+
+instance : ToString Srt := inferInstanceAs (ToString cvc5.Sort)
+
+def getBool : Env Srt :=
+  Env.managerDo cvc5.TermManager.getBooleanSort
+
+def getInt : Env Srt :=
+  Env.managerDo cvc5.TermManager.getIntegerSort
+
+end Srt
+
+
+
+namespace Solver
+
+def mk : Env Solver := Env.mkSolver
+
+section variable (solver : Solver)
+
+@[inherit_doc cvc5.Solver.setLogic]
+def setLogic (logic : String) : Env Unit :=
+  cvc5.Solver.setLogic logic |> Env.runSolver solver
+
+@[inherit_doc cvc5.Solver.setOption]
+def setOption (option : String) (value : String) : Env Unit :=
+  cvc5.Solver.setOption option value |> Env.runSolver solver
+
+@[inherit_doc cvc5.Solver.declareFun]
+def declareFun (symbol : String) (sorts : Array Srt) (codomain : Srt) : Env Term :=
+  cvc5.Solver.declareFun symbol sorts codomain |> Env.runSolver solver
+
+@[inherit_doc cvc5.Solver.assertFormula]
+def assert (term : Term) : Env Unit :=
+  cvc5.Solver.assertFormula term |> Env.runSolver solver
+
+@[inherit_doc cvc5.Solver.checkSat]
+def checkSat : Env cvc5.Result :=
+  cvc5.Solver.checkSat |> Env.runSolver solver
+
+@[inherit_doc cvc5.Solver.checkSatAssuming]
+def checkSatAssuming (formulas : Array Term) : Env cvc5.Result :=
+  cvc5.Solver.checkSatAssuming formulas |> Env.runSolver solver
+
+@[inherit_doc cvc5.Solver.getValue]
+def getValue (term : Term) : Env Term :=
+  cvc5.Solver.getValue term |> Env.runSolver solver
+
+@[inherit_doc cvc5.Solver.getValues]
+def getValues (terms : Array Term) : Env (Array Term) :=
+  cvc5.Solver.getValues terms |> Env.runSolver solver
+
+end
+
+end Solver
