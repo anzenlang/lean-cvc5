@@ -2,7 +2,9 @@ import cvc5
 
 
 
-namespace Cvc5.Term
+namespace Cvc5.Monadic
+
+namespace Term
 
 variable [Monad m] [MonadLiftT (Env ω) m]
 
@@ -16,20 +18,19 @@ def mk3 (op : cvc5.Kind) (t1 t2 t3 : Term ω) : m (Term ω) := mk op #[t1, t2, t
 def mkNot : Term ω → m (Term ω) := mk1 .NOT
 
 def mkEq : Term ω → Term ω → m (Term ω) := mk2 .EQUAL
+def mkImplies : Term ω → Term ω → m (Term ω) := mk2 .IMPLIES
 def mkLt : Term ω → Term ω → m (Term ω) := mk2 .LT
 def mkLe : Term ω → Term ω → m (Term ω) := mk2 .LEQ
 def mkEq0 (term : Term ω) : m (Term ω) := mkInt 0 >>= mkEq term
-def mkLt0 (term : Term ω) : m (Term ω) := mkInt 0 >>= mkLt term
-def mkLe0 (term : Term ω) : m (Term ω) := mkInt 0 >>= mkLe term
 def mkAdd : Term ω → Term ω → m (Term ω) := mk2 .ADD
 def mkSub : Term ω → Term ω → m (Term ω) := mk2 .SUB
 def mkIte : Term ω → Term ω → Term ω → m (Term ω) := mk3 .ITE
 
-end Cvc5.Term
+end Term
 
 
 
-namespace Cvc5.Solver
+namespace Solver
 
 def check (assuming : Array (Term ω) := #[]) (solver : Solver ω) : Env ω Bool := do
   let res ← solver.checkSatAssuming assuming
@@ -37,13 +38,15 @@ def check (assuming : Array (Term ω) := #[]) (solver : Solver ω) : Env ω Bool
   if res.isUnsat then return false
   throw <| cvc5.Error.error s!"unexpected *unknown* check-sat result"
 
-end Cvc5.Solver
+end Solver
+
+end Cvc5.Monadic
 
 
 
 namespace Test.Monadic
 
-open Cvc5 (EnvIO Term Solver Srt)
+open Cvc5.Monadic (EnvIO Env Term Solver Srt)
 
 
 
@@ -179,15 +182,15 @@ structure SVars (ω : Type) where
   isCounting : (Term ω)
   counter : (Term ω)
 
-def Spec (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : TSys.Spec ω SVars where
+def Spec (candidate : (ω : Type) → SVars ω → EnvIO ω (Term ω)) : TSys.Spec ω SVars where
   sVarsAt k := do
     let bool ← Srt.getBool
     let int ← Srt.getInt
     return ⟨
-      ← Cvc5.Term.mkConst s!"startStop@{k}" bool,
-      ← Cvc5.Term.mkConst s!"reset@{k}" bool,
-      ← Cvc5.Term.mkConst s!"isCounting@{k}" bool,
-      ← Cvc5.Term.mkConst s!"counter@{k}" int,
+      ← Term.mkConst s!"startStop@{k}" bool,
+      ← Term.mkConst s!"reset@{k}" bool,
+      ← Term.mkConst s!"isCounting@{k}" bool,
+      ← Term.mkConst s!"counter@{k}" int,
     ⟩
   getValues solver vars := return ⟨
     ← solver.getValue vars.startStop,
@@ -200,9 +203,11 @@ def Spec (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : TSys.Sp
     s!"startStop = {vals.startStop}, reset = {vals.reset}",
   ]
   init vars := do
-    let notCounting ← vars.reset.mkNot
-    let counterGe0 ← (← Term.mkInt 0) |>.mkLe vars.counter
-    let init ← Term.mkAnd #[notCounting, counterGe0]
+    let zero ← Term.mkInt 0
+    let notCounting ← vars.isCounting.mkNot
+    let counterGe0 ← zero.mkLe vars.counter
+    let onReset ← vars.reset.mkImplies (← vars.counter.mkEq zero)
+    let init ← Term.mkAnd #[notCounting, counterGe0, onReset ]
     return init
   step curr next := do
     let isCountingDef ←
@@ -215,51 +220,38 @@ def Spec (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : TSys.Sp
       ← next.isCounting.mkEq isCountingDef,
       ← next.counter.mkEq counterDef,
     ]
-  candidate
+  candidate := candidate _
 
-def counterPos {ω : Type} (vars : SVars ω) : EnvIO ω (Term ω) := do
+def counterPos (ω : Type) (vars : SVars ω) : EnvIO ω (Term ω) := do
   (← Term.mkInt 0) |>.mkLe vars.counter
 
-def counterNotMinus7 {ω : Type} (vars : SVars ω) : EnvIO ω (Term ω) := do
+def counterNotMinus7 (ω : Type) (vars : SVars ω) : EnvIO ω (Term ω) := do
   let eqM7 ← vars.counter.mkEq (← Term.mkInt (-7))
   eqM7.mkNot
 
-def resetImpliesCounterIs0 {ω : Type} (vars : SVars ω) : EnvIO ω (Term ω) := do
+def resetImpliesCounterIs0 (ω : Type) (vars : SVars ω) : EnvIO ω (Term ω) := do
   let notReset ← vars.reset.mkNot
   let counterIs0 ← vars.counter.mkEq (← Term.mkInt 0)
   Term.mkOr #[notReset, counterIs0]
 
-def allCandidates {ω : Type} (vars : SVars ω) : EnvIO ω (Term ω) := do Term.mkAnd #[
-  ← counterPos vars,
-  ← counterNotMinus7 vars,
-  ← resetImpliesCounterIs0 vars,
+def allCandidates (ω : Type) (vars : SVars ω) : EnvIO ω (Term ω) := do Term.mkAnd #[
+  ← counterPos ω vars,
+  ← counterNotMinus7 ω vars,
+  ← resetImpliesCounterIs0 ω vars,
 ]
 
-/--
-
-Can write this function, but the output `Term ω` is only useable inside a `Cvc5.Env.run`.
-
-See `run` below.
-
--/
-def test' (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO (Option (Term ω)) := Cvc5.Env.run fun _ => do
-  let sys ← TSys.mk <| Sw.Spec candidate
-  let (res, sys) ← sys.check'
-  match res with
-  | .safe k =>
-    println! "candidate is {k}-inductive"
-    return ← some <$> sys.candidate sys.currSVars
-  | .cex trace =>
-    println! "found a counterexample"
-    sys.printTrace trace
-    return none
-  | .unknown =>
-    println! "could not reach a conclusion"
-    return none
-
-def test (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO Unit := Cvc5.Env.run fun ω => do
-  let _inv? : Option (Term ω) ← test' candidate
-  return ()
+def test (candidate : (ω : Type) → SVars ω → EnvIO ω (Term ω)) : IO Unit :=
+  Cvc5.Monadic.Env.run fun _ => do
+    let sys ← TSys.mk <| Sw.Spec candidate
+    let (res, sys) ← sys.check'
+    match res with
+    | .safe k =>
+      println! "candidate is {k}-inductive"
+    | .cex trace =>
+      println! "found a counterexample"
+      sys.printTrace trace
+    | .unknown =>
+      println! "could not reach a conclusion"
 
 
 /-- info:
@@ -289,12 +281,28 @@ candidate is 1-inductive
 
 
 
-/-- error:
-invalid match-expression, type of pattern variable 'invariant' contains metavariables
-  Term ?m.20652
+/-- error: application type mismatch
+  pure __do_lift✝
+argument
+  __do_lift✝
+has type
+  Option (Term x✝¹) : Type
+but is expected to have type
+  Option (Term ω) : Type
 -/
-#guard_msgs in def run (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO Unit := do
-  if let some invariant ← test' candidate then
-    println! "found an invariant: {invariant}"
-    test fun _ => return invariant
-  else println! "no invariant found"
+#guard_msgs in
+def test' (candidate : (ω : Type) → SVars ω → EnvIO ω (Term ω)) : IO (Option (Term ω)) :=
+  Cvc5.Monadic.Env.run fun _ => do
+    let sys ← TSys.mk <| Sw.Spec candidate
+    let (res, sys) ← sys.check'
+    match res with
+    | .safe k =>
+      println! "candidate is {k}-inductive"
+      return ← some <$> sys.candidate sys.currSVars -- ‼️ error here
+    | .cex trace =>
+      println! "found a counterexample"
+      sys.printTrace trace
+      return none
+    | .unknown =>
+      println! "could not reach a conclusion"
+      return none

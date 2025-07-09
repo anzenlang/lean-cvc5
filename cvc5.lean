@@ -1015,6 +1015,10 @@ end cvc5
 
 namespace Cvc5
 
+
+
+namespace Monadic
+
 open cvc5 (Error)
 open cvc5 renaming TermManager → Tm
 
@@ -1105,11 +1109,11 @@ end Env
 structure EnvT (ω : Type) (m : Type → Type u) (α : Type) where
   private code : StateT Env.State (ExceptT Error m) α
 
-abbrev EnvIO := EnvT (m := BaseIO)
+abbrev EnvIO (ω α : Type) := EnvT ω BaseIO α
 
 private def EnvIO.mk (code : StateT Env.State (ExceptT Error BaseIO) α) : EnvIO ω α := ⟨code⟩
 
-abbrev Env := EnvT (m := Id)
+abbrev Env (ω α : Type) := EnvT ω Id α
 
 private def Env.mk (code : StateT Env.State (ExceptT Error Id) α) : Env ω α := ⟨code⟩
 
@@ -1203,50 +1207,68 @@ end Env
 
 
 
-def Term (ω : Type) := let _ := ω ; cvc5.Term
+structure Term (ω : Type) where
+private ofUnsafe ::
+  private toUnsafe : cvc5.Term
 
-def Srt (ω : Type) := let _ := ω ; cvc5.Sort
+structure Srt (ω : Type) where
+private ofUnsafe ::
+  private toUnsafe : cvc5.Sort
+
+
+
+private def Terms.toUnsafe : Array (Term ω) → Array cvc5.Term :=
+  Array.map Term.toUnsafe
+
+private def Terms.ofUnsafe : Array cvc5.Term → Array (Term ω) :=
+  Array.map Term.ofUnsafe
+
+private def Srts.toUnsafe : Array (Srt ω) → Array cvc5.Sort :=
+  Array.map Srt.toUnsafe
+
+private def Srts.ofUnsafe : Array cvc5.Sort → Array (Srt ω) :=
+  Array.map Srt.ofUnsafe
 
 
 
 namespace Term
 
-instance : ToString (Term ω) := inferInstanceAs (ToString cvc5.Term)
+instance : ToString (Term ω) := ⟨toString ∘ toUnsafe⟩
 
 variable [Monad m] [Lift : MonadLiftT (Env ω) m]
 
 def mk (op : cvc5.Kind) (kids : Array (Term ω)) : m (Term ω) :=
-  Lift.monadLift <| Env.managerDo? (cvc5.TermManager.mkTerm · op kids)
+  Lift.monadLift <| ofUnsafe <$> Env.managerDo? (cvc5.TermManager.mkTerm · op <| kids.map toUnsafe)
 
 def mkConst (symbol : String) (srt : Srt ω) : m (Term ω) :=
-  Lift.monadLift <| Env.managerDo (cvc5.TermManager.mkConst · srt symbol)
+  Lift.monadLift <| ofUnsafe <$> Env.managerDo (cvc5.TermManager.mkConst · srt.toUnsafe symbol)
 
 def mkVar (symbol : String) (srt : Srt ω) : m (Term ω) :=
-  Lift.monadLift <| Env.managerDo (cvc5.TermManager.mkVar · srt symbol)
+  Lift.monadLift <| ofUnsafe <$> Env.managerDo (cvc5.TermManager.mkVar · srt.toUnsafe symbol)
 
 def mkBool (b : Bool) : m (Term ω) :=
-  Lift.monadLift <| Env.managerDo (cvc5.TermManager.mkBoolean · b)
+  Lift.monadLift <| ofUnsafe <$> Env.managerDo (cvc5.TermManager.mkBoolean · b)
 
 def mkInt (i : Int) : m (Term ω) :=
-  Lift.monadLift <| Env.managerDo (cvc5.TermManager.mkInteger · i)
+  Lift.monadLift <| ofUnsafe <$> Env.managerDo (cvc5.TermManager.mkInteger · i)
 
 end Term
 
 
 namespace Srt
 
-instance : ToString (Srt ω) := inferInstanceAs (ToString cvc5.Sort)
+instance : ToString (Srt ω) := ⟨toString ∘ toUnsafe⟩
 
 variable [Monad m] [Lift : MonadLiftT (Env ω) m]
 
 def getBool : m (Srt ω) :=
-  Lift.monadLift <| Env.managerDo cvc5.TermManager.getBooleanSort
+  Lift.monadLift <| ofUnsafe <$> Env.managerDo cvc5.TermManager.getBooleanSort
 
 def getInt : m (Srt ω) :=
-  Lift.monadLift <| Env.managerDo cvc5.TermManager.getIntegerSort
+  Lift.monadLift <| ofUnsafe <$> Env.managerDo cvc5.TermManager.getIntegerSort
 
 def getReal : m (Srt ω) :=
-  Lift.monadLift <| Env.managerDo cvc5.TermManager.getRealSort
+  Lift.monadLift <| ofUnsafe <$> Env.managerDo cvc5.TermManager.getRealSort
 
 end Srt
 
@@ -1268,11 +1290,12 @@ def setOption (option : String) (value : String) : Env ω Unit :=
 
 @[inherit_doc cvc5.Solver.declareFun]
 def declareFun (symbol : String) (sorts : Array (Srt ω)) (codomain : Srt ω) : Env ω (Term ω) :=
-  cvc5.Solver.declareFun symbol sorts codomain |> Env.runSolver solver
+  cvc5.Solver.declareFun symbol (Srts.toUnsafe sorts) codomain.toUnsafe
+  |>.map Term.ofUnsafe |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.assertFormula]
 def assert (term : Term ω) : Env ω Unit :=
-  cvc5.Solver.assertFormula term |> Env.runSolver solver
+  cvc5.Solver.assertFormula term.toUnsafe |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.checkSat]
 def checkSat : Env ω cvc5.Result :=
@@ -1280,16 +1303,184 @@ def checkSat : Env ω cvc5.Result :=
 
 @[inherit_doc cvc5.Solver.checkSatAssuming]
 def checkSatAssuming (formulas : Array (Term ω)) : Env ω cvc5.Result :=
-  cvc5.Solver.checkSatAssuming formulas |> Env.runSolver solver
+  Terms.toUnsafe formulas
+  |> cvc5.Solver.checkSatAssuming
+  |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.getValue]
 def getValue (term : Term ω) : Env ω (Term ω) :=
-  cvc5.Solver.getValue term |> Env.runSolver solver
+  cvc5.Solver.getValue term.toUnsafe |>.map Term.ofUnsafe |> Env.runSolver solver
 
 @[inherit_doc cvc5.Solver.getValues]
 def getValues (terms : Array (Term ω)) : Env ω (Array (Term ω)) :=
-  cvc5.Solver.getValues terms |> Env.runSolver solver
+  Terms.toUnsafe terms |> cvc5.Solver.getValues |>.map Terms.ofUnsafe |> Env.runSolver solver
 
 end
 
 end Solver
+
+end Monadic
+
+
+
+namespace NonMonadic
+
+open cvc5 (Error Kind)
+
+open cvc5 renaming TermManager → Tm
+
+
+
+abbrev ResT (m : Type → Type u) := ExceptT Error m
+abbrev ResIO := ResT BaseIO
+abbrev Res := ResT Id
+
+namespace ResT
+
+instance [Lift : MonadLift m m'] : MonadLift (ResT m) (ResT m') :=
+  ⟨Lift.monadLift⟩
+
+instance [Monad m] : MonadLift Res (ResT m) := ⟨pure⟩
+
+instance : MonadLift IO ResIO := ⟨fun ioCode => do
+  let res ← ioCode.toBaseIO
+  res.mapError (cvc5.Error.error s!"[IO] {·}")
+⟩
+
+end ResT
+
+
+
+structure Term.Manager (ω : Type) : Type where
+private ofUnsafe ::
+  private toUnsafe : cvc5.TermManager
+
+structure Srt (ω : Type) where private ofUnsafe ::
+  private toUnsafe : cvc5.Sort
+
+structure Term (ω : Type) where private ofUnsafe ::
+  private toUnsafe : cvc5.Term
+
+
+
+namespace Srt
+
+instance : ToString (Srt ω) := ⟨toString ∘ toUnsafe⟩
+
+protected def toString : Srt ω → String := toString
+
+private instance : CoeDep (Srt ω) srt cvc5.Sort := ⟨srt.toUnsafe⟩
+
+end Srt
+
+
+
+namespace Term
+
+instance : ToString (Term ω) := ⟨toString ∘ toUnsafe⟩
+
+protected def toString : Srt ω → String := toString
+
+private instance : CoeDep (Term ω) term cvc5.Term := ⟨term.toUnsafe⟩
+
+
+
+namespace Manager
+
+def mk : BaseIO (Manager ω) := return ⟨← Tm.new⟩
+
+
+
+def getBoolSrt (manager : Manager ω) : Srt ω := ⟨manager.toUnsafe.getBooleanSort⟩
+
+def getIntSrt (manager : Manager ω) : Srt ω := ⟨manager.toUnsafe.getIntegerSort⟩
+
+def getRealSrt (manager : Manager ω) : Srt ω := ⟨manager.toUnsafe.getRealSort⟩
+
+
+
+def mkTerm (kind : Kind) (kids : Array (Term ω)) (manager : Manager ω) : Res (Term ω) :=
+  let kids := kids.map Term.toUnsafe
+  Term.ofUnsafe <$> manager.toUnsafe.mkTerm kind kids
+
+def freshConst (symbol : String) (srt : Srt ω) (manager : Manager ω) : Term ω :=
+  Term.ofUnsafe <| manager.toUnsafe.mkConst srt symbol
+
+def freshVar (symbol : String) (srt : Srt ω) (manager : Manager ω) : Term ω :=
+  Term.ofUnsafe <| manager.toUnsafe.mkVar srt symbol
+
+def mkBool (b : Bool) (manager : Manager ω) : Term ω :=
+  Term.ofUnsafe <| manager.toUnsafe.mkBoolean b
+
+def mkInt (i : Int) (manager : Manager ω) : Term ω :=
+  Term.ofUnsafe <| manager.toUnsafe.mkInteger i
+
+end Manager
+
+end Term
+
+
+
+structure SolverM (ω : Type) (α : Type) where
+private ofUnsafe ::
+  private toUnsafe : cvc5.SolverT IO α
+
+protected abbrev Term.Manager.SolverM (_manager : Manager ω) (α : Type) :=
+  SolverM ω α
+
+namespace SolverM
+
+instance : Monad (SolverM ω) where
+  pure a := ⟨return a⟩
+  bind a? f := ⟨fun solver => do
+    let (a?, solver) ← a?.toUnsafe solver
+    match a? with
+    | .ok a => f a |>.toUnsafe solver
+    | .error e => return (.error e, solver)
+  ⟩
+
+instance : MonadExcept Error (SolverM ω) where
+  throw e := ⟨throw e⟩
+  tryCatch code errorDo := ⟨try code.toUnsafe catch e => errorDo e |>.toUnsafe⟩
+
+def run [Monad m]
+  (manager : Term.Manager ω) (code : manager.SolverM α)
+: IO (Except cvc5.Error α) :=
+  Prod.fst <$> (cvc5.Solver.new manager.toUnsafe |> code.toUnsafe)
+
+end SolverM
+
+abbrev Solver.run := @SolverM.run
+
+open SolverM (ofUnsafe)
+
+def setLogic (logic : String) : SolverM ω Unit :=
+  ofUnsafe <| cvc5.Solver.setLogic logic
+
+def setOption (opt val : String) : SolverM ω Unit :=
+  ofUnsafe <| cvc5.Solver.setOption opt val
+
+def declareFun
+  (symbol : String) (sorts : Array (Srt ω)) (cod : Srt ω) (fresh := false)
+: SolverM ω (Term ω) :=
+  let sorts := sorts.map Srt.toUnsafe
+  ⟨cvc5.Solver.declareFun symbol sorts cod.toUnsafe fresh |>.map Term.ofUnsafe⟩
+
+def assert (term : Term ω) : SolverM ω Unit :=
+  ofUnsafe <| cvc5.Solver.assertFormula term.toUnsafe
+
+def checkSat : SolverM ω cvc5.Result :=
+  ofUnsafe <| cvc5.Solver.checkSat
+
+def checkSatAssuming (terms : Array (Term ω)) : SolverM ω cvc5.Result :=
+  let terms := terms.map Term.toUnsafe
+  ofUnsafe <| cvc5.Solver.checkSatAssuming terms
+
+def getValue (term : Term ω) : SolverM ω (Term ω) :=
+  ⟨cvc5.Solver.getValue term.toUnsafe |>.map Term.ofUnsafe⟩
+
+def getValues (terms : Array (Term ω)) : SolverM ω (Array (Term ω)) :=
+  let terms := terms.map Term.toUnsafe
+  ⟨cvc5.Solver.getValues terms |>.map fun array => array.map Term.ofUnsafe⟩
+
+end NonMonadic
