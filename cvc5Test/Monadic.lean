@@ -306,3 +306,144 @@ def test' (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO (Op
     | .unknown =>
       println! "could not reach a conclusion"
       return none
+
+end Sw
+
+
+
+def solveConstraints (constraints : Array (Term ω)) : EnvIO ω Bool := do
+  let solver ← Solver.mk
+  for constraint in constraints do
+    solver.assert constraint
+  let res ← solver.checkSat
+  if res.isSat then return true
+  else if res.isUnsat then return false
+  else throw <| cvc5.Error.error "unexpected unknown result"
+
+def run1 : IO Unit :=
+  Cvc5.Monadic.Env.run fun _ω => do
+    let int ← Srt.getInt
+    let x ← Term.mkConst "x" int
+    let zero ← Term.mkInt 0
+    let three ← Term.mkInt 3
+    let seven ← Term.mkInt 7
+    let xEq lhs := Term.mk .EQUAL #[x, lhs]
+    let xEqZero ← xEq zero
+    let xEqThree ← xEq three
+    let xEqSeven ← xEq seven
+
+    let res1 ← solveConstraints #[xEqZero]
+    println! "res1 is sat = {res1}"
+
+    let res2 ← solveConstraints #[xEqThree, xEqSeven]
+    println! "res2 is sat = {res2}"
+
+/-- info:
+res1 is sat = true
+res2 is sat = false
+-/
+#guard_msgs in #eval run1
+
+
+structure CSolver (ω : Type) where
+private mk' ::
+  solver : Solver ω
+  satisfiable : Array (Term ω)
+
+namespace CSolver
+
+def mk (ω : Type) : Env ω (CSolver ω) := do
+  let solver ← Solver.mk
+  return ⟨solver, #[]⟩
+
+/-- Returns `true` and registers `constraint` if it is satisfiable with the current constraints. -/
+def addConstraint? (cs : CSolver ω) (constraint : Term ω) : Env ω (Bool × CSolver ω) := do
+  let res ← cs.solver.checkSatAssuming #[constraint]
+  if res.isSat then
+    cs.solver.assert constraint
+    return (true, {cs with satisfiable := cs.satisfiable.push constraint})
+  else if res.isUnsat then
+    return (false, cs)
+  else
+    throw <| cvc5.Error.error "unexpected unknown result"
+
+end CSolver
+
+def extractSatisfiableConstraints (constraints : Array (Term ω)) : EnvIO ω (Array (Term ω)) := do
+  let mut cs ← CSolver.mk ω
+  for constraint in constraints do
+    println! "current constraint: {constraint}"
+    let (added, cs') ← cs.addConstraint? constraint
+    cs := cs'
+    if added then println! "→ satisfiable with current constraints, added 😺"
+    else println! "→ not satisfiable with current constraints, ignored 😿"
+    println! ""
+  println! "done, extracted {cs.satisfiable.size} satisfiable constraints"
+  return cs.satisfiable
+
+def run2 : IO Unit :=
+  Cvc5.Monadic.Env.run fun _ω => do
+    let int ← Srt.getInt
+    let x ← Term.mkConst "x" int
+    let zero ← Term.mkInt 0
+    let three ← Term.mkInt 3
+    let seven ← Term.mkInt 7
+    let xEq lhs := Term.mk .EQUAL #[x, lhs]
+    let xEqZero ← xEq zero
+    let xEqThree ← xEq three
+    let xEqSeven ← xEq seven
+    let xLe lhs := Term.mk .LEQ #[x, lhs]
+    let xLeZero ← xLe zero
+    let xLeThree ← xLe three
+    let xLeSeven ← xLe seven
+    let xGe lhs := Term.mk .GEQ #[x, lhs]
+    let xGeZero ← xGe zero
+    let xGeThree ← xGe three
+    let xGeSeven ← xGe seven
+
+    let constraints := #[
+      xGeThree, xEqSeven, xLeThree, xGeZero, xEqZero, xEqThree, xGeSeven, xLeZero, xLeSeven
+    ]
+    let satisfiable ← extractSatisfiableConstraints constraints
+
+    for term in satisfiable do
+      println! "- {term}"
+
+/-- info:
+current constraint: (>= x 3)
+→ satisfiable with current constraints, added 😺
+
+current constraint: (= x 7)
+→ satisfiable with current constraints, added 😺
+
+current constraint: (<= x 3)
+→ not satisfiable with current constraints, ignored 😿
+
+current constraint: (>= x 0)
+→ satisfiable with current constraints, added 😺
+
+current constraint: (= x 0)
+→ not satisfiable with current constraints, ignored 😿
+
+current constraint: (= x 3)
+→ not satisfiable with current constraints, ignored 😿
+
+current constraint: (>= x 7)
+→ satisfiable with current constraints, added 😺
+
+current constraint: (<= x 0)
+→ not satisfiable with current constraints, ignored 😿
+
+current constraint: (<= x 7)
+→ satisfiable with current constraints, added 😺
+
+done, extracted 5 satisfiable constraints
+- (>= x 3)
+- (= x 7)
+- (>= x 0)
+- (>= x 7)
+- (<= x 7)
+-/
+#guard_msgs in #eval run2
+
+end Test.Monadic

@@ -1156,7 +1156,7 @@ instance [Monad m] [Monad m'] [Lift : MonadLift m m'] : MonadLift (EnvT ω m) (E
 
 example [Monad m] [Lift : MonadLift BaseIO m] : MonadLift (EnvIO ω) (EnvT ω m) := inferInstance
 
-/-- #TODO ‼️ allows spawning threads -/
+/-- #TODO ‼️ allows spawning threads? -/
 instance : MonadLift IO (EnvIO ω) where
   monadLift io := ⟨
     fun state => do
