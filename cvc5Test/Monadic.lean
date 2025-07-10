@@ -182,7 +182,7 @@ structure SVars (ω : Type) where
   isCounting : (Term ω)
   counter : (Term ω)
 
-def Spec (candidate : (ω : Type) → SVars ω → EnvIO ω (Term ω)) : TSys.Spec ω SVars where
+def Spec (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : TSys.Spec ω SVars where
   sVarsAt k := do
     let bool ← Srt.getBool
     let int ← Srt.getInt
@@ -220,28 +220,28 @@ def Spec (candidate : (ω : Type) → SVars ω → EnvIO ω (Term ω)) : TSys.Sp
       ← next.isCounting.mkEq isCountingDef,
       ← next.counter.mkEq counterDef,
     ]
-  candidate := candidate _
+  candidate
 
-def counterPos (ω : Type) (vars : SVars ω) : EnvIO ω (Term ω) := do
+def counterPos (vars : SVars ω) : EnvIO ω (Term ω) := do
   (← Term.mkInt 0) |>.mkLe vars.counter
 
-def counterNotMinus7 (ω : Type) (vars : SVars ω) : EnvIO ω (Term ω) := do
+def counterNotMinus7 (vars : SVars ω) : EnvIO ω (Term ω) := do
   let eqM7 ← vars.counter.mkEq (← Term.mkInt (-7))
   eqM7.mkNot
 
-def resetImpliesCounterIs0 (ω : Type) (vars : SVars ω) : EnvIO ω (Term ω) := do
+def resetImpliesCounterIs0 (vars : SVars ω) : EnvIO ω (Term ω) := do
   let notReset ← vars.reset.mkNot
   let counterIs0 ← vars.counter.mkEq (← Term.mkInt 0)
   Term.mkOr #[notReset, counterIs0]
 
-def allCandidates (ω : Type) (vars : SVars ω) : EnvIO ω (Term ω) := do Term.mkAnd #[
-  ← counterPos ω vars,
-  ← counterNotMinus7 ω vars,
-  ← resetImpliesCounterIs0 ω vars,
+def allCandidates (vars : SVars ω) : EnvIO ω (Term ω) := do Term.mkAnd #[
+  ← counterPos vars,
+  ← counterNotMinus7 vars,
+  ← resetImpliesCounterIs0 vars,
 ]
 
-def test (candidate : (ω : Type) → SVars ω → EnvIO ω (Term ω)) : IO Unit :=
-  Cvc5.Monadic.Env.run fun _ => do
+def test (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO Unit :=
+  Cvc5.Monadic.Env.run fun _ω => do
     let sys ← TSys.mk <| Sw.Spec candidate
     let (res, sys) ← sys.check'
     match res with
@@ -286,13 +286,13 @@ candidate is 1-inductive
 argument
   __do_lift✝
 has type
-  Option (Term x✝¹) : Type
+  Option (Term _ω) : Type
 but is expected to have type
   Option (Term ω) : Type
 -/
 #guard_msgs in
-def test' (candidate : (ω : Type) → SVars ω → EnvIO ω (Term ω)) : IO (Option (Term ω)) :=
-  Cvc5.Monadic.Env.run fun _ => do
+def test' (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO (Option (Term ω)) :=
+  Cvc5.Monadic.Env.run fun _ω => do
     let sys ← TSys.mk <| Sw.Spec candidate
     let (res, sys) ← sys.check'
     match res with

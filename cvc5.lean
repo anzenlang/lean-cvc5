@@ -1217,17 +1217,21 @@ private ofUnsafe ::
 
 
 
-private def Terms.toUnsafe : Array (Term ω) → Array cvc5.Term :=
+namespace Terms
+private def toUnsafe : Array (Term ω) → Array cvc5.Term :=
   Array.map Term.toUnsafe
 
-private def Terms.ofUnsafe : Array cvc5.Term → Array (Term ω) :=
+private def ofUnsafe : Array cvc5.Term → Array (Term ω) :=
   Array.map Term.ofUnsafe
+end Terms
 
-private def Srts.toUnsafe : Array (Srt ω) → Array cvc5.Sort :=
+namespace Srts
+private def toUnsafe : Array (Srt ω) → Array cvc5.Sort :=
   Array.map Srt.toUnsafe
 
-private def Srts.ofUnsafe : Array cvc5.Sort → Array (Srt ω) :=
+private def ofUnsafe : Array cvc5.Sort → Array (Srt ω) :=
   Array.map Srt.ofUnsafe
+end Srts
 
 
 
@@ -1250,6 +1254,9 @@ def mkBool (b : Bool) : m (Term ω) :=
   Lift.monadLift <| ofUnsafe <$> Env.managerDo (cvc5.TermManager.mkBoolean · b)
 
 def mkInt (i : Int) : m (Term ω) :=
+  Lift.monadLift <| ofUnsafe <$> Env.managerDo (cvc5.TermManager.mkInteger · i)
+
+def mkReal (i : Int) : m (Term ω) :=
   Lift.monadLift <| ofUnsafe <$> Env.managerDo (cvc5.TermManager.mkInteger · i)
 
 end Term
