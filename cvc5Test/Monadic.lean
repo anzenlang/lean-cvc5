@@ -50,6 +50,9 @@ open Cvc5.Monadic (EnvIO Env Term Solver Srt)
 
 
 
+namespace KInduction
+
+
 structure TSys.Spec (ω : Type) (SVars : Type → Type) where
   sVarsAt (k : Nat) : EnvIO ω (SVars ω)
   sVarsToString : (SVars ω) → Array String
@@ -309,7 +312,11 @@ def test' (candidate : {ω : Type} → SVars ω → EnvIO ω (Term ω)) : IO (Op
 
 end Sw
 
+end KInduction
 
+
+
+namespace BasicSolving
 
 def solveConstraints (constraints : Array (Term ω)) : EnvIO ω Bool := do
   let solver ← Solver.mk
@@ -344,6 +351,38 @@ res2 is sat = false
 -/
 #guard_msgs in #eval run1
 
+/--error:
+application type mismatch
+  List.cons xEqZero
+argument
+  xEqZero
+has type
+  Term _ω : Type
+but is expected to have type
+  Term ?m.23654 : Type
+-/
+#guard_msgs in
+def run2 : IO Unit := do
+  let constraints : Array (Term _) ←
+    Cvc5.Monadic.Env.run fun _ω => do
+      let int ← Srt.getInt
+      let x ← Term.mkConst "x" int
+      let zero ← Term.mkInt 0
+      let three ← Term.mkInt 3
+      let seven ← Term.mkInt 7
+      let xEq lhs := Term.mk .EQUAL #[x, lhs]
+      let xEqZero ← xEq zero
+
+      let res ← solveConstraints #[xEqZero]
+      return #[xEqZero] -- ‼️ error here
+  for c in constraints do
+    println! "escaping the manager's scope: {c}"
+
+end BasicSolving
+
+
+
+namespace IncrementalSolving
 
 structure CSolver (ω : Type) where
 private mk' ::
@@ -381,7 +420,7 @@ def extractSatisfiableConstraints (constraints : Array (Term ω)) : EnvIO ω (Ar
   println! "done, extracted {cs.satisfiable.size} satisfiable constraints"
   return cs.satisfiable
 
-def run2 : IO Unit :=
+def run : IO Unit :=
   Cvc5.Monadic.Env.run fun _ω => do
     let int ← Srt.getInt
     let x ← Term.mkConst "x" int
@@ -444,6 +483,8 @@ done, extracted 5 satisfiable constraints
 - (>= x 7)
 - (<= x 7)
 -/
-#guard_msgs in #eval run2
+#guard_msgs in #eval run
+
+end IncrementalSolving
 
 end Test.Monadic
