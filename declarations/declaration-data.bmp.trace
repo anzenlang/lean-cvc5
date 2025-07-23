@@ -1,0 +1,25 @@
+{"synthetic": false,
+ "outputs": null,
+ "log":
+ [{"message": "Documentation indexing", "level": "info"},
+  {"message":
+   ".> /Users/adrienchampion/repos/anzen/lean-cvc5/monadic_rewrite/.lake/packages/doc-gen4/.lake/build/bin/doc-gen4 index --build /Users/adrienchampion/repos/anzen/lean-cvc5/monadic_rewrite/Docs/.lake/build",
+   "level": "trace"}],
+ "inputs":
+ [["/Users/adrienchampion/repos/anzen/lean-cvc5/monadic_rewrite/.lake/packages/doc-gen4/.lake/build/bin/doc-gen4",
+   "9612448697224725252"],
+  ["<nil>", "4147042607551581956"],
+  ["<collection>",
+   [["/Users/adrienchampion/repos/anzen/lean-cvc5/monadic_rewrite/Docs/.lake/build/doc/cvc5/Init.html",
+     "2890109429964676449"],
+    ["/Users/adrienchampion/repos/anzen/lean-cvc5/monadic_rewrite/Docs/.lake/build/doc/cvc5/Kind.html",
+     "10310821143919697196"],
+    ["/Users/adrienchampion/repos/anzen/lean-cvc5/monadic_rewrite/Docs/.lake/build/doc/cvc5/ProofRule.html",
+     "2961537361402722086"],
+    ["/Users/adrienchampion/repos/anzen/lean-cvc5/monadic_rewrite/Docs/.lake/build/doc/cvc5/SkolemId.html",
+     "16840076432774786892"],
+    ["/Users/adrienchampion/repos/anzen/lean-cvc5/monadic_rewrite/Docs/.lake/build/doc/cvc5/Types.html",
+     "6391120905369340199"],
+    ["/Users/adrienchampion/repos/anzen/lean-cvc5/monadic_rewrite/Docs/.lake/build/doc/cvc5.html",
+     "14856275511749170518"]]]],
+ "depHash": "13473162152883543152"}
