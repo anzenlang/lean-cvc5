@@ -114,7 +114,7 @@ test! tm => do
   let solver ← tm.newSolver
   solver.setOption "produce-models" "true"
 
-  let model? ← solver.parseGetModel? "
+  let model? ← solver.parseAndGetModel? "
 (set-logic AUFLIA)
 
 (declare-sort u 0)
@@ -134,7 +134,7 @@ test! tm => do
       println! "- {var} ↦ {val}"
 
   -- making sure having a check-sat in there is okay
-  let _ ← solver.parseGetModel? "(assert true)(check-sat)"
+  let _ ← solver.parseAndGetModel? "(assert true)(check-sat)"
 
 
 

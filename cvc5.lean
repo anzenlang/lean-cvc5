@@ -1508,7 +1508,7 @@ def parseCheck
   if res.isSat then ifSat else if res.isUnsat then ifUnsat else ifUnknown
 
 /-- Parses some commands and produces a model if the check-sat produced *sat*. -/
-def parseGetModel? : Env (Option (Array (Term × Term))) := do
+def parseAndGetModel? : Env (Option (Array (Term × Term))) := do
   solver.parseCheck input (lang := lang)
     (ifSat := some <$> solver.getParserModel)
     (ifUnsat := return none) (ifUnknown := return none)
