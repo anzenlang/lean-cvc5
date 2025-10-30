@@ -278,7 +278,7 @@ def TermManager : Type := TermManagerImpl.type
 
 namespace TermManager
 
-private instance TermManager.instNonemptyTermManager : Nonempty TermManager :=
+private instance : Nonempty TermManager :=
   TermManagerImpl.property
 
 end TermManager
@@ -313,6 +313,9 @@ section ffi variable [Monad m]
 @[export env_pure]
 private def env_pure (a : α) : Env α := return a
 
+@[export env_pure_bool]
+private def env_pure_bool (b : Bool) : Env Bool := return b
+
 @[export env_throw]
 private def env_throw (e : Error) : Env α := throw e
 
@@ -330,13 +333,23 @@ private def Solver.Raw : Type := SolverImpl.type
 
 instance Solver.instNonemptySolver : Nonempty Solver.Raw := SolverImpl.property
 
+private opaque InputParserImpl : NonemptyType.{0}
+
+/-- Input parser. -/
+def InputParser : Type := InputParserImpl.type
+
 /-- A cvc5 solver. -/
-structure Solver where private mkRaw ::
-  private solver : Solver.Raw
+structure Solver where
+/-- Constructor from a raw solver. -/
+private ofRaw ::
+  /-- Raw solver accessor. -/
+  private toRaw : Solver.Raw
+  /-- Optional mutable reference to a parser. -/
+  private parser? : ST.Ref IO.RealWorld (Option InputParser)
 
 /-- Accessor for the underlying unsafe solver. -/
 @[export ffi_solver_to_raw]
-private def ffi_solver_to_raw : Solver → Solver.Raw := Solver.solver
+private def ffi_solver_to_raw : Solver → Solver.Raw := Solver.toRaw
 
 namespace Error
 
@@ -348,6 +361,10 @@ protected def toString : Error → String :=
 def unwrap! [Inhabited α] : Except Error α → α
 | .ok a => a
 | .error e => panic! e.toString
+
+/-- Error for getting an unknown result when sat/unsat was expected. -/
+def unknown : Error :=
+  Error.error "unexpected unknown result"
 
 instance : ToString Error :=
   ⟨Error.toString⟩
@@ -900,6 +917,9 @@ namespace TermManager
 /-- Constructor. -/
 extern_def new : Env TermManager
 
+/-- Solver constructor. -/
+private extern_def newRawSolver : TermManager → Env Solver.Raw
+
 /-- Get the Boolean sort. -/
 extern_def getBooleanSort : TermManager → Env cvc5.Sort
 
@@ -1172,16 +1192,30 @@ def runIO (code : Env α) : IO α := do
   | .ok res => return res
   | .error e => throw <| IO.Error.userError <| toString e
 
-/-- Solver constructor. -/
-private extern_def newSolver : TermManager → Env Solver.Raw
-
 end Env
+
+namespace InputParser
+
+private instance : Nonempty InputParser :=
+  InputParserImpl.property
+
+/-- Constructor from a solver. -/
+private extern_def ofRawSolver : (rawSolver : Solver.Raw) → Env InputParser
+
+end InputParser
+
+/-- Solver constructor. -/
+def TermManager.newSolver (tm : TermManager) (withParser : Bool := false) : Env Solver := do
+  let raw ← tm.newRawSolver
+  let parser? ← do
+    if withParser then some <$> InputParser.ofRawSolver raw
+    else pure none
+  return Solver.ofRaw (parser? := ← IO.mkRef parser?) raw
 
 namespace Solver
 
-@[inherit_doc Env.newSolver]
-def new (tm : TermManager) : Env Solver :=
-  mkRaw <$> Env.newSolver tm
+@[inherit_doc TermManager.newSolver]
+def new := @TermManager.newSolver
 
 /-- Get a string representation of the version of this solver. -/
 extern_def getVersion : (solver : Solver) → Env String
@@ -1315,6 +1349,7 @@ The current model interprets the uninterpreted sort `s` as a finite sort whose d
 -/
 extern_def getModelDomainElements (solver : Solver) (s : cvc5.Sort) : Env (Array Term)
 
+
 /-- Prints a proof as a string in a selected proof format mode.
 
 Other aspects of printing are taken from the solver options.
@@ -1323,12 +1358,162 @@ Other aspects of printing are taken from the solver options.
 -/
 extern_def proofToString : (solver : Solver) → Proof → Env String
 
-/-- Parse a string containing SMT-LIB commands.
+-- /-- Parse a string containing SMT-LIB commands.
 
-Commands that produce a result such as `(check-sat)`, `(get-model)`, ... are executed but the
-results are ignored.
+-- Commands that produce a result such as `(check-sat)`, `(get-model)`, ... are executed but the
+-- results are ignored.
+-- -/
+-- extern_def parseCommands : (solver : Solver) → (query : String) → Env (Array cvc5.Sort × Array Term)
+
+
+end Solver
+
+
+
+namespace InputParser
+
+/-- Configure given file as input.
+
+- `filename` The name of the file to configure.
+- `lang` The input language, default `InputLanguage.SMT_LIB_2_6`.
 -/
-extern_def parseCommands : (solver : Solver) → (query : String) → Env (Array cvc5.Sort × Array Term)
+private extern_def setFileInputOfString :
+  (parser : InputParser) → (filename : String) → (lang : InputLanguage) → Env Unit
+with
+  setFileInput (parser : InputParser)
+    (filename : System.FilePath) (lang : InputLanguage := .SMT_LIB_2_6)
+  : Env Unit :=
+    setFileInputOfString parser filename.toString lang
+
+/-- Parse and return the next term. Requires setting the logic prior to this point. -/
+extern_def nextTerm : (parser : InputParser) → Env Term
+
+/-- Configure a given concrete input string as the input to this parser.
+
+- `input` The input string.
+- `name` The name to use as input stream name for error messages.
+- `lang` The input language of the input string, default `InputLanguage.SMT_LIB_2_6`.
+-/
+extern_def setStringInput : (parser : InputParser) → (input : String)
+  → (lang : InputLanguage := .SMT_LIB_2_6)
+  → Env Unit
+
+/-- Parses a term from a string. Requires setting the logic prior to this point.
+
+- `input` The input string.
+- `lang` The input language of the input string, default `InputLanguage.SMT_LIB_2_6`.
+-/
+
+partial def parseTerms (parser : InputParser)
+  (input : String) (lang : InputLanguage := .SMT_LIB_2_6)
+: Env (Array Term) := do
+  parser.setStringInput input lang
+  loop #[]
+where
+  loop (acc : Array Term) : Env (Array Term) := do
+    let term ← parser.nextTerm
+    if term.isNull then return acc else acc.push term |> loop
+
+/-- Parses a term from a string. Requires setting the logic prior to this point.
+
+- `input` The input string.
+- `lang` The input language of the input string, default `InputLanguage.SMT_LIB_2_6`.
+-/
+def parseTerm (parser : InputParser)
+  (input : String) (lang : InputLanguage := .SMT_LIB_2_6)
+: Env Term := do
+  let terms ← parser.parseTerms input lang
+  if terms_size : terms.size = 1 then
+    return terms[0]
+  else
+    let badThing :=
+      if terms.isEmpty then "none" else s!"{terms.size}: {terms}"
+    Error.error s!"expected exactly one term, got {badThing}"
+    |> throw
+
+/-- Get the list of sorts that have been declared via `declare-sort` commands. -/
+extern_def getDeclaredSorts : InputParser → Env (Array cvc5.Sort)
+
+/-- Get the list of terms that have been declared via `declare-fun` and `declare-const`.-/
+extern_def getDeclaredTerms : InputParser → Env (Array Term)
+
+end InputParser
+
+
+
+namespace Solver
+
+/-- A solver's underlying parser. -/
+def parser (solver : Solver) : Env InputParser := do
+  if let some parser ← solver.parser?.get then return parser
+  else
+    let parser ← InputParser.ofRawSolver solver.toRaw
+    solver.parser?.set parser
+    return parser
+
+/-- Parses some commands from a string.
+
+- `commands` The string to parse.
+- `lang` The input language, default `InputLanguage.SMT_LIB_2_6`.
+-/
+private extern_def parseCommandsRaw :
+  (solver : Solver.Raw)
+  → (parser : InputParser)
+  → (commands : String)
+  → (lang : InputLanguage) → Env Unit
+with
+  parseCommands
+    (solver : Solver) (commands : String) (lang : InputLanguage := .SMT_LIB_2_6)
+  : Env Unit := do
+    let parser ← solver.parser
+    parseCommandsRaw solver.toRaw parser commands lang
+
+@[inherit_doc InputParser.getDeclaredSorts]
+def getParserDeclaredSorts (solver : Solver) : Env (Array cvc5.Sort) :=
+  solver.parser >>= InputParser.getDeclaredSorts
+
+@[inherit_doc InputParser.getDeclaredTerms]
+def getParserDeclaredTerms (solver : Solver) : Env (Array Term) :=
+  solver.parser >>= InputParser.getDeclaredTerms
+
+/-- Retrieves a model containing all the symbols declared through parsing. Requires sat. -/
+def getParserModel (solver : Solver) : Env (Array (Term × Term)) := do
+  let terms ← solver.getParserDeclaredTerms
+  let mut model := Array.emptyWithCapacity terms.size
+  for term in terms do
+    let val ← solver.getValue term
+    model := model.push (term, val)
+  return model
+
+
+section variable (solver : Solver) (input : String) (lang : InputLanguage := .SMT_LIB_2_6)
+
+@[inherit_doc InputParser.parseTerms]
+def parseTerms : Env (Array Term) := do
+  let parser ← solver.parser
+  parser.parseTerms input lang
+
+@[inherit_doc InputParser.parseTerm]
+def parseTerm : Env Term := do
+  let parser ← solver.parser
+  parser.parseTerm input lang
+
+/-- Parses some commands and runs user code depending on the check-sat's result. -/
+def parseCheck
+  (ifSat : Env α) (ifUnsat : Env α) (ifUnknown : Env α := Error.unknown |> throw)
+  (lang : InputLanguage := .SMT_LIB_2_6)
+: Env α := do
+  solver.parseCommands input lang
+  let res ← solver.checkSat
+  if res.isSat then ifSat else if res.isUnsat then ifUnsat else ifUnknown
+
+/-- Parses some commands and produces a model if the check-sat produced *sat*. -/
+def parseGetModel? : Env (Option (Array (Term × Term))) := do
+  solver.parseCheck input (lang := lang)
+    (ifSat := some <$> solver.getParserModel)
+    (ifUnsat := return none) (ifUnknown := return none)
+
+end
 
 end Solver
 
