@@ -1,33 +1,31 @@
 import cvc5Test.Init
 
-/-! # TODO
+/-! # Black box testing of the term manager
 
-- only covers tests up to datatype/uninterpreted sorts checks (exclusive)
-
-  <https://github.com/cvc5/cvc5/blob/3759dab95085f510833820b9f98ee9e5c6e122f8/test/unit/api/c/capi_term_manager_black.cpp#L58>
+- <https://github.com/cvc5/cvc5/blob/e342ecb325520619db2a1f49e95f96ebca8029f2/test/unit/api/cpp/api_term_manager_black.cpp>
 
 -/
 namespace cvc5.Test
 
-test! tm => do
+test![TestApiBlackTermManager, getBooleanSort] tm => do
   let _ ← tm.getBooleanSort
 
-test! tm => do
+test![TestApiBlackTermManager, getIntegerSort] tm => do
   let _ ← tm.getIntegerSort
 
-test! tm => do
+test![TestApiBlackTermManager, getRealSort] tm => do
   let _ ← tm.getRealSort
 
-test! tm => do
+test![TestApiBlackTermManager, getRegExpSort] tm => do
   let _ ← tm.getRegExpSort
 
-test! tm => do
+test![TestApiBlackTermManager, getStringSort] tm => do
   let _ ← tm.getStringSort
 
-test! tm => do
+test![TestApiBlackTermManager, getRoundingModeSort] tm => do
   let _ ← tm.getRoundingModeSort
 
-test! tm => do
+test![TestApiBlackTermManager, mkArraySort] tm => do
   let boolSort ← tm.getBooleanSort
   let intSort ← tm.getIntegerSort
   let realSort ← tm.getRealSort
@@ -63,13 +61,13 @@ test! tm => do
   tm.mkArraySort (← tm.getBooleanSort) (← tm.getIntegerSort)
   |> assertOkDiscard
 
-test! tm => do
+test![TestApiBlackTermManager, mkBitVectorSort] tm => do
   tm.mkBitVectorSort 32
   |> assertOkDiscard
   tm.mkBitVectorSort 0
   |> assertError "invalid argument '0' for 'size', expected size > 0"
 
-test! tm => do
+test![TestApiBlackTermManager, mkFiniteFieldSort] tm => do
   tm.mkFiniteFieldSort 31
   |> assertOkDiscard
   tm.mkFiniteFieldSort 6
@@ -101,7 +99,7 @@ test! tm => do
   tm.mkFiniteFieldSortOfString "8CC4" 16
   |> assertError "invalid argument '8CC4' for 'modulus', expected modulus is prime"
 
-test! tm => do
+test![TestApiBlackTermManager, mkFloatingPointSort] tm => do
   tm.mkFloatingPointSort 4 8
   |> assertOkDiscard
 
@@ -124,7 +122,7 @@ Datatype-related tests
 -/
 
 
-test! tm => do
+test![TestApiBlackTermManager, mkFunctionSort] tm => do
   let uf ←
     tm.mkUninterpretedSort "u"
     |> assertOk
@@ -164,16 +162,21 @@ test! tm => do
   tm.mkFunctionSort sorts1 int
   |> assertOkDiscard
 
-  -- At this point the original test creates a new `TermManager` and checks that some constructors
-  -- fail because the manager is not a singleton anymore. But we don't have that problem.
+  let tm' ← TermManager.new
+  let bool' ← tm'.getBooleanSort
+  let int' ← tm'.getIntegerSort
+  tm'.mkFunctionSort sorts2 int' |> assertError
+    "invalid domain sort in 'sorts' at index 0, expected a sort associated with this term manager"
+  tm'.mkFunctionSort #[bool', int'] int |> assertError
+    "Given sort is not associated with this term manager"
 
-test! tm => do
+test![TestApiBlackTermManager, mkParamSort] tm => do
   tm.mkParamSort "T"
   |> assertOkDiscard
   tm.mkParamSort ""
   |> assertOkDiscard
 
-test! tm => do
+test![TestApiBlackTermManager, mkPredicateSort] tm => do
   tm.mkPredicateSort #[← tm.getIntegerSort]
   |> assertOkDiscard
   tm.mkPredicateSort #[]
@@ -186,5 +189,6 @@ test! tm => do
   tm.mkPredicateSort #[← tm.getIntegerSort]
   |> assertOkDiscard
 
-  -- At this point the original test creates a new `TermManager` and checks that some constructors
-  -- fail because the manager is not a singleton anymore. But we don't have that problem.
+  let tm' ← TermManager.new
+  tm'.mkPredicateSort #[← tm.getIntegerSort] |> assertError
+    "invalid domain sort in 'sorts' at index 0, expected a sort associated with this term manager"
