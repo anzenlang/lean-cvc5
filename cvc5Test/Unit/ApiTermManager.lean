@@ -112,15 +112,101 @@ test![TestApiBlackTermManager, mkFloatingPointSort] tm => do
   tm.mkFloatingPointSort 4 1
   |> assertError "invalid argument '1' for 'sig', expected significand size > 1"
 
+test![TestApiBlackTermManager, mkDatatypeSorts] tm => do
+  let int ← tm.getIntegerSort
+  let bool ← tm.getBooleanSort
 
+  let _scope ← do
+    let mut dt1Spec ← tm.mkDatatypeDecl "list1"
+    let mut cons1Spec ← tm.mkDatatypeConstructorDecl "cons1"
+    cons1Spec ← cons1Spec.addSelector "head1" int
+    dt1Spec ← dt1Spec.addConstructor cons1Spec
+    let nil1Spec ← tm.mkDatatypeConstructorDecl "nil1"
+    dt1Spec ← dt1Spec.addConstructor nil1Spec
+    let mut dt2Spec ← tm.mkDatatypeDecl "list2"
+    let mut cons2Spec ← tm.mkDatatypeConstructorDecl "cons2"
+    cons2Spec ← cons2Spec.addSelector "head2" int
+    dt2Spec ← dt2Spec.addConstructor cons2Spec
+    let nil2Spec ← tm.mkDatatypeConstructorDecl "nil2"
+    dt2Spec ← dt2Spec.addConstructor nil2Spec
+    let decls := #[dt1Spec, dt2Spec]
+    tm.mkDatatypeSorts decls |> assertOkDiscard
 
-/-! # TODO
+    tm.mkDatatypeSorts decls |> assertError
+      "Given datatype declaration is already resolved \
+      (has already been used to create a datatype sort)"
+    tm.mkDatatypeSorts decls |> assertError
+      "Given datatype declaration is already resolved \
+      (has already been used to create a datatype sort)"
 
-Datatype-related tests
+  let badDtSpec ← tm.mkDatatypeDecl "list"
+  let badDecls := #[badDtSpec]
+  tm.mkDatatypeSorts badDecls |> assertError
+    "invalid datatype declaration in 'dtypedecls' at index 0, \
+    expected a datatype declaration with at least one constructor"
 
-- <https://github.com/cvc5/cvc5/blob/0b00421403d4493cc01c1dd4b69269a139cb0bc2/test/unit/api/cpp/api_term_manager_black.cpp#L118-L232>
--/
+  -- with unresolved sorts
+  let unresList ← tm.mkUnresolvedDatatypeSort "ulist"
+  let mut ulist ← tm.mkDatatypeDecl "ulist"
+  let mut uconsSpec ← tm.mkDatatypeConstructorDecl "ucons"
+  uconsSpec ← uconsSpec.addSelector "car" unresList
+  uconsSpec ← uconsSpec.addSelector "cdr" unresList
+  ulist ← ulist.addConstructor uconsSpec
+  let unilSpec ← tm.mkDatatypeConstructorDecl "unil"
+  ulist ← ulist.addConstructor unilSpec
+  let udecls := #[ulist]
+  tm.mkDatatypeSorts udecls |> assertOkDiscard
 
+  tm.mkDatatypeSorts udecls |> assertError
+    "Given datatype declaration is already resolved \
+    (has already been used to create a datatype sort)"
+  tm.mkDatatypeSorts udecls |> assertError
+    "Given datatype declaration is already resolved \
+    (has already been used to create a datatype sort)"
+
+  -- mutually recursive with unresolved parameterized sorts
+  let p0 ← tm.mkParamSort "p0"
+  let p1 ← tm.mkParamSort "p1"
+  let u0 ← tm.mkUnresolvedDatatypeSort "dt0" 1
+  let u1 ← tm.mkUnresolvedDatatypeSort "dt1" 1
+  let mut dt0Spec ← tm.mkDatatypeDecl "dt0" #[p0]
+  let mut dt1Spec ← tm.mkDatatypeDecl "dt1" #[p1]
+  let mut ctor0Spec ← tm.mkDatatypeConstructorDecl "c0"
+  ctor0Spec ← u1.instantiate #[p0] >>= ctor0Spec.addSelector "s0"
+  let mut ctor1Spec ← tm.mkDatatypeConstructorDecl "c1"
+  ctor1Spec ← u0.instantiate #[p1] >>= ctor1Spec.addSelector "s1"
+  dt0Spec ← dt0Spec.addConstructor ctor0Spec
+  dt1Spec ← dt1Spec.addConstructor ctor1Spec
+  dt1Spec ← tm.mkDatatypeConstructorDecl "nil" >>= dt1Spec.addConstructor
+  let dtSorts ← tm.mkDatatypeSorts #[dt0Spec, dt1Spec]
+  let isort1 ← dtSorts[1]!.instantiate #[bool]
+  let t1 ← tm.mkConst isort1 "t"
+  let t0 ← do
+    let selector ← t1.getSort.getDatatype!.getSelector "s1" >>= DatatypeSelector.getTerm
+    tm.mkTerm Kind.APPLY_SELECTOR #[selector, t1]
+  assertEq t0.getSort (dtSorts[0]!.instantiate! #[bool])
+
+  let _scope ← do
+    let tm' ← TermManager.new
+    let int' ← tm'.getIntegerSort
+    let mut dt1Spec' ← tm'.mkDatatypeDecl "list1"
+    let mut cons1Spec' ← tm'.mkDatatypeConstructorDecl "cons1"
+    cons1Spec' ← cons1Spec'.addSelector "head1" int'
+    dt1Spec' ← dt1Spec'.addConstructor cons1Spec'
+    let nil1Spec' ← tm'.mkDatatypeConstructorDecl "nil1"
+    dt1Spec' ← dt1Spec'.addConstructor nil1Spec'
+    let mut dt2Spec' ← tm'.mkDatatypeDecl "list2"
+    let mut cons2Spec' ← tm'.mkDatatypeConstructorDecl "cons2"
+    cons2Spec' ← cons2Spec'.addSelector "head2" int'
+    dt2Spec' ← dt2Spec'.addConstructor cons2Spec'
+    let nil2Spec ← tm'.mkDatatypeConstructorDecl "nil2"
+    dt2Spec' ← dt2Spec'.addConstructor nil2Spec
+    let decls' := #[dt1Spec', dt2Spec']
+    tm.mkDatatypeSorts decls' |> assertError
+      "invalid datatype declaration in 'dtypedecls' at index 0, \
+      expected a datatype declaration associated with this term manager"
+
+  -- Note: more tests are in module `APIDatatype`.
 
 test![TestApiBlackTermManager, mkFunctionSort] tm => do
   let uf ←
