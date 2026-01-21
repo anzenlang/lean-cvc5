@@ -1590,7 +1590,8 @@ An uninterpreted sort constructor is an uninterpreted sort with arity > 0.
 - `arity` The arity of the sort (must be > 0).
 - `symbol` The symbol of the sort.
 -/
-extern_def mkUninterpretedSortConstructorSort : TermManager → (arity : Nat) → (symbol : String) → Env cvc5.Sort
+extern_def mkUninterpretedSortConstructorSort :
+  TermManager → (arity : Nat) → (symbol : String := "") → Env cvc5.Sort
 
 /-- Create a set parameter.
 
@@ -1694,6 +1695,27 @@ with
       | .ofNat den => (num, den)
       | .negSucc denMinus1 => (-num, denMinus1.succ)
     mkRealOfRat tm <| mkRat num den
+
+/-- Create a bit-vector constant of given size and value.
+
+The given value must fit into a bit-vector of the given size.
+
+- `size` The bit-width of the bit-vector sort.
+- `val` The value of the constant.
+-/
+extern_def mkBitVector : TermManager → (size : UInt32) → (val : UInt64 := 0) → Env Term
+
+/-- Create a bit-vector constant of a given bit-width from a given string of base 2, 10, or 16.
+
+The given value must fit into a bit-vector of the given size.
+
+- `size` The bit-width of the bit-vector sort.
+- `s` The string representation of the constant.
+- `val` The base of the string representation: `2` for binary, `10` for decimal, and `16` for
+  hexadecimal.
+-/
+extern_def mkBitVectorOfString :
+  TermManager → (size : UInt32) → (s : String) → (base : UInt32) → Env Term
 
 /-- Create n-ary term of given kind.
 

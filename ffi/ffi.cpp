@@ -1828,6 +1828,31 @@ LEAN_EXPORT lean_obj_res termManager_mkRealFromString(lean_obj_arg tm,
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
+LEAN_EXPORT lean_obj_res termManager_mkBitVector(lean_obj_arg tm,
+                                                         uint32_t size,
+                                                         uint64_t val,
+                                                         lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      term_box(new Term(mut_tm_unbox(tm)->mkBitVector(size, val))),
+      ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkBitVectorOfString(lean_obj_arg tm,
+                                                         uint32_t size,
+                                                         lean_obj_arg s,
+                                                         uint32_t base,
+                                                         lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      term_box(new Term(mut_tm_unbox(tm)->mkBitVector(size, lean_string_cstr(s), base))),
+      ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
 LEAN_EXPORT lean_obj_res termManager_mkTerm(lean_obj_arg tm,
                                             uint16_t kind,
                                             lean_obj_arg children,
