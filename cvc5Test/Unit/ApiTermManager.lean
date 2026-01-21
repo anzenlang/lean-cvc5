@@ -1,33 +1,30 @@
 import cvc5Test.Init
 
-/-! # TODO
+/-! # Black box testing of the term manager
 
-- only covers tests up to datatype/uninterpreted sorts checks (exclusive)
-
-  <https://github.com/cvc5/cvc5/blob/3759dab95085f510833820b9f98ee9e5c6e122f8/test/unit/api/c/capi_term_manager_black.cpp#L58>
-
+- <https://github.com/cvc5/cvc5/blob/e342ecb325520619db2a1f49e95f96ebca8029f2/test/unit/api/cpp/api_term_manager_black.cpp>
 -/
 namespace cvc5.Test
 
-test! tm => do
+test![TestApiBlackTermManager, getBooleanSort] tm => do
   let _ ← tm.getBooleanSort
 
-test! tm => do
+test![TestApiBlackTermManager, getIntegerSort] tm => do
   let _ ← tm.getIntegerSort
 
-test! tm => do
+test![TestApiBlackTermManager, getRealSort] tm => do
   let _ ← tm.getRealSort
 
-test! tm => do
+test![TestApiBlackTermManager, getRegExpSort] tm => do
   let _ ← tm.getRegExpSort
 
-test! tm => do
+test![TestApiBlackTermManager, getStringSort] tm => do
   let _ ← tm.getStringSort
 
-test! tm => do
+test![TestApiBlackTermManager, getRoundingModeSort] tm => do
   let _ ← tm.getRoundingModeSort
 
-test! tm => do
+test![TestApiBlackTermManager, mkArraySort] tm => do
   let boolSort ← tm.getBooleanSort
   let intSort ← tm.getIntegerSort
   let realSort ← tm.getRealSort
@@ -63,13 +60,13 @@ test! tm => do
   tm.mkArraySort (← tm.getBooleanSort) (← tm.getIntegerSort)
   |> assertOkDiscard
 
-test! tm => do
+test![TestApiBlackTermManager, mkBitVectorSort] tm => do
   tm.mkBitVectorSort 32
   |> assertOkDiscard
   tm.mkBitVectorSort 0
   |> assertError "invalid argument '0' for 'size', expected size > 0"
 
-test! tm => do
+test![TestApiBlackTermManager, mkFiniteFieldSort] tm => do
   tm.mkFiniteFieldSort 31
   |> assertOkDiscard
   tm.mkFiniteFieldSort 6
@@ -101,7 +98,7 @@ test! tm => do
   tm.mkFiniteFieldSortOfString "8CC4" 16
   |> assertError "invalid argument '8CC4' for 'modulus', expected modulus is prime"
 
-test! tm => do
+test![TestApiBlackTermManager, mkFloatingPointSort] tm => do
   tm.mkFloatingPointSort 4 8
   |> assertOkDiscard
 
@@ -114,17 +111,103 @@ test! tm => do
   tm.mkFloatingPointSort 4 1
   |> assertError "invalid argument '1' for 'sig', expected significand size > 1"
 
+test![TestApiBlackTermManager, mkDatatypeSorts] tm => do
+  let int ← tm.getIntegerSort
+  let bool ← tm.getBooleanSort
 
+  let _scope ← do
+    let mut dt1Spec ← tm.mkDatatypeDecl "list1"
+    let mut cons1Spec ← tm.mkDatatypeConstructorDecl "cons1"
+    cons1Spec ← cons1Spec.addSelector "head1" int
+    dt1Spec ← dt1Spec.addConstructor cons1Spec
+    let nil1Spec ← tm.mkDatatypeConstructorDecl "nil1"
+    dt1Spec ← dt1Spec.addConstructor nil1Spec
+    let mut dt2Spec ← tm.mkDatatypeDecl "list2"
+    let mut cons2Spec ← tm.mkDatatypeConstructorDecl "cons2"
+    cons2Spec ← cons2Spec.addSelector "head2" int
+    dt2Spec ← dt2Spec.addConstructor cons2Spec
+    let nil2Spec ← tm.mkDatatypeConstructorDecl "nil2"
+    dt2Spec ← dt2Spec.addConstructor nil2Spec
+    let decls := #[dt1Spec, dt2Spec]
+    tm.mkDatatypeSorts decls |> assertOkDiscard
 
-/-! # TODO
+    tm.mkDatatypeSorts decls |> assertError
+      "Given datatype declaration is already resolved \
+      (has already been used to create a datatype sort)"
+    tm.mkDatatypeSorts decls |> assertError
+      "Given datatype declaration is already resolved \
+      (has already been used to create a datatype sort)"
 
-Datatype-related tests
+  let badDtSpec ← tm.mkDatatypeDecl "list"
+  let badDecls := #[badDtSpec]
+  tm.mkDatatypeSorts badDecls |> assertError
+    "invalid datatype declaration in 'dtypedecls' at index 0, \
+    expected a datatype declaration with at least one constructor"
 
-- <https://github.com/cvc5/cvc5/blob/0b00421403d4493cc01c1dd4b69269a139cb0bc2/test/unit/api/cpp/api_term_manager_black.cpp#L118-L232>
--/
+  -- with unresolved sorts
+  let unresList ← tm.mkUnresolvedDatatypeSort "ulist"
+  let mut ulist ← tm.mkDatatypeDecl "ulist"
+  let mut uconsSpec ← tm.mkDatatypeConstructorDecl "ucons"
+  uconsSpec ← uconsSpec.addSelector "car" unresList
+  uconsSpec ← uconsSpec.addSelector "cdr" unresList
+  ulist ← ulist.addConstructor uconsSpec
+  let unilSpec ← tm.mkDatatypeConstructorDecl "unil"
+  ulist ← ulist.addConstructor unilSpec
+  let udecls := #[ulist]
+  tm.mkDatatypeSorts udecls |> assertOkDiscard
 
+  tm.mkDatatypeSorts udecls |> assertError
+    "Given datatype declaration is already resolved \
+    (has already been used to create a datatype sort)"
+  tm.mkDatatypeSorts udecls |> assertError
+    "Given datatype declaration is already resolved \
+    (has already been used to create a datatype sort)"
 
-test! tm => do
+  -- mutually recursive with unresolved parameterized sorts
+  let p0 ← tm.mkParamSort "p0"
+  let p1 ← tm.mkParamSort "p1"
+  let u0 ← tm.mkUnresolvedDatatypeSort "dt0" 1
+  let u1 ← tm.mkUnresolvedDatatypeSort "dt1" 1
+  let mut dt0Spec ← tm.mkDatatypeDecl "dt0" #[p0]
+  let mut dt1Spec ← tm.mkDatatypeDecl "dt1" #[p1]
+  let mut ctor0Spec ← tm.mkDatatypeConstructorDecl "c0"
+  ctor0Spec ← u1.instantiate #[p0] >>= ctor0Spec.addSelector "s0"
+  let mut ctor1Spec ← tm.mkDatatypeConstructorDecl "c1"
+  ctor1Spec ← u0.instantiate #[p1] >>= ctor1Spec.addSelector "s1"
+  dt0Spec ← dt0Spec.addConstructor ctor0Spec
+  dt1Spec ← dt1Spec.addConstructor ctor1Spec
+  dt1Spec ← tm.mkDatatypeConstructorDecl "nil" >>= dt1Spec.addConstructor
+  let dtSorts ← tm.mkDatatypeSorts #[dt0Spec, dt1Spec]
+  let isort1 ← dtSorts[1]!.instantiate #[bool]
+  let t1 ← tm.mkConst isort1 "t"
+  let t0 ← do
+    let selector ← t1.getSort.getDatatype!.getSelector "s1" >>= DatatypeSelector.getTerm
+    tm.mkTerm Kind.APPLY_SELECTOR #[selector, t1]
+  assertEq t0.getSort (dtSorts[0]!.instantiate! #[bool])
+
+  let _scope ← do
+    let tm' ← TermManager.new
+    let int' ← tm'.getIntegerSort
+    let mut dt1Spec' ← tm'.mkDatatypeDecl "list1"
+    let mut cons1Spec' ← tm'.mkDatatypeConstructorDecl "cons1"
+    cons1Spec' ← cons1Spec'.addSelector "head1" int'
+    dt1Spec' ← dt1Spec'.addConstructor cons1Spec'
+    let nil1Spec' ← tm'.mkDatatypeConstructorDecl "nil1"
+    dt1Spec' ← dt1Spec'.addConstructor nil1Spec'
+    let mut dt2Spec' ← tm'.mkDatatypeDecl "list2"
+    let mut cons2Spec' ← tm'.mkDatatypeConstructorDecl "cons2"
+    cons2Spec' ← cons2Spec'.addSelector "head2" int'
+    dt2Spec' ← dt2Spec'.addConstructor cons2Spec'
+    let nil2Spec ← tm'.mkDatatypeConstructorDecl "nil2"
+    dt2Spec' ← dt2Spec'.addConstructor nil2Spec
+    let decls' := #[dt1Spec', dt2Spec']
+    tm.mkDatatypeSorts decls' |> assertError
+      "invalid datatype declaration in 'dtypedecls' at index 0, \
+      expected a datatype declaration associated with this term manager"
+
+  -- Note: more tests are in module `APIDatatype`.
+
+test![TestApiBlackTermManager, mkFunctionSort] tm => do
   let uf ←
     tm.mkUninterpretedSort "u"
     |> assertOk
@@ -164,16 +247,21 @@ test! tm => do
   tm.mkFunctionSort sorts1 int
   |> assertOkDiscard
 
-  -- At this point the original test creates a new `TermManager` and checks that some constructors
-  -- fail because the manager is not a singleton anymore. But we don't have that problem.
+  let tm' ← TermManager.new
+  let bool' ← tm'.getBooleanSort
+  let int' ← tm'.getIntegerSort
+  tm'.mkFunctionSort sorts2 int' |> assertError
+    "invalid domain sort in 'sorts' at index 0, expected a sort associated with this term manager"
+  tm'.mkFunctionSort #[bool', int'] int |> assertError
+    "Given sort is not associated with this term manager"
 
-test! tm => do
+test![TestApiBlackTermManager, mkParamSort] tm => do
   tm.mkParamSort "T"
   |> assertOkDiscard
   tm.mkParamSort ""
   |> assertOkDiscard
 
-test! tm => do
+test![TestApiBlackTermManager, mkPredicateSort] tm => do
   tm.mkPredicateSort #[← tm.getIntegerSort]
   |> assertOkDiscard
   tm.mkPredicateSort #[]
@@ -186,5 +274,6 @@ test! tm => do
   tm.mkPredicateSort #[← tm.getIntegerSort]
   |> assertOkDiscard
 
-  -- At this point the original test creates a new `TermManager` and checks that some constructors
-  -- fail because the manager is not a singleton anymore. But we don't have that problem.
+  let tm' ← TermManager.new
+  tm'.mkPredicateSort #[← tm.getIntegerSort] |> assertError
+    "invalid domain sort in 'sorts' at index 0, expected a sort associated with this term manager"
