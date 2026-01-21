@@ -490,3 +490,64 @@ test![TestApiBlackTermManager, mkVar] tm => do
 test![TestApiBlackTermManager, mkBoolean] tm => do
   tm.mkBoolean true |> assertOkDiscard
   tm.mkBoolean false |> assertOkDiscard
+
+test![TestApiBlackTermManager, mkRoundingMode] tm => do
+  assertEq "roundNearestTiesToEven"
+    (← tm.mkRoundingMode RoundingMode.ROUND_NEAREST_TIES_TO_EVEN).toString
+  assertEq "roundTowardPositive"
+    (← tm.mkRoundingMode RoundingMode.ROUND_TOWARD_POSITIVE).toString
+  assertEq "roundTowardNegative"
+    (← tm.mkRoundingMode RoundingMode.ROUND_TOWARD_NEGATIVE).toString
+  assertEq "roundTowardZero"
+    (← tm.mkRoundingMode RoundingMode.ROUND_TOWARD_ZERO).toString
+  assertEq "roundNearestTiesToAway"
+    (← tm.mkRoundingMode RoundingMode.ROUND_NEAREST_TIES_TO_AWAY).toString
+
+test![TestApiBlackTermManager, mkRoundingMode] tm => do
+  let t1 ← tm.mkBitVector 8
+  let t2 ← tm.mkBitVector 4
+  tm.mkFloatingPoint 3 5 t1 |> assertOkDiscard
+  tm.mkFloatingPoint 0 5 (Term.null ()) |> assertError "invalid null argument for 'val'"
+  tm.mkFloatingPoint 0 5 t1 |> assertError
+    "invalid argument '0' for 'exp', expected exponent size > 1"
+  tm.mkFloatingPoint 1 5 t1 |> assertError
+    "invalid argument '1' for 'exp', expected exponent size > 1"
+  tm.mkFloatingPoint 3 0 t1 |> assertError
+    "invalid argument '0' for 'sig', expected significand size > 1"
+  tm.mkFloatingPoint 3 1 t1 |> assertError
+    "invalid argument '1' for 'sig', expected significand size > 1"
+  tm.mkFloatingPoint 3 3 t2 |> assertError
+    "invalid argument '#b0000' for 'val', expected a bit-vector value with bit-width '6'"
+
+  assertEq
+    (← tm.mkFloatingPointOfComponents
+      (← tm.mkBitVector 1) (← tm.mkBitVector 5) (← tm.mkBitVector 10))
+    (← tm.mkFloatingPoint 5 11 (← tm.mkBitVector 16))
+  tm.mkFloatingPointOfComponents (Term.null ()) (← tm.mkBitVector 5) (← tm.mkBitVector 10)
+  |> assertError "invalid null argument for 'sign'"
+  tm.mkFloatingPointOfComponents (← tm.mkBitVector 1) (Term.null ()) (← tm.mkBitVector 10)
+  |> assertError "invalid null argument for 'exp'"
+  tm.mkFloatingPointOfComponents (← tm.mkBitVector 1) (← tm.mkBitVector 5) (Term.null ())
+  |> assertError "invalid null argument for 'sig'"
+  tm.mkFloatingPointOfComponents
+    (← tm.mkConst (← tm.mkBitVectorSort 1)) (← tm.mkBitVector 5) (← tm.mkBitVector 10)
+  |> assertError "invalid argument '||' for 'sign', expected bit-vector value"
+  tm.mkFloatingPointOfComponents
+    (← tm.mkBitVector 1) (← tm.mkConst (← tm.mkBitVectorSort 5)) (← tm.mkBitVector 10)
+  |> assertError "invalid argument '||' for 'exp', expected bit-vector value"
+  tm.mkFloatingPointOfComponents
+    (← tm.mkBitVector 1) (← tm.mkBitVector 5) (← tm.mkConst (← tm.mkBitVectorSort 5))
+  |> assertError "invalid argument '||' for 'sig', expected bit-vector value"
+  tm.mkFloatingPointOfComponents
+    (← tm.mkBitVector 2) (← tm.mkBitVector 5) (← tm.mkBitVector 10)
+  |> assertError "invalid argument '#b00' for 'sign', expected a bit-vector value of size 1"
+
+  let tm' ← TermManager.new
+  tm'.mkFloatingPoint 3 5 t1 |> assertError
+    "Given term is not associated with this term manager"
+  tm'.mkFloatingPointOfComponents (← tm.mkBitVector 1) (← tm'.mkBitVector 5) (← tm'.mkBitVector 10)
+  |> assertError "Given term is not associated with this term manager"
+  tm'.mkFloatingPointOfComponents (← tm'.mkBitVector 1) (← tm.mkBitVector 5) (← tm'.mkBitVector 10)
+  |> assertError "Given term is not associated with this term manager"
+  tm'.mkFloatingPointOfComponents (← tm'.mkBitVector 1) (← tm'.mkBitVector 5) (← tm.mkBitVector 10)
+  |> assertError "Given term is not associated with this term manager"
