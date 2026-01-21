@@ -419,3 +419,74 @@ test![TestApiBlackTermManager, mkBitVector] tm => do
   assertEq "#b01010101" (← tm.mkBitVectorOfString 8 "01010101" 2).toString
   assertEq "#b00001111" (← tm.mkBitVectorOfString 8 "F" 16).toString
   assertEq (← tm.mkBitVectorOfString 8 "-1" 10) (← tm.mkBitVectorOfString 8 "FF" 16)
+
+test![TestApiBlackTermManager, mkFiniteFieldElem] tm => do
+  let f ← tm.mkFiniteFieldSort 7
+  let bv ← tm.mkBitVectorSort 4
+
+  tm.mkFiniteFieldElem "0" f |> assertOkDiscard
+  tm.mkFiniteFieldElem "1" f |> assertOkDiscard
+  tm.mkFiniteFieldElem "6" f |> assertOkDiscard
+  tm.mkFiniteFieldElem "8" f |> assertOkDiscard
+  tm.mkFiniteFieldElem "-1" f |> assertOkDiscard
+
+  tm.mkFiniteFieldElem "a" f |> assertError "mpz_set_str"
+
+  tm.mkFiniteFieldElem "-1" bv |> assertError
+    "invalid argument '(_ BitVec 4)' for 'sort', expected a finite field sort"
+
+  assertEq (← tm.mkFiniteFieldElem "-1" f) (← tm.mkFiniteFieldElem "6" f)
+  assertEq (← tm.mkFiniteFieldElem "1" f) (← tm.mkFiniteFieldElem "8" f)
+
+  tm.mkFiniteFieldElem "0" f 2 |> assertOkDiscard
+  tm.mkFiniteFieldElem "101" f 3 |> assertOkDiscard
+  tm.mkFiniteFieldElem "-10" f 7 |> assertOkDiscard
+  tm.mkFiniteFieldElem "abcde" f 16 |> assertOkDiscard
+
+  assertEq (← tm.mkFiniteFieldElem "0" f 2) (← tm.mkFiniteFieldElem "0" f 3)
+  assertEq (← tm.mkFiniteFieldElem "11" f 2) (← tm.mkFiniteFieldElem "10" f 3)
+  assertEq (← tm.mkFiniteFieldElem "1010" f 2) (← tm.mkFiniteFieldElem "A" f 16)
+
+  assertEq (← tm.mkFiniteFieldElem "-22" f 3) (← tm.mkFiniteFieldElem "10" f 6)
+
+test![TestApiBlackTermManager, mkConstArray] tm => do
+  let intSort ← tm.getIntegerSort
+  let arrSort ← tm.mkArraySort intSort intSort
+  let zero ← tm.mkInteger 0
+  let _constArr ← tm.mkConstArray arrSort zero -- unused in original test
+
+  tm.mkConstArray (cvc5.Sort.null ()) zero |> assertError
+    "invalid null argument for 'sort'"
+  tm.mkConstArray arrSort (Term.null ()) |> assertError
+    "invalid null argument for 'val'"
+  tm.mkConstArray arrSort (← tm.mkBitVector 1 1) |> assertError
+    "value does not match element sort"
+
+  let zero2 ← tm.mkInteger 0
+  let arrSort2 ← tm.mkArraySort (← tm.getIntegerSort) (← tm.getIntegerSort)
+  tm.mkConstArray arrSort2 zero |> assertOkDiscard
+  tm.mkConstArray arrSort zero2 |> assertOkDiscard
+  let tm' ← TermManager.new
+  let int' ← tm'.getIntegerSort
+  tm'.mkConstArray arrSort (← tm'.mkInteger 0) |> assertError
+    "Given sort is not associated with this term manager"
+  tm'.mkConstArray (← tm'.mkArraySort int' int') zero |> assertError
+    "Given term is not associated with this term manager"
+
+test![TestApiBlackTermManager, mkVar] tm => do
+  let boolSort ← tm.getBooleanSort
+  let intSort ← tm.getIntegerSort
+  let funSort ← tm.mkFunctionSort #[intSort] boolSort
+  tm.mkVar boolSort |> assertOkDiscard
+  tm.mkVar funSort |> assertOkDiscard
+  tm.mkVar boolSort "b" |> assertOkDiscard
+  tm.mkVar funSort "" |> assertOkDiscard
+  tm.mkVar (Sort.null ()) |> assertError "invalid null argument for 'sort'"
+  tm.mkVar (Sort.null ()) "a" |> assertError "invalid null argument for 'sort'"
+  tm.mkVar boolSort "x" |> assertOkDiscard
+  let tm' ← TermManager.new
+  tm'.mkVar boolSort "c" |> assertError "Given sort is not associated with this term manager"
+
+test![TestApiBlackTermManager, mkBoolean] tm => do
+  tm.mkBoolean true |> assertOkDiscard
+  tm.mkBoolean false |> assertOkDiscard
