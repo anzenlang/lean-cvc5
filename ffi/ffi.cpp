@@ -1804,6 +1804,24 @@ LEAN_EXPORT lean_obj_res termManager_mkParamSort(lean_obj_arg tm,
 
 // # Terms
 
+LEAN_EXPORT lean_obj_res termManager_mkTrue(lean_obj_arg tm, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      term_box(new Term(mut_tm_unbox(tm)->mkTrue())),
+      ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkFalse(lean_obj_arg tm, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      term_box(new Term(mut_tm_unbox(tm)->mkFalse())),
+      ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
 LEAN_EXPORT lean_obj_res termManager_mkBoolean(lean_obj_arg tm,
                                                uint8_t val,
                                                lean_obj_arg ioWorld)
@@ -2072,6 +2090,75 @@ LEAN_EXPORT lean_obj_res termManager_mkFloatingPointOfComponents(lean_obj_arg tm
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
   return env_val(term_box(new Term(mut_tm_unbox(tm)->mkFloatingPoint(*term_unbox(sign), *term_unbox(exp), *term_unbox(sig)))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkCardinalityConstraint(lean_obj_arg tm, lean_obj_arg sort, uint32_t upperBound, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkCardinalityConstraint(*sort_unbox(sort), upperBound))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkTuple(lean_obj_arg tm, lean_obj_arg terms, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> cs;
+  for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
+  {
+    cs.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), terms, lean_usize_to_nat(i))));
+  }
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkTuple(cs))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkNullableSome(lean_obj_arg tm, lean_obj_arg term, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkNullableSome(*term_unbox(term)))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkNullableVal(lean_obj_arg tm, lean_obj_arg term, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkNullableVal(*term_unbox(term)))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkNullableIsNull(lean_obj_arg tm, lean_obj_arg term, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkNullableIsNull(*term_unbox(term)))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkNullableIsSome(lean_obj_arg tm, lean_obj_arg term, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkNullableIsSome(*term_unbox(term)))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkNullableNull(lean_obj_arg tm, lean_obj_arg sort, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkNullableNull(*sort_unbox(sort)))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkNullableLift(lean_obj_arg tm, uint16_t kind, lean_obj_arg args, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  Kind k = static_cast<Kind>(static_cast<int32_t>(kind) - 2);
+  std::vector<Term> cs;
+  for (size_t i = 0, n = lean_array_size(args); i < n; ++i)
+  {
+    cs.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), args, lean_usize_to_nat(i))));
+  }
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkNullableLift(k, cs))), ioWorld);
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 

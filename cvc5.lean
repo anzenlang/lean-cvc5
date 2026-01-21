@@ -1652,7 +1652,20 @@ extern_def mkNullableSort : TermManager → (sort : cvc5.Sort) → Env cvc5.Sort
 -/
 extern_def mkParamSort : TermManager → (symbol : String) → Env cvc5.Sort
 
+/-- Create n-ary term of given kind.
 
+- `kind` The kind of the term.
+- `children` The children of the term.
+-/
+extern_def mkTerm : TermManager → (kind : Kind) → (children : Array Term := #[]) → Env Term
+
+/-! ## Constants, values, and special terms -/
+
+/-- Create a Boolean true constant. -/
+extern_def mkTrue : TermManager → Env Term
+
+/-- Create a Boolean false constant. -/
+extern_def mkFalse : TermManager → Env Term
 
 /-- Create a Boolean constant.
 
@@ -1842,12 +1855,62 @@ extern_def mkFloatingPoint : TermManager → (exp sig : UInt32) → (val : Term)
 -/
 extern_def mkFloatingPointOfComponents : TermManager → (sign exp sig : Term) → Env Term
 
-/-- Create n-ary term of given kind.
+/-- Create a cardinality constraint for an uninterpreted sort.
 
-- `kind` The kind of the term.
-- `children` The children of the term.
+**Warning**: this function is experimental and may change in future versions.
+
+- `sort` The sort the cardinality constraint is for.
+- `upperBound` The upper bound on the cardinality of the sort.
 -/
-extern_def mkTerm : TermManager → (kind : Kind) → (children : Array Term := #[]) → Env Term
+extern_def mkCardinalityConstraint :
+  TermManager → (sort : cvc5.Sort) → (upperBound : UInt32) → Env Term
+
+/-- Create a tuple term.
+
+- `terms` The elements in the tuple.
+-/
+extern_def mkTuple : TermManager → (terms : Array Term) → Env Term
+
+/-- Create a nullable some term.
+
+- `term` The element value.
+-/
+extern_def mkNullableSome : TermManager → (term : Term) → Env Term
+
+/-- Create a selector for nullable term.
+
+- `term` A nullable term.
+-/
+extern_def mkNullableVal : TermManager → (term : Term) → Env Term
+
+/-- Create a null tester for a nullable term.
+
+- `term` A nullable term.
+-/
+extern_def mkNullableIsNull : TermManager → (term : Term) → Env Term
+
+/-- Create a some tester for a nullable term.
+
+- `term` A nullable term.
+-/
+extern_def mkNullableIsSome : TermManager → (term : Term) → Env Term
+
+/-- Create a constant representing a null of the given sort.
+
+- `sort` The sort of the nullable element.
+-/
+extern_def mkNullableNull : TermManager → (sort : cvc5.Sort) → Env Term
+
+/-- Create a term that lifts kind to nullable terms.
+
+- `kind` The lifted operator.
+- `args` The arguments of the lifted operator.
+
+Example: if we have the term `((_ nullable.lift +) x y)`, with `x` and `y` of type `(Nullable Int)`,
+then `kind` would be `Kind.ADD`, and `args` would be `#[x, y]`. This function would return
+`(nullable.lift (lambda ((a Int) (b Int)) (+ a b)) x y)`
+-/
+extern_def mkNullableLift : TermManager → (kind : Kind) → (args : Array Term) → Env Term
 
 /-- Create n-ary term of given kind from a given operator.
 
