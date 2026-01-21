@@ -89,6 +89,41 @@ test![TestApiBlackTermManager, mkFloatingPointSort] tm => do
   tm.mkFloatingPointSort 4 1 |> assertError
     "invalid argument '1' for 'sig', expected significand size > 1"
 
+test![TestApiBlackTermManager, mkDatatypeSort] tm => do
+  let int ← tm.getIntegerSort
+
+  let _scope ← do
+    let mut dtSpec ← tm.mkDatatypeDecl "list"
+    let mut consSpec ← tm.mkDatatypeConstructorDecl "cons"
+    consSpec ← consSpec.addSelector "head" int
+    dtSpec ← dtSpec.addConstructor consSpec
+    let nilSpec ← tm.mkDatatypeConstructorDecl "nil"
+    dtSpec ← dtSpec.addConstructor nilSpec
+    tm.mkDatatypeSort dtSpec |> assertOkDiscard
+
+    tm.mkDatatypeSort dtSpec |> assertError
+      "Given datatype declaration is already resolved \
+      (has already been used to create a datatype sort)"
+    tm.mkDatatypeSort dtSpec |> assertError
+      "Given datatype declaration is already resolved \
+      (has already been used to create a datatype sort)"
+
+  let badDtSpec ← tm.mkDatatypeDecl "list"
+  tm.mkDatatypeSort badDtSpec |> assertError
+    "invalid argument 'DATATYPE list = \n END;\n' for 'dtypedecl', \
+    expected a datatype declaration with at least one constructor"
+
+  let _scope ← do
+    let tm' ← TermManager.new
+    let mut dtSpec' ← tm'.mkDatatypeDecl "list"
+    let mut consSpec' ← tm'.mkDatatypeConstructorDecl "cons"
+    consSpec' ← consSpec'.addSelector "head" (← tm'.getIntegerSort)
+    dtSpec' ← dtSpec'.addConstructor consSpec'
+    let nilSpec' ← tm'.mkDatatypeConstructorDecl "nil"
+    dtSpec' ← dtSpec'.addConstructor nilSpec'
+    tm.mkDatatypeSort dtSpec' |> assertError
+      "Given datatype declaration is not associated with this term manager"
+
 test![TestApiBlackTermManager, mkDatatypeSorts] tm => do
   let int ← tm.getIntegerSort
   let bool ← tm.getBooleanSort
