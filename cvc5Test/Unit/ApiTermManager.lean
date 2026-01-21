@@ -364,3 +364,63 @@ test![TestApiBlackTermManager, mkNullableSort] tm => do
   let tm' ← TermManager.new
   tm'.getIntegerSort >>= tm.mkNullableSort |> assertError
     "Given sort is not associated with this term manager"
+
+test![TestApiBlackTermManager, mkBitVector] tm => do
+  tm.mkBitVector 8 2 |> assertOkDiscard
+  tm.mkBitVector 32 2 |> assertOkDiscard
+  tm.mkBitVectorOfString 8 "-1111111" 2 |> assertOkDiscard
+  tm.mkBitVectorOfString 8 "0101" 2 |> assertOkDiscard
+  tm.mkBitVectorOfString 8 "00000101" 2 |> assertOkDiscard
+  tm.mkBitVectorOfString 8 "-127" 10 |> assertOkDiscard
+  tm.mkBitVectorOfString 8 "255" 10 |> assertOkDiscard
+  tm.mkBitVectorOfString 8 "-7f" 16 |> assertOkDiscard
+  tm.mkBitVectorOfString 8 "a0" 16 |> assertOkDiscard
+
+  tm.mkBitVector 0 2 |> assertError
+    "invalid argument '0' for 'size', expected a bit-width > 0"
+  tm.mkBitVectorOfString 0 "-127" 10 |> assertError
+    "invalid argument '0' for 'size', expected a bit-width > 0"
+  tm.mkBitVectorOfString 0 "a0" 16 |> assertError
+    "invalid argument '0' for 'size', expected a bit-width > 0"
+
+  tm.mkBitVectorOfString 8 "" 2 |> assertError
+    "invalid argument '' for 's', expected a non-empty string"
+
+  tm.mkBitVectorOfString 8 "101" 5 |> assertError
+    "invalid argument '5' for 'base', expected base 2, 10, or 16"
+  tm.mkBitVectorOfString 8 "128" 11 |> assertError
+    "invalid argument '11' for 'base', expected base 2, 10, or 16"
+  tm.mkBitVectorOfString 8 "a0" 21 |> assertError
+    "invalid argument '21' for 'base', expected base 2, 10, or 16"
+
+  tm.mkBitVectorOfString 8 "-11111111" 2 |> assertError
+    "overflow in bit-vector construction \
+    (specified bit-vector size 8 too small to hold value -11111111)"
+  tm.mkBitVectorOfString 8 "101010101" 2 |> assertError
+    "overflow in bit-vector construction \
+    (specified bit-vector size 8 too small to hold value 101010101)"
+  tm.mkBitVectorOfString 8 "-256" 10 |> assertError
+    "overflow in bit-vector construction \
+    (specified bit-vector size 8 too small to hold value -256)"
+  tm.mkBitVectorOfString 8 "257" 10 |> assertError
+    "overflow in bit-vector construction \
+    (specified bit-vector size 8 too small to hold value 257)"
+  tm.mkBitVectorOfString 8 "-a0" 16 |> assertError
+    "overflow in bit-vector construction \
+    (specified bit-vector size 8 too small to hold value -a0)"
+  tm.mkBitVectorOfString 8 "fffff" 16 |> assertError
+    "overflow in bit-vector construction \
+    (specified bit-vector size 8 too small to hold value fffff)"
+
+  tm.mkBitVectorOfString 8 "10201010" 2 |> assertError "mpz_set_str"
+  tm.mkBitVectorOfString 8 "-25x" 10 |> assertError "mpz_set_str"
+  tm.mkBitVectorOfString 8 "2x7" 10 |> assertError "mpz_set_str"
+  tm.mkBitVectorOfString 8 "fzff" 16 |> assertError "mpz_set_str"
+
+  assertEq (← tm.mkBitVectorOfString 8 "0101" 2) (← tm.mkBitVectorOfString 8 "00000101" 2)
+  assertEq (← tm.mkBitVectorOfString 4 "-1" 2) (← tm.mkBitVectorOfString 4 "1111" 2)
+  assertEq (← tm.mkBitVectorOfString 4 "-1" 16) (← tm.mkBitVectorOfString 4 "1111" 2)
+  assertEq (← tm.mkBitVectorOfString 4 "-1" 10) (← tm.mkBitVectorOfString 4 "1111" 2)
+  assertEq "#b01010101" (← tm.mkBitVectorOfString 8 "01010101" 2).toString
+  assertEq "#b00001111" (← tm.mkBitVectorOfString 8 "F" 16).toString
+  assertEq (← tm.mkBitVectorOfString 8 "-1" 10) (← tm.mkBitVectorOfString 8 "FF" 16)
