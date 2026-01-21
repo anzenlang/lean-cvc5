@@ -1722,6 +1722,29 @@ extern_def mkSepEmp : TermManager → Env Term
 -/
 extern_def mkSepNil : TermManager → (sort : cvc5.Sort) → Env Term
 
+/-- Create a string constant from a `String`.
+
+The string may contain SMT-LIB-compatible escape sequences like `\u1234` to encode unicode
+characters.
+
+- `s` The string this constant represents.
+- `useEscSequences` Determines whether escape sequences in `s` should be converted to the
+  corresponding unicode characters, default `false`.
+-/
+extern_def mkString : TermManager → (s : String) → (useEscSequences : Bool := false) → Env Term
+
+/-- Create an empty sequence of the given element sort.
+
+- `sort` The element sort of the sequence.
+-/
+extern_def mkEmptySequence : TermManager → (sort : cvc5.Sort) → Env Term
+
+/-- Create a universe set of the given sort.
+
+- `sort` The sort of the set elements.
+-/
+extern_def mkUniverseSet : TermManager → (sort : cvc5.Sort) → Env Term
+
 /-- Create a bit-vector constant of given size and value.
 
 The given value must fit into a bit-vector of the given size.
