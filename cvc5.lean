@@ -1711,6 +1711,17 @@ extern_def mkEmptySet : TermManager → (sort : cvc5.Sort) → Env Term
 -/
 extern_def mkEmptyBag : TermManager → (sort : cvc5.Sort) → Env Term
 
+/-- Create a separation logic empty term. -/
+extern_def mkSepEmp : TermManager → Env Term
+
+/-- Create a separation logic nil term.
+
+- `sort` The sort of the nil term.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def mkSepNil : TermManager → (sort : cvc5.Sort) → Env Term
+
 /-- Create a bit-vector constant of given size and value.
 
 The given value must fit into a bit-vector of the given size.
