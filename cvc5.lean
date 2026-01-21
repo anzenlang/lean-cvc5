@@ -1766,6 +1766,60 @@ The given value must fit into a bit-vector of the given size.
 extern_def mkBitVectorOfString :
   TermManager → (size : UInt32) → (s : String) → (base : UInt32) → Env Term
 
+/-- Create a finite field constant in a given field from a given string of base n.
+
+If `size` is the field size, the constant needs not be in range `[0,size)`. If it is outside this
+range, it will be reduced modulo size before being constructed.
+
+- `value` The string representation of the constant.
+- `sort` The field sort.
+- `base` The base of the string representation of `value`, default `10`.
+-/
+extern_def mkFiniteFieldElem :
+  TermManager → (value : String) → (sort : cvc5.Sort) → (base : UInt32 := 10) → Env Term
+
+/-- Create a constant array with the provided constant value stored at every index.
+
+- `sort` The sort of the constant array (must be an array sort).
+- `val` The constant value to store (must match the sort's element sort).
+-/
+extern_def mkConstArray : TermManager → (sort : cvc5.Sort) → (val : Term) → Env Term
+
+/-- Create a positive infinity floating-point constant (SMT-LIB: `+oo`).
+
+- `exp` Number of bits in the exponent.
+- `sig` Number of bits in the significand.
+-/
+extern_def mkFloatingPointPosInf : TermManager → (exp sig : UInt32) → Env Term
+
+/-- Create a negative infinity floating-point constant (SMT-LIB: `-oo`).
+
+- `exp` Number of bits in the exponent.
+- `sig` Number of bits in the significand.
+-/
+extern_def mkFloatingPointNegInf : TermManager → (exp sig : UInt32) → Env Term
+
+/-- Create a not-a-number floating-point constant (SMT-LIB: `NaN`).
+
+- `exp` Number of bits in the exponent.
+- `sig` Number of bits in the significand.
+-/
+extern_def mkFloatingPointNan : TermManager → (exp sig : UInt32) → Env Term
+
+/-- Create a positive zero floating-point constant (SMT-LIB: `+zero`).
+
+- `exp` Number of bits in the exponent.
+- `sig` Number of bits in the significand.
+-/
+extern_def mkFloatingPointPosZero : TermManager → (exp sig : UInt32) → Env Term
+
+/-- Create a negative zero floating-point constant (SMT-LIB: `-zero`).
+
+- `exp` Number of bits in the exponent.
+- `sig` Number of bits in the significand.
+-/
+extern_def mkFloatingPointNegZero : TermManager → (exp sig : UInt32) → Env Term
+
 /-- Create n-ary term of given kind.
 
 - `kind` The kind of the term.
