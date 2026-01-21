@@ -1690,6 +1690,15 @@ with
       | .negSucc denMinus1 => (-num, denMinus1.succ)
     mkRealOfRat tm <| mkRat num den
 
+/-- Create a regular expression all (re.all) term. -/
+extern_def mkRegexpAll : TermManager → Env Term
+
+/-- Create a regular expression allchar (re.allchar) term. -/
+extern_def mkRegexpAllchar : TermManager → Env Term
+
+/-- Create a regular expression none (re.none) term. -/
+extern_def mkRegexpNone : TermManager → Env Term
+
 /-- Create a bit-vector constant of given size and value.
 
 The given value must fit into a bit-vector of the given size.
