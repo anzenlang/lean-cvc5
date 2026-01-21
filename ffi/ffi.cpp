@@ -2054,6 +2054,27 @@ LEAN_EXPORT lean_obj_res termManager_mkFloatingPointNegZero(lean_obj_arg tm,
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
+LEAN_EXPORT lean_obj_res termManager_mkRoundingMode(lean_obj_arg tm, uint8_t rm, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkRoundingMode(static_cast<RoundingMode>(rm)))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkFloatingPoint(lean_obj_arg tm, uint32_t exp, uint32_t sig, lean_obj_arg val, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkFloatingPoint(exp, sig, *term_unbox(val)))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkFloatingPointOfComponents(lean_obj_arg tm, lean_obj_arg sign, lean_obj_arg exp, lean_obj_arg sig, lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkFloatingPoint(*term_unbox(sign), *term_unbox(exp), *term_unbox(sig)))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
 LEAN_EXPORT lean_obj_res termManager_mkTerm(lean_obj_arg tm,
                                             uint16_t kind,
                                             lean_obj_arg children,

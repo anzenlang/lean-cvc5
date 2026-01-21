@@ -1820,6 +1820,28 @@ extern_def mkFloatingPointPosZero : TermManager → (exp sig : UInt32) → Env T
 -/
 extern_def mkFloatingPointNegZero : TermManager → (exp sig : UInt32) → Env Term
 
+/-- Create a rounding mode value.
+
+- `rm` The floating point rounding mode this constant represents.
+-/
+extern_def mkRoundingMode : TermManager → (rm : RoundingMode) → Env Term
+
+/-- Create a floating-point value from a bit-vector given in IEEE-754 format.
+
+- `exp` Size of the exponent.
+- `sig` Size of the significand.
+- `val` Value of the floating-point constant as a bit-vector term.
+-/
+extern_def mkFloatingPoint : TermManager → (exp sig : UInt32) → (val : Term) → Env Term
+
+/-- Create a floating-point value from its three IEEE-754 bit-vector value components.
+
+- `sign` The sign bit.
+- `exp` The bit-vector representing the exponent.
+- `sig` The bit-vector representing the significand.
+-/
+extern_def mkFloatingPointOfComponents : TermManager → (sign exp sig : Term) → Env Term
+
 /-- Create n-ary term of given kind.
 
 - `kind` The kind of the term.
