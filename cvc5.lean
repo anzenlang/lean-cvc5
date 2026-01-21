@@ -1699,6 +1699,18 @@ extern_def mkRegexpAllchar : TermManager → Env Term
 /-- Create a regular expression none (re.none) term. -/
 extern_def mkRegexpNone : TermManager → Env Term
 
+/-- Create a constant representing an empty set of the given sort.
+
+- `sort` The sort of the set elements.
+-/
+extern_def mkEmptySet : TermManager → (sort : cvc5.Sort) → Env Term
+
+/-- Create a constant representing an empty bag of the given sort.
+
+- `sort` The sort of the bag elements.
+-/
+extern_def mkEmptyBag : TermManager → (sort : cvc5.Sort) → Env Term
+
 /-- Create a bit-vector constant of given size and value.
 
 The given value must fit into a bit-vector of the given size.
