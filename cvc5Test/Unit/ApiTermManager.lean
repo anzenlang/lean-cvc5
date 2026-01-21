@@ -277,3 +277,90 @@ test![TestApiBlackTermManager, mkPredicateSort] tm => do
   let tm' ← TermManager.new
   tm'.mkPredicateSort #[← tm.getIntegerSort] |> assertError
     "invalid domain sort in 'sorts' at index 0, expected a sort associated with this term manager"
+
+test![TestApiBlackTermManager, mkRecordSort] tm => do
+  let bool ← tm.getBooleanSort
+  let int ← tm.getIntegerSort
+  let bv ← tm.mkBitVectorSort 8
+  let fields := #[ ("b", bool), ("bv", bv), ("i", int) ]
+  let empty := #[]
+  tm.mkRecordSort fields |> assertOkDiscard
+  tm.mkRecordSort empty |> assertOkDiscard
+  let recSort ← tm.mkRecordSort fields
+  recSort.getDatatype |> assertOkDiscard
+  tm.mkRecordSort fields |> assertOkDiscard
+
+  let tm' ← TermManager.new
+  tm'.mkRecordSort
+    #[ ("b", ← tm'.getBooleanSort), ("bv", ← tm.mkBitVectorSort 8), ("b", ← tm'.getIntegerSort) ]
+  |> assertError
+    "invalid sort in 'fields' at index 1, expected a sort associated with this term manager"
+
+test![TestApiBlackTermManager, mkSetSort] tm => do
+  tm.getBooleanSort >>= tm.mkSetSort |> assertOkDiscard
+  tm.getIntegerSort >>= tm.mkSetSort |> assertOkDiscard
+  tm.mkBitVectorSort 4 >>= tm.mkSetSort |> assertOkDiscard
+  tm.mkBitVectorSort 4 >>= tm.mkSetSort |> assertOkDiscard
+  let tm' ← TermManager.new
+  tm'.getBooleanSort >>= tm.mkSetSort |> assertError
+    "Given sort is not associated with this term manager"
+
+test![TestApiBlackTermManager, mkBagSort] tm => do
+  tm.getBooleanSort >>= tm.mkBagSort |> assertOkDiscard
+  tm.getIntegerSort >>= tm.mkBagSort |> assertOkDiscard
+  tm.mkBitVectorSort 4 >>= tm.mkBagSort |> assertOkDiscard
+  tm.mkBitVectorSort 4 >>= tm.mkBagSort |> assertOkDiscard
+  let tm' ← TermManager.new
+  tm'.getBooleanSort >>= tm.mkBagSort |> assertError
+    "Given sort is not associated with this term manager"
+
+test![TestApiBlackTermManager, mkSequenceSort] tm => do
+  let bool ← tm.getBooleanSort
+  let int ← tm.getIntegerSort
+  tm.mkSequenceSort bool |> assertOkDiscard
+  tm.mkSequenceSort int >>= tm.mkSequenceSort |> assertOkDiscard
+  tm.mkSequenceSort int |> assertOkDiscard
+  let tm' ← TermManager.new
+  tm'.getBooleanSort >>= tm.mkSequenceSort |> assertError
+    "Given sort is not associated with this term manager"
+
+test![TestApiBlackTermManager, mkAbstractSort] tm => do
+  tm.mkAbstractSort SortKind.ARRAY_SORT |> assertOkDiscard
+  tm.mkAbstractSort SortKind.BITVECTOR_SORT |> assertOkDiscard
+  tm.mkAbstractSort SortKind.TUPLE_SORT |> assertOkDiscard
+  tm.mkAbstractSort SortKind.SET_SORT |> assertOkDiscard
+  tm.mkAbstractSort SortKind.BOOLEAN_SORT |> assertError
+    "cannot construct abstract type for kind BOOLEAN_SORT"
+
+test![TestApiBlackTermManager, mkUninterpretedSort] tm => do
+  tm.mkUninterpretedSort "u" |> assertOkDiscard
+  tm.mkUninterpretedSort "" |> assertOkDiscard
+
+test![TestApiBlackTermManager, mkUnresolvedDatatypeSort] tm => do
+  tm.mkUnresolvedDatatypeSort "u" |> assertOkDiscard
+  tm.mkUnresolvedDatatypeSort "u" 1 |> assertOkDiscard
+  tm.mkUnresolvedDatatypeSort "" |> assertOkDiscard
+  tm.mkUnresolvedDatatypeSort "" 1 |> assertOkDiscard
+
+test![TestApiBlackTermManager, mkUninterpretedSortConstructorSort] tm => do
+  tm.mkUninterpretedSortConstructorSort 2 "s" |> assertOkDiscard
+  tm.mkUninterpretedSortConstructorSort 2 "" |> assertOkDiscard
+  tm.mkUninterpretedSortConstructorSort 0 |> assertError
+    "invalid argument '0' for 'arity', expected an arity > 0"
+
+test![TestApiBlackTermManager, mkTupleSort] tm => do
+  let int ← tm.getIntegerSort
+  tm.mkTupleSort #[int] |> assertOkDiscard
+  let funSort ← tm.mkFunctionSort #[ ← tm.mkUninterpretedSort "u"] int
+  tm.mkTupleSort #[int, funSort] |> assertOkDiscard
+  tm.mkTupleSort #[int] |> assertOkDiscard
+  let tm' ← TermManager.new
+  tm.mkTupleSort #[← tm'.getBooleanSort] |> assertError
+    "invalid domain sort in 'sorts' at index 0, expected a sort associated with this term manager"
+
+test![TestApiBlackTermManager, mkNullableSort] tm => do
+  tm.getIntegerSort >>= tm.mkNullableSort |> assertOkDiscard
+  tm.getIntegerSort >>= tm.mkNullableSort |> assertOkDiscard
+  let tm' ← TermManager.new
+  tm'.getIntegerSort >>= tm.mkNullableSort |> assertError
+    "Given sort is not associated with this term manager"
