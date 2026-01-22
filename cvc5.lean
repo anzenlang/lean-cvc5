@@ -1332,6 +1332,11 @@ end Op
 
 namespace Term
 
+/-- A string representation of this term. -/
+protected extern_def toString : Term → String
+
+instance : ToString Term := ⟨Term.toString⟩
+
 /-- The null term. -/
 extern_def null : Unit → Term
 
@@ -1381,6 +1386,23 @@ protected extern_def get : (t : Term) → Fin t.getNumChildren → Term
 Requires that this term has an operator (see `hasOp`).
 -/
 extern_def!? getOp : Term → Except Error Op
+
+/-- Determine if this term is a string value. -/
+extern_def isStringValue : Term → Bool
+
+/-- Get the native string representation of a string value.
+
+Requires that this term is a string value (see `isStringValue`).
+
+This is not to be confused with `toString`, which returns some string representation of the term,
+whatever data it may hold.
+-/
+def getStringValue (term : Term) : Except Error String := do
+  if ¬ term.isStringValue then
+    s!"invalid argument {term} expected Term to be a string value when calling getStringValue"
+    |> Error.error
+    |> throw
+  return term.toString.drop 1 |>.dropRight 1
 
 /-- Get the value of a Boolean term as a native Boolean value.
 
@@ -1451,11 +1473,6 @@ def getChildren (t : Term) : Array Term := Id.run do
   for ct in t do
     cts := cts.push ct
   cts
-
-/-- A string representation of this term. -/
-protected extern_def toString : Term → String
-
-instance : ToString Term := ⟨Term.toString⟩
 
 end Term
 
@@ -1652,14 +1669,21 @@ extern_def mkNullableSort : TermManager → (sort : cvc5.Sort) → Env cvc5.Sort
 -/
 extern_def mkParamSort : TermManager → (symbol : String) → Env cvc5.Sort
 
+/-- Create n-ary term of given kind from a given operator.
+
+Create operators with `mkOp`.
+
+- `op` The operator.
+- `children` The children of the term.
+-/
+extern_def mkTermOfOp : TermManager → (op : Op) → (children : Array Term := #[]) → Env Term
+
 /-- Create n-ary term of given kind.
 
 - `kind` The kind of the term.
 - `children` The children of the term.
 -/
 extern_def mkTerm : TermManager → (kind : Kind) → (children : Array Term := #[]) → Env Term
-
-/-! ## Constants, values, and special terms -/
 
 /-- Create a Boolean true constant. -/
 extern_def mkTrue : TermManager → Env Term
@@ -1673,25 +1697,28 @@ extern_def mkFalse : TermManager → Env Term
 -/
 extern_def mkBoolean : TermManager → (b : Bool) → Env Term
 
+/-- Create a constant representing the number Pi. -/
+extern_def mkPi : TermManager → Env Term
+
 /-- Create an integer-value term.
 
-- `s`: the string representation of the constant, may represent an integer such as (`"123"`).
+- `s`: the string representation of the constant, may represent an integer (*e.g.*, `"123"`).
 -/
-private extern_def mkIntegerFromString : TermManager → (s : String) → Env Term
+extern_def mkIntegerOfString : TermManager → (s : String) → Env Term
 with
   /-- Create an integer-value term. -/
-  mkInteger (tm : TermManager) : Int → Env Term := mkIntegerFromString tm ∘ toString
+  mkInteger (tm : TermManager) : Int → Env Term := mkIntegerOfString tm ∘ toString
 
 /-- Create a real-value term.
 
-- `s`: the string representation of the constant, may represent an integer (`"123"`) or a real
-  constant (`"12.34"`, `"12/34"`).
+- `s`: the string representation of the constant, may represent an integer (*e.g.*, `"123"`) or a
+  real constant (*e.g.*, `"12.34"` or `"12/34"`).
 -/
-private extern_def mkRealFromString : TermManager → (s : String) → Env Term
+extern_def mkRealOfString : TermManager → (s : String) → Env Term
 with
   /-- Create a real-value term from a `Rat`. -/
   mkRealOfRat (tm : TermManager) (rat : Rat) : Env Term :=
-    mkRealFromString tm s!"{rat.num}/{rat.den}"
+    mkRealOfString tm s!"{rat.num}/{rat.den}"
   /-- Create a real-value term from numerator/denominator `Int`-s. -/
   mkReal (tm : TermManager)
     (num : Int) (den : Int := 1) (den_ne_0 : den ≠ 0 := by simp <;> omega)
@@ -1817,7 +1844,7 @@ extern_def mkFloatingPointNegInf : TermManager → (exp sig : UInt32) → Env Te
 - `exp` Number of bits in the exponent.
 - `sig` Number of bits in the significand.
 -/
-extern_def mkFloatingPointNan : TermManager → (exp sig : UInt32) → Env Term
+extern_def mkFloatingPointNaN : TermManager → (exp sig : UInt32) → Env Term
 
 /-- Create a positive zero floating-point constant (SMT-LIB: `+zero`).
 
@@ -1912,15 +1939,6 @@ then `kind` would be `Kind.ADD`, and `args` would be `#[x, y]`. This function wo
 -/
 extern_def mkNullableLift : TermManager → (kind : Kind) → (args : Array Term) → Env Term
 
-/-- Create n-ary term of given kind from a given operator.
-
-Create operators with `mkOp`.
-
-- `op` The operator.
-- `children` The children of the term.
--/
-extern_def mkTermOfOp : TermManager → (op : Op) → (children : Array Term := #[]) → Env Term
-
 /-- Create a free constant.
 
 Note that the returned term is always fresh, even if the same arguments were provided on a
@@ -1971,6 +1989,15 @@ If `args` is empty, the `Op` simply wraps the `cvc5.Kind`. The `Kind` can be use
 -/
 extern_def mkOpOfIndices : TermManager → (kind : Kind) → (args : Array Nat := #[]) → Env Op
 with mkOp := @mkOpOfIndices
+
+/--Create operator of kind `Kind.DIVISIBLE` to support arbitrary precision integers.
+
+See `cvc5.Kind` for a description of the parameters.
+
+- `kind` The kind of the operator.
+- `arg` The string argument to this operator.
+-/
+extern_def mkOpOfString : TermManager → (kind : Kind) → (arg : String) → Env Op
 
 /-- Create a datatype constructor declaration.
 

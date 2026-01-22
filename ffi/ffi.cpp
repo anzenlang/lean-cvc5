@@ -976,6 +976,11 @@ LEAN_EXPORT uint64_t term_hash(lean_obj_arg t)
   return std::hash<Term>()(*term_unbox(t));
 }
 
+LEAN_EXPORT uint8_t term_isStringValue(lean_obj_arg t)
+{
+  return term_unbox(t)->isStringValue();
+}
+
 LEAN_EXPORT lean_obj_res term_getBooleanValue(lean_obj_arg t)
 {
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
@@ -1833,7 +1838,17 @@ LEAN_EXPORT lean_obj_res termManager_mkBoolean(lean_obj_arg tm,
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
-LEAN_EXPORT lean_obj_res termManager_mkIntegerFromString(lean_obj_arg tm,
+LEAN_EXPORT lean_obj_res termManager_mkPi(lean_obj_arg tm,
+                                               lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      term_box(new Term(mut_tm_unbox(tm)->mkPi())),
+      ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkIntegerOfString(lean_obj_arg tm,
                                                          lean_obj_arg val,
                                                          lean_obj_arg ioWorld)
 {
@@ -1844,7 +1859,7 @@ LEAN_EXPORT lean_obj_res termManager_mkIntegerFromString(lean_obj_arg tm,
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
-LEAN_EXPORT lean_obj_res termManager_mkRealFromString(lean_obj_arg tm,
+LEAN_EXPORT lean_obj_res termManager_mkRealOfString(lean_obj_arg tm,
                                                       lean_obj_arg val,
                                                       lean_obj_arg ioWorld)
 {
@@ -2234,6 +2249,17 @@ LEAN_EXPORT lean_obj_res termManager_mkOpOfIndices(lean_obj_arg tm,
         lean_array_get(lean_usize_to_nat(0), args, lean_usize_to_nat(i))));
   }
   return env_val(op_box(new Op(mut_tm_unbox(tm)->mkOp(k, indices))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_mkOpOfString(lean_obj_arg tm,
+                                                   uint16_t kind,
+                                                   lean_obj_arg arg,
+                                                   lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  Kind k = static_cast<Kind>(static_cast<int32_t>(kind) - 2);
+  return env_val(op_box(new Op(mut_tm_unbox(tm)->mkOp(k, lean_string_cstr(arg)))), ioWorld);
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
