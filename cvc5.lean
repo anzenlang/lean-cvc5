@@ -1346,6 +1346,11 @@ protected extern_def hash : Term → UInt64
 
 instance : Hashable Term := ⟨Term.hash⟩
 
+/-- A string representation of this term. -/
+protected extern_def toString : Term → String
+
+instance : ToString Term := ⟨Term.toString⟩
+
 /-- Determine if this term is nullary. -/
 extern_def isNull : Term → Bool
 
@@ -1399,6 +1404,12 @@ extern_def!? getBitVectorValue : Term → UInt32 → Except Error String
 /-- Get the native integral value of an integral value. -/
 extern_def!? getIntegerValue : Term → Except Error Int
 
+/-- Get the native integral value of an integral value. -/
+extern_def isStringValue : Term → Bool
+
+/-- Get the native integral value of an integral value. -/
+extern_def!? getStringValue : Term → Except Error String
+
 /-- Get the native rational value of a real, rational-compatible value. -/
 extern_def!? getRationalValue : Term → Except Error Rat
 
@@ -1451,11 +1462,6 @@ def getChildren (t : Term) : Array Term := Id.run do
   for ct in t do
     cts := cts.push ct
   cts
-
-/-- A string representation of this term. -/
-protected extern_def toString : Term → String
-
-instance : ToString Term := ⟨Term.toString⟩
 
 end Term
 
@@ -1666,25 +1672,28 @@ extern_def mkTrue : TermManager → Env Term
 /-- Create a Boolean false constant. -/
 extern_def mkFalse : TermManager → Env Term
 
+/-- Create a constant representing the number Pi. -/
+extern_def mkPi : TermManager → Env Term
+
 /-- Create an integer-value term.
 
 - `s`: the string representation of the constant, may represent an integer such as (`"123"`).
 -/
-private extern_def mkIntegerFromString : TermManager → (s : String) → Env Term
+extern_def mkIntegerOfString : TermManager → (s : String) → Env Term
 with
   /-- Create an integer-value term. -/
-  mkInteger (tm : TermManager) : Int → Env Term := mkIntegerFromString tm ∘ toString
+  mkInteger (tm : TermManager) : (i : Int) → Env Term := mkIntegerOfString tm ∘ toString
 
 /-- Create a real-value term.
 
 - `s`: the string representation of the constant, may represent an integer (`"123"`) or a real
   constant (`"12.34"`, `"12/34"`).
 -/
-private extern_def mkRealFromString : TermManager → (s : String) → Env Term
+extern_def mkRealOfString : TermManager → (s : String) → Env Term
 with
   /-- Create a real-value term from a `Rat`. -/
   mkRealOfRat (tm : TermManager) (rat : Rat) : Env Term :=
-    mkRealFromString tm s!"{rat.num}/{rat.den}"
+    mkRealOfString tm s!"{rat.num}/{rat.den}"
   /-- Create a real-value term from numerator/denominator `Int`-s. -/
   mkReal (tm : TermManager)
     (num : Int) (den : Int := 1) (den_ne_0 : den ≠ 0 := by simp <;> omega)
@@ -1730,14 +1739,9 @@ extern_def mkSepNil : TermManager → (sort : cvc5.Sort) → Env Term
 
 /-- Create a string constant from a `String`.
 
-The string may contain SMT-LIB-compatible escape sequences like `\u1234` to encode unicode
-characters.
-
 - `s` The string this constant represents.
-- `useEscSequences` Determines whether escape sequences in `s` should be converted to the
-  corresponding unicode characters, default `false`.
 -/
-extern_def mkString : TermManager → (s : String) → (useEscSequences : Bool := false) → Env Term
+extern_def mkString : TermManager → (s : String) → Env Term
 
 /-- Create an empty sequence of the given element sort.
 
@@ -1971,6 +1975,15 @@ If `args` is empty, the `Op` simply wraps the `cvc5.Kind`. The `Kind` can be use
 -/
 extern_def mkOpOfIndices : TermManager → (kind : Kind) → (args : Array Nat := #[]) → Env Op
 with mkOp := @mkOpOfIndices
+
+/--Create operator of kind `Kind.DIVISIBLE` to support arbitrary precision integers.
+
+See `cvc5.Kind` for a description of the parameters.
+
+- `kind` The kind of the operator.
+- `arg` The string argument to this operator.
+-/
+extern_def mkOpOfString : TermManager → (kind : Kind) → (arg : String) → Env Op
 
 /-- Create a datatype constructor declaration.
 
