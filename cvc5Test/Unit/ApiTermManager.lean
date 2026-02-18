@@ -735,7 +735,7 @@ test![TestApiBlackTermManager, mkString] tm => do
   assertEq "\"asdf\\u{5c}nasdf\"" (← tm.mkString "asdf\\nasdf").toString
   assertEq "\"asdf\\u{5c}nasdf\"" (← tm.mkString "asdf\u005cnasdf").toString
 
-  let strings := ["", "ascii text", "utf8 π"]
+  let strings := ["", "ascii text", "utf8 → π ←"]
   for s in strings do
     assertEq (← (← tm.mkString s).getStringValue) s
 
