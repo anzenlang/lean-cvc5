@@ -1800,6 +1800,32 @@ LEAN_EXPORT lean_obj_res termManager_mkFunctionSort(lean_obj_arg tm,
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
+LEAN_EXPORT lean_obj_res termManager_mkSkolem(lean_obj_arg tm,
+                                                    uint8_t si,
+                                                    lean_obj_arg indices,
+                                                    lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> indexVec;
+  for (size_t i = 0, n = lean_array_size(indices); i < n; ++i)
+  {
+    indexVec.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), indices, lean_usize_to_nat(i))));
+  }
+  return env_val(term_box(new Term(mut_tm_unbox(tm)->mkSkolem(
+                     static_cast<SkolemId>(si), indexVec))),
+                 ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res termManager_getNumIndicesForSkolemId(lean_obj_arg tm,
+                                                    uint8_t si)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(lean_usize_to_nat(mut_tm_unbox(tm)->getNumIndicesForSkolemId(static_cast<SkolemId>(si))));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
 LEAN_EXPORT lean_obj_res termManager_mkPredicateSort(lean_obj_arg tm,
                                                      lean_obj_arg sorts,
                                                      lean_obj_arg ioWorld)
