@@ -1559,7 +1559,21 @@ with
 - `sorts` The sort of the function arguments.
 - `codomain` The sort of the function return value.
 -/
-extern_def mkFunctionSort : TermManager → (sorts : Array cvc5.Sort) → (cod : cvc5.Sort) → Env cvc5.Sort
+extern_def mkFunctionSort :
+  TermManager → (sorts : Array cvc5.Sort) → (cod : cvc5.Sort) → Env cvc5.Sort
+
+/-- Create a skolem.
+
+- `id`: The skolem identifier.
+- `indices`: The indices of the skolem.
+-/
+extern_def mkSkolem : TermManager →  (id : SkolemId) → (indices : Array Term) → Env Term
+
+/-- Get the number of indices for a skolem id.
+
+- `id`: The skolem id.
+-/
+extern_def!? getNumIndicesForSkolemId : TermManager → (id : SkolemId) → Except Error Nat
 
 /-- Create a predicate sort.
 

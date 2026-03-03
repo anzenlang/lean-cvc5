@@ -1065,3 +1065,42 @@ test![TestApiBlackTermManager, mkConst] tm => do
 
   let tm' ← TermManager.new
   tm'.mkConst boolSort |> assertError "Given sort is not associated with this term manager"
+
+test![TestApiBlackTermManager, mkSkolem] tm => do
+  let int ← tm.getIntegerSort
+  let arrayInt ← tm.mkArraySort int int
+
+  let a ← tm.mkConst arrayInt "a"
+  let b ← tm.mkConst arrayInt "b"
+
+  let sk1 ← tm.mkSkolem SkolemId.ARRAY_DEQ_DIFF #[a, b]
+  let sk2 ← tm.mkSkolem SkolemId.ARRAY_DEQ_DIFF #[b, a]
+
+  tm.mkSkolem SkolemId.ARRAY_DEQ_DIFF #[a] |> assertError
+    "invalid number of indices, expected 2 got 1"
+
+  assertTrue sk1.isSkolem
+  (← sk1.getSkolemId) |> assertEq SkolemId.ARRAY_DEQ_DIFF
+  (← sk1.getSkolemIndices) |> assertEq #[a, b]
+  -- `SkolemId.ARRAY_DEQ_DIFF` is commutative, so the order of the indices is sorted
+  (← sk2.getSkolemIndices) |> assertEq #[a, b]
+
+test![TestApiBlackTermManager, getNumIndicesForSkolemId] tm => do
+  let n ← tm.getNumIndicesForSkolemId SkolemId.BAGS_MAP_INDEX
+  assertEq 5 n
+
+test![TestApiBlackTermManager, uFIteration] tm => do
+  let int ← tm.getIntegerSort
+  let fn ← tm.mkFunctionSort #[int, int] int
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+  let f ← tm.mkConst fn "f"
+  let fxy ← tm.mkTerm Kind.APPLY_UF #[f, x, y]
+
+  let expectedKids := #[f, x, y]
+  let mut idx := 0
+  for kid in fxy do
+    if h : idx < expectedKids.size then
+      assertEq expectedKids[idx] kid
+      idx := idx + 1
+    else println! "expected `idx < {expectedKids.size}`, but idx := {idx}"
