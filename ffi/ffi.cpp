@@ -44,6 +44,12 @@ lean_obj_res except_ok_u16(uint16_t val);
 
 lean_obj_res except_ok_u32(uint32_t val);
 
+lean_obj_res except_ok_u64(uint64_t val);
+
+lean_obj_res except_ok_i32(uint32_t val);
+
+lean_obj_res except_ok_i64(uint64_t val);
+
 lean_obj_res except_err(lean_obj_arg alpha, lean_obj_arg msg);
 
 // # Exception-catching macro for `Except`
@@ -716,6 +722,66 @@ LEAN_EXPORT uint64_t sort_hash(lean_obj_arg s)
   return std::hash<Sort>()(*sort_unbox(s));
 }
 
+LEAN_EXPORT lean_obj_res sort_getDatatypeConstructorArity(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(lean_usize_to_nat(sort_unbox(s)->getDatatypeConstructorArity()));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeConstructorDomainSorts(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  std::vector<Sort> domains = sort_unbox(s)->getDatatypeConstructorDomainSorts();
+  lean_object* ds = lean_mk_empty_array();
+  for (const Sort& domain : domains)
+  {
+    ds = lean_array_push(ds, sort_box(new Sort(domain)));
+  }
+  return except_ok(ds);
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeConstructorCodomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeConstructorCodomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeSelectorDomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeSelectorDomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeSelectorCodomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeSelectorCodomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeTesterDomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeTesterDomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeTesterCodomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeTesterCodomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
 LEAN_EXPORT lean_obj_res sort_getFunctionArity(lean_obj_arg s)
 {
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
@@ -838,6 +904,13 @@ LEAN_EXPORT lean_obj_res sort_getFloatingPointSignificandSize(lean_obj_arg s)
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
   return except_ok_u32(
       static_cast<int32_t>(sort_unbox(s)->getFloatingPointSignificandSize()));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeArity(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(lean_usize_to_nat(sort_unbox(s)->getDatatypeArity()));
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
@@ -1111,6 +1184,29 @@ LEAN_EXPORT lean_obj_arg term_getSort(lean_obj_arg t)
   return sort_box(new Sort(term_unbox(t)->getSort()));
 }
 
+LEAN_EXPORT lean_obj_arg term_substitute(lean_obj_arg t,
+                                         lean_obj_arg terms,
+                                         lean_obj_arg replacements,
+                                        lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> cvc5Terms;
+  for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
+  {
+    cvc5Terms.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), terms, lean_usize_to_nat(i))));
+  }
+  std::vector<Term> cvc5Replacements;
+  for (size_t i = 0, n = lean_array_size(replacements); i < n; ++i)
+  {
+    cvc5Replacements.push_back(*term_unbox(lean_array_get(
+        term_box(new Term()), replacements, lean_usize_to_nat(i))));
+  }
+  return except_ok(term_box(
+      new Term(term_unbox(t)->substitute(cvc5Terms, cvc5Replacements))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
 LEAN_EXPORT uint8_t term_beq(lean_obj_arg l, lean_obj_arg r)
 {
   return bool_box(*term_unbox(l) == *term_unbox(r));
@@ -1217,6 +1313,117 @@ LEAN_EXPORT lean_obj_res term_getSkolemIndices(lean_obj_arg t)
 LEAN_EXPORT lean_obj_res term_get(lean_obj_arg t, lean_obj_arg i)
 {
   return term_box(new Term((*term_unbox(t))[lean_usize_of_nat(i)]));
+}
+
+LEAN_EXPORT lean_obj_arg term_notTerm(lean_obj_arg t,
+                                        lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return except_ok(term_box(new Term(term_unbox(t)->notTerm())));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_arg term_andTerm(lean_obj_arg t1,lean_obj_arg t2,
+                                        lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return except_ok(term_box(new Term(term_unbox(t1)->andTerm(*term_unbox(t2)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_arg term_orTerm(lean_obj_arg t1,lean_obj_arg t2,
+                                        lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return except_ok(term_box(new Term(term_unbox(t1)->orTerm(*term_unbox(t2)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_arg term_xorTerm(lean_obj_arg t1,lean_obj_arg t2,
+                                        lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return except_ok(term_box(new Term(term_unbox(t1)->xorTerm(*term_unbox(t2)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_arg term_eqTerm(lean_obj_arg t1,lean_obj_arg t2,
+                                        lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return except_ok(term_box(new Term(term_unbox(t1)->eqTerm(*term_unbox(t2)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_arg term_impTerm(lean_obj_arg t1,lean_obj_arg t2,
+                                        lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return except_ok(term_box(new Term(term_unbox(t1)->impTerm(*term_unbox(t2)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_arg term_iteTerm(lean_obj_arg cnd,lean_obj_arg thn,lean_obj_arg els,
+                                        lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return except_ok(term_box(new Term(term_unbox(cnd)->iteTerm(*term_unbox(thn), *term_unbox(els)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_arg term_getRealOrIntegerValueSign(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(lean_int32_to_int(term_unbox(t)->getRealOrIntegerValueSign()));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT uint8_t term_isInt32Value(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isInt32Value());
+}
+
+LEAN_EXPORT lean_obj_res term_getInt32Value(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok_i32(term_unbox(t)->getInt32Value());
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT uint8_t term_isUInt32Value(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isUInt32Value());
+}
+
+LEAN_EXPORT lean_obj_res term_getUInt32Value(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok_u32(term_unbox(t)->getUInt32Value());
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT uint8_t term_isInt64Value(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isInt64Value());
+}
+
+LEAN_EXPORT lean_obj_res term_getInt64Value(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok_i64(term_unbox(t)->getInt64Value());
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT uint8_t term_isUInt64Value(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isUInt64Value());
+}
+
+LEAN_EXPORT lean_obj_res term_getUInt64Value(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok_u64(term_unbox(t)->getUInt64Value());
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
 static void proof_finalize(void* obj) { delete static_cast<Proof*>(obj); }

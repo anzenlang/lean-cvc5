@@ -670,8 +670,23 @@ private def mkExceptOkBool : Bool → Except Error Bool :=
   .ok
 
 /-- Only used by FFI to inject values. -/
+@[export except_ok_u64]
+private def mkExceptOkU64 : UInt64 → Except Error UInt64 :=
+  .ok
+
+/-- Only used by FFI to inject values. -/
 @[export except_ok_u32]
 private def mkExceptOkU32 : UInt32 → Except Error UInt32 :=
+  .ok
+
+/-- Only used by FFI to inject values. -/
+@[export except_ok_i64]
+private def mkExceptOkI64 : Int64 → Except Error Int64 :=
+  .ok
+
+/-- Only used by FFI to inject values. -/
+@[export except_ok_i32]
+private def mkExceptOkI32 : Int32 → Except Error Int32 :=
   .ok
 
 /-- Only used by FFI to inject values. -/
@@ -1083,6 +1098,20 @@ instance : Hashable cvc5.Sort := ⟨Sort.hash⟩
 /-- Get the kind of this sort. -/
 extern_def getKind : cvc5.Sort → SortKind
 
+/-- Determine if this term has a symbol (a name).
+
+For example, free constants and variables have symbols.
+-/
+extern_def!? hasSymbol : cvc5.Sort → Except Error Bool
+
+/-- Get the symbol of this sort.
+
+The symbol of this sort is the string that was provided when consrtucting it *via* one of
+`Solver.mkUninterpretedSort`, `Solver.mkUnresolvedSort`, or
+`Solver.mkUninterpretedSortConstructorSort`.
+-/
+extern_def!? getSymbol : cvc5.Sort → Except Error String
+
 /-- Determine if this is the null sort (`cvc5.Sort`). -/
 extern_def isNull : cvc5.Sort → Bool
 
@@ -1162,7 +1191,10 @@ extern_def isBag : cvc5.Sort → Bool
 /-- Determine if this is a Sequence sort. -/
 extern_def isSequence : cvc5.Sort → Bool
 
-/-- Determine if this is an abstract sort. -/
+/-- Determine if this is an abstract sort.
+
+**Warning:** This function is experimental and may change in future versions.
+-/
 extern_def isAbstract : cvc5.Sort → Bool
 
 /-- Determine if this is an uninterpreted sort. -/
@@ -1183,87 +1215,11 @@ arguments --- see also `cvc5.Sort.instantiate`.
 -/
 extern_def isInstantiated : cvc5.Sort → Bool
 
-/-- A string representation of this sort. -/
-protected extern_def toString : cvc5.Sort → String
-
-/-- Determine if this term has a symbol (a name).
-
-For example, free constants and variables have symbols.
--/
-extern_def!? hasSymbol : cvc5.Sort → Except Error Bool
-
-/-- Get the symbol of this sort.
-
-The symbol of this sort is the string that was provided when consrtucting it *via* one of
-`Solver.mkUninterpretedSort`, `Solver.mkUnresolvedSort`, or
-`Solver.mkUninterpretedSortConstructorSort`.
--/
-extern_def!? getSymbol : cvc5.Sort → Except Error String
-
-/-- The arity of a function sort. -/
-extern_def!? getFunctionArity : cvc5.Sort → Except Error Nat
-
-/-- The domain sorts of a function sort. -/
-extern_def!? getFunctionDomainSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
-
-/-- The codomain sort of a function sort. -/
-extern_def!? getFunctionCodomainSort : cvc5.Sort → Except Error cvc5.Sort
-
-/-- The array index sort of an array index. -/
-extern_def!? getArrayIndexSort : cvc5.Sort → Except Error cvc5.Sort
-
-/-- The array element sort of an array index. -/
-extern_def!? getArrayElementSort : cvc5.Sort → Except Error cvc5.Sort
-
-/-- The element sort of a set sort. -/
-extern_def!? getSetElementSort : cvc5.Sort → Except Error cvc5.Sort
-
-/-- The element sort of a bag sort. -/
-extern_def!? getBagElementSort : cvc5.Sort → Except Error cvc5.Sort
-
-/-- The element sort of a sequence sort. -/
-extern_def!? getSequenceElementSort : cvc5.Sort → Except Error cvc5.Sort
-
-/-- The sort kind of an abstract sort, which denotes the kind of sorts that this abstract sort
-denotes.
--/
-extern_def!? getAbstractedKind : cvc5.Sort → Except Error SortKind
-
-/-- The arity of an uninterpreted sort constructor sort. -/
-extern_def!? getUninterpretedSortConstructorArity : cvc5.Sort → Except Error UInt32
-
-/-- The bit-width of the bit-vector sort. -/
-extern_def!? getBitVectorSize : cvc5.Sort → Except Error UInt32
-
-/-- The size of the finite field sort. -/
-extern_def!? getFiniteFieldSize : cvc5.Sort → Except Error Nat
-
-/-- The bit-width of the exponent of the floating-point sort. -/
-extern_def!? getFloatingPointExponentSize : cvc5.Sort → Except Error UInt32
-
-/-- The width of the significand of the floating-point sort. -/
-extern_def!? getFloatingPointSignificandSize : cvc5.Sort → Except Error UInt32
-
-/-- The length of a tuple sort. -/
-extern_def!? getTupleLength : cvc5.Sort → Except Error UInt32
-
-/-- The element sorts of a tuple sort. -/
-extern_def!? getTupleSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
-
-/-- The element sort of a nullable sort. -/
-extern_def!? getNullableElementSort : cvc5.Sort → Except Error cvc5.Sort
-
 /-- Get the associated uninterpreted sort constructor of an instantiated uninterpreted sort. -/
 extern_def!? getUninterpretedSortConstructor : cvc5.Sort → Except Error cvc5.Sort
 
 /-- Get the underlying datatype of a datatype sort. -/
 extern_def!? getDatatype : cvc5.Sort → Except Error Datatype
-
-/-- Get the sorts used to instantiate the sort parameters of a parametric sort.
-
-A parametric sort is a parametric datatype or an uninterpreted sort constructor sort.
-See `cvc5.Sort.instantiate`. -/
-extern_def!? getInstantiatedParameters : cvc5.Sort → Except Error (Array cvc5.Sort)
 
 /-- Instantiate a parameterized datatype sort or uninterpreted sort constructor sort.
 
@@ -1272,6 +1228,12 @@ Create sort parameters with `mkParamSort symbol`.
 - `params` The list of sort parameters to instantiate with.
 -/
 extern_def!? instantiate : cvc5.Sort → (params : Array cvc5.Sort) → Except Error cvc5.Sort
+
+/-- Get the sorts used to instantiate the sort parameters of a parametric sort.
+
+A parametric sort is a parametric datatype or an uninterpreted sort constructor sort.
+See `cvc5.Sort.instantiate`. -/
+extern_def!? getInstantiatedParameters : cvc5.Sort → Except Error (Array cvc5.Sort)
 
 /-- Simultaneous substitution of Sorts.
 
@@ -1283,11 +1245,124 @@ the vector takes priority.
 - `sorts` The sub-sorts to be substituted within this sort.
 - `replacements` The sort replacing the substituted sub-sorts.
 -/
-extern_def!? substitute
-: cvc5.Sort → (sorts : Array cvc5.Sort) → (replacements : Array cvc5.Sort) → Except Error cvc5.Sort
+extern_def!? substitute :
+  cvc5.Sort → (sorts : Array cvc5.Sort) → (replacements : Array cvc5.Sort) → Except Error cvc5.Sort
+
+/-- A string representation of this sort. -/
+protected extern_def toString : cvc5.Sort → String
 
 instance : ToString cvc5.Sort := ⟨Sort.toString⟩
 instance : Repr cvc5.Sort := ⟨fun self _ => self.toString⟩
+
+/-! ### Datatype constructor sort -/
+
+/-- The arity of a datatype constructor sort. -/
+extern_def!? getDatatypeConstructorArity : cvc5.Sort → Except Error Nat
+
+/-- The domain sorts of a datatype constructor sort. -/
+extern_def!? getDatatypeConstructorDomainSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
+
+/-- The codomain sort of a constructor sort. -/
+extern_def!? getDatatypeConstructorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-! ### Selector sort -/
+
+/-- The domain sort of a datatype selector sort. -/
+extern_def!? getDatatypeSelectorDomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-- The codomain sort of a datatype selector sort. -/
+extern_def!? getDatatypeSelectorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-! ### Tester sort -/
+
+/-- The domain sort of a datatype tester sort. -/
+extern_def!? getDatatypeTesterDomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-- The codomain sort of a datatype tester sort. -/
+extern_def!? getDatatypeTesterCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-! ### Function sort -/
+
+/-- The arity of a function sort. -/
+extern_def!? getFunctionArity : cvc5.Sort → Except Error Nat
+
+/-- The domain sorts of a function sort. -/
+extern_def!? getFunctionDomainSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
+
+/-- The codomain sort of a function sort. -/
+extern_def!? getFunctionCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-! ### Array sort -/
+
+/-- The array index sort of an array index. -/
+extern_def!? getArrayIndexSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-- The array element sort of an array index. -/
+extern_def!? getArrayElementSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-! ### Set sort -/
+
+/-- The element sort of a set sort. -/
+extern_def!? getSetElementSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-! ### Bag sort -/
+
+/-- The element sort of a bag sort. -/
+extern_def!? getBagElementSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-! ### Sequence sort -/
+
+/-- The element sort of a sequence sort. -/
+extern_def!? getSequenceElementSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-! ### Abstract sort -/
+
+/-- The sort kind of an abstract sort, which denotes the kind of sorts that this abstract sort
+denotes.
+-/
+extern_def!? getAbstractedKind : cvc5.Sort → Except Error SortKind
+
+/-! ### Uninterpreted sort constructor sort -/
+
+/-- The arity of an uninterpreted sort constructor sort. -/
+extern_def!? getUninterpretedSortConstructorArity : cvc5.Sort → Except Error UInt32
+
+/-! ### Bit-vector sort -/
+
+/-- The bit-width of the bit-vector sort. -/
+extern_def!? getBitVectorSize : cvc5.Sort → Except Error UInt32
+
+/-! ### Finite field sort -/
+
+/-- The size of the finite field sort. -/
+extern_def!? getFiniteFieldSize : cvc5.Sort → Except Error Nat
+
+/-! ### Floating-point sort -/
+
+/-- The bit-width of the exponent of the floating-point sort. -/
+extern_def!? getFloatingPointExponentSize : cvc5.Sort → Except Error UInt32
+
+/-- The width of the significand of the floating-point sort. -/
+extern_def!? getFloatingPointSignificandSize : cvc5.Sort → Except Error UInt32
+
+/-! ### Datatype sort -/
+
+/-- Get the arity of a datatype sort.
+
+Number of type parameters if the datatype is parametric, `0` otherwise.
+-/
+extern_def!? getDatatypeArity : cvc5.Sort → Except Error Nat
+
+/-! ### Tuple sort -/
+
+/-- The length of a tuple sort. -/
+extern_def!? getTupleLength : cvc5.Sort → Except Error UInt32
+
+/-- The element sorts of a tuple sort. -/
+extern_def!? getTupleSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
+
+/-- The element sort of a nullable sort. -/
+extern_def!? getNullableElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 end cvc5.Sort
 
@@ -1354,14 +1429,52 @@ instance : ToString Term := ⟨Term.toString⟩
 /-- Determine if this term is nullary. -/
 extern_def isNull : Term → Bool
 
+/-- Get the number of children of this term. -/
+extern_def getNumChildren : Term → Nat
+
+/-- Get the child term of this term at a given index. -/
+protected extern_def get : (t : Term) → Fin t.getNumChildren → Term
+
+instance : GetElem Term Nat Term fun t i => i < t.getNumChildren where
+  getElem t i h := t.get ⟨i, h⟩
+
+/-- Get the id of this term. -/
+extern_def getId : Term → Nat
+
 /-- Get the kind of this term. -/
 extern_def getKind : Term → Kind
 
 /-- Get the sort of this term. -/
 extern_def getSort : Term → cvc5.Sort
 
+/-- Simultaneously replace `terms` with `replacements` in `term`.
+
+- `terms`: The terms to replace.
+- `replacements`: The replacement terms.
+
+In the case that `terms` contains duplicates, the replacement earliest in the array takes priority.
+For example, calling `substitute` on `f(x, y)` with
+- `terms := #[x, z]`
+- `replacements := #[g(z), w]`
+results in the term `f(g(z), y)`.
+
+**NB:** requires that `terms` and `replacements` are of equal size (they are interpreted as a 1:1
+mapping).
+
+**NB:** this replacement is applied during a pre-order traversal and only once (it is not run until
+fixed point).
+-/
+extern_def substitute :
+  (term : Term) → (terms : Array Term) → (replacements : Array Term) → Env Term
+
 /-- Determine if this term has an operator. -/
 extern_def hasOp : Term → Bool
+
+/-- Get the operator of a term with an operator.
+
+Requires that this term has an operator (see `hasOp`).
+-/
+extern_def!? getOp : Term → Except Error Op
 
 /-- Determine if this term has a symbol (a name).
 
@@ -1369,23 +1482,117 @@ For example, free constants and variables have symbols.
 -/
 extern_def hasSymbol : Term → Bool
 
-/-- Get the id of this term. -/
-extern_def getId : Term → Nat
+/-- Get the symbol of this term.
 
-/-- Get the number of children of this term. -/
-extern_def getNumChildren : Term → Nat
+Requires that this term has a symbol (see `hasSymbol`).
+
+The symbol of the term is the string that was provided when constructing it *via* `mkConst` or
+`mkVar`.
+-/
+extern_def!? getSymbol : Term → Except Error String
+
+/-- Boolean negation. -/
+extern_def notTerm : Term → Env Term
+
+/-- Boolean and.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def andTerm : (t1 t2 : Term) → Env Term
+
+/-- Boolean or.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def orTerm : (t1 t2 : Term) → Env Term
+
+/-- Boolean exclusive or.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def xorTerm : (t1 t2 : Term) → Env Term
+
+/-- Equality. -/
+extern_def eqTerm : (t1 t2 : Term) → Env Term
+
+/-- Boolean implication.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def impTerm : (t1 t2 : Term) → Env Term
+
+/-- If-then-else.
+
+- `cnd`: The condition, a Boolean term.
+- `thn`: The *then* term.
+- `els`: The *else* term.
+-/
+extern_def iteTerm : (cnd thn els : Term) → Env Term
+
+/-- Get the sign of an integer or real value.
+
+Returns `0` this term is zero, `-1` if this term is a negative real or integer value, `1` if this
+term is a positive real or integer value.
+
+**NB:** requires that this term is an integer or real value.
+-/
+extern_def!? getRealOrIntegerValueSign : Term → Except Error Int
+
+/-- Determine if this term is an `Int32 value`.
+
+**NB:** this will return true for integer constants and real constants that have integer value.
+-/
+extern_def isInt32Value : Term → Bool
+
+/-- Get the `Int32` representation of this integral value.
+
+**NB:** requires that this term is an `Int32` value (see `isInt32Value`).
+-/
+extern_def!? getInt32Value : Term → Except Error Int32
+
+/-- Determine if this term is an `UInt32 value`.
+
+**NB:** this will return true for integer constants and real constants that have integer value.
+-/
+extern_def isUInt32Value : Term → Bool
+
+/-- Get the `UInt32` representation of this integral value.
+
+**NB:** requires that this term is an `UInt32` value (see `isUInt32Value`).
+-/
+extern_def!? getUInt32Value : Term → Except Error UInt32
+
+/-- Determine if this term is an `Int64 value`.
+
+**NB:** this will return true for integer constants and real constants that have integer value.
+-/
+extern_def isInt64Value : Term → Bool
+
+/-- Get the `Int64` representation of this integral value.
+
+**NB:** requires that this term is an `Int64` value (see `isInt64Value`).
+-/
+extern_def!? getInt64Value : Term → Except Error Int64
+
+/-- Determine if this term is an `UInt64 value`.
+
+**NB:** this will return true for integer constants and real constants that have integer value.
+-/
+extern_def isUInt64Value : Term → Bool
+
+/-- Get the `UInt64` representation of this integral value.
+
+**NB:** requires that this term is an `UInt64` value (see `isUInt64Value`).
+-/
+extern_def!? getUInt64Value : Term → Except Error UInt64
+
 
 /-- Is this term a skolem? -/
 extern_def isSkolem : Term → Bool
-
-/-- Get the child term of this term at a given index. -/
-protected extern_def get : (t : Term) → Fin t.getNumChildren → Term
-
-/-- Get the operator of a term with an operator.
-
-Requires that this term has an operator (see `hasOp`).
--/
-extern_def!? getOp : Term → Except Error Op
 
 /-- Get the value of a Boolean term as a native Boolean value.
 
@@ -1413,15 +1620,6 @@ extern_def!? getStringValue : Term → Except Error String
 /-- Get the native rational value of a real, rational-compatible value. -/
 extern_def!? getRationalValue : Term → Except Error Rat
 
-/-- Get the symbol of this term.
-
-Requires that this term has a symbol (see `hasSymbol`).
-
-The symbol of the term is the string that was provided when constructing it *via* `mkConst` or
-`mkVar`.
--/
-extern_def!? getSymbol : Term → Except Error String
-
 /-- Get skolem identifier of this term.
 
 Requires `isSkolem`.
@@ -1436,9 +1634,6 @@ Returns the skolem indices of this term. This is a list of terms that the skolem
 by. For example, the array diff skolem `SkolemId.ARRAY_DEQ_DIFF` is indexed by two arrays.
 -/
 extern_def!? getSkolemIndices : Term → Except Error (Array Term)
-
-instance : GetElem Term Nat Term fun t i => i < t.getNumChildren where
-  getElem t i h := t.get ⟨i, h⟩
 
 protected def forIn {β : Type u} [Monad m] (t : Term) (b : β) (f : Term → β → m (ForInStep β)) : m β :=
   let rec loop (i : Nat) (h : i ≤ t.getNumChildren) (b : β) : m β := do
