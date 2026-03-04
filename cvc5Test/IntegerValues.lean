@@ -52,7 +52,7 @@ def run (tm : TermManager) (val : Int) : Env Unit := do
     → ok: -7
   isUInt64Value := false
 -/
-test![BLah, blah] tm => do
+test![IntegerValues, basic] tm => do
   for val in #[5, 0, -7] do run tm val
 
 /-- info:
@@ -72,7 +72,7 @@ test![BLah, blah] tm => do
   isUInt64Value := true
     → ok: 4294967300
 -/
-test![BLah, blah] tm => do
+test![IntegerValues, u32] tm => do
   let u32Max := 4294967295
   let u32Max' := 4294967300
   for val in #[u32Max, u32Max'] do run tm val
@@ -90,7 +90,7 @@ test![BLah, blah] tm => do
   isInt64Value  := false
   isUInt64Value := false
 -/
-test![BLah, blah] tm => do
+test![IntegerValues, u64] tm => do
   let u64Max := 18_446_744_073_709_551_615
   let u64Max' := 18_446_744_073_709_551_650
   for val in #[u64Max, u64Max'] do run tm val
@@ -127,7 +127,7 @@ test![BLah, blah] tm => do
     → ok: -2147483700
   isUInt64Value := false
 -/
-test![BLah, blah] tm => do
+test![IntegerValues, i32] tm => do
   let i32Max := 2147483647
   let i32Max' := 2147483700
   let i32Min := -2147483648
@@ -160,7 +160,7 @@ test![BLah, blah] tm => do
   isInt64Value  := false
   isUInt64Value := false
 -/
-test![BLah, blah] tm => do
+test![IntegerValues, i64] tm => do
   let i64Min := -9_223_372_036_854_775_808
   let i64Min' := -9_223_372_036_854_775_850
   let i64Max := 9_223_372_036_854_775_807
