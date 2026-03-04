@@ -1590,23 +1590,8 @@ extern_def isUInt64Value : Term → Bool
 -/
 extern_def!? getUInt64Value : Term → Except Error UInt64
 
-
-/-- Is this term a skolem? -/
-extern_def isSkolem : Term → Bool
-
-/-- Get the value of a Boolean term as a native Boolean value.
-
-Requires `term` to have sort Bool.
--/
-extern_def!? getBooleanValue : Term → Except Error Bool
-
-/-- Get the string representation of a bit-vector value.
-
-Requires `term` to have a bit-vector sort.
-
-- `base`: `2` for binary, `10` for decimal, and `16` for hexadecimal.
--/
-extern_def!? getBitVectorValue : Term → UInt32 → Except Error String
+/-- Determine if this real/integer constant term is an integral value. -/
+extern_def isIntegerValue : Term → Bool
 
 /-- Get the native integral value of an integral value. -/
 extern_def!? getIntegerValue : Term → Except Error Int
@@ -1619,6 +1604,106 @@ extern_def!? getStringValue : Term → Except Error String
 
 /-- Get the native rational value of a real, rational-compatible value. -/
 extern_def!? getRationalValue : Term → Except Error Rat
+
+/-- Determine if this term is a constant array. -/
+extern_def isConstArray : Term → Bool
+
+/-- Determine the base (element stored at all indices) of a constant array.
+
+**NB:** requires that this term is a constant array (see `isConstArray`).
+-/
+extern_def!? getConstArrayBase : Term → Except Error Term
+
+/-- Determine if this term is a Boolean value. -/
+extern_def isBooleanValue : Term → Bool
+
+/-- Get the value of a Boolean term as a native Boolean value.
+
+Requires `term` to have sort Bool.
+-/
+extern_def!? getBooleanValue : Term → Except Error Bool
+
+/-- Determine if this term is a bit-vector value. -/
+extern_def isBitVectorValue : Term → Bool
+
+/-- Get the string representation of a bit-vector value.
+
+Requires `term` to have a bit-vector sort.
+
+- `base`: `2` for binary, `10` for decimal, and `16` for hexadecimal.
+-/
+extern_def!? getBitVectorValue : Term → UInt32 → Except Error String
+
+/-- Determine if this term is a finite field value. -/
+extern_def isFiniteFieldValue : Term → Bool
+
+/-- Get the integer representation of a finite field value (base 10).
+
+**NB:** asserts `isFiniteFieldValue`.
+
+**NB:** uses the integer representative of smallest absolute value.
+-/
+extern_def!? getFiniteFieldValue : Term → Except Error Int
+
+/-- Determine if this term is an uninterpreted sort value. -/
+extern_def isUninterpretedSortValue : Term → Bool
+
+/-- Get a string representation of an uninterpreted sort value.
+
+**NB:**  asserts `isUninterpretedSortValue`.
+-/
+extern_def!? getUninterpretedSortValue : Term → Except Error String
+
+/-- Determine if this term is a tuple value. -/
+extern_def isTupleValue : Term → Bool
+
+/-- Get a tuple value as a vector of terms.
+
+**NB:** asserts `isTupleValue`.
+-/
+extern_def!? getTupleValue : Term → Except Error (Array Term)
+
+/-- Determine if this term is a floating-point rounding mode value. -/
+extern_def isRoundingModeValue : Term → Bool
+
+/-- Get the `RoundingMode` value of a given rounding-mode value term.
+
+**NB:** asserts `isRoundingModeValue`.
+-/
+extern_def!? getRoundingModeValue : Term → Except Error RoundingMode
+
+/-- Determine if this term is a floating-point positive zero value (`+zero`). -/
+extern_def isFloatingPointPosZero : Term → Bool
+
+/-- Determine if this term is a floating-point negative zero value (`-zero`). -/
+extern_def isFloatingPointNegZero : Term → Bool
+
+/-- Determine if this term is a floating-point positive infinity value (`+oo`). -/
+extern_def isFloatingPointPosInf : Term → Bool
+
+/-- Determine if this term is a floating-point negative infinity value (`-oo`). -/
+extern_def isFloatingPointNegInf : Term → Bool
+
+/-- Determine if this term is a floating-point NaN. -/
+extern_def isFloatingPointNaN : Term → Bool
+
+/-- Determine if this term is a floating-point value. -/
+extern_def isFloatingPointValue : Term → Bool
+
+/-- Get the representation of a floating-point value.
+
+Returns a tuple of the floating-point value's exponent width, significand width, and a bit-vector
+value term.
+
+**NB:** asserts `isFloatingPointValue`.
+-/
+extern_def!? getFloatingPointValue : Term → Except Error (UInt32 × UInt32 × Term)
+
+
+
+
+/-- Is this term a skolem? -/
+extern_def isSkolem : Term → Bool
 
 /-- Get skolem identifier of this term.
 
