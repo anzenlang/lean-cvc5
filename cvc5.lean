@@ -1507,6 +1507,8 @@ end Proof
 
 namespace TermManager
 
+/-! ### Sorts -/
+
 /-- Get the Boolean sort. -/
 extern_def getBooleanSort : TermManager → Env cvc5.Sort
 
@@ -1554,6 +1556,20 @@ with
   mkFiniteFieldSort (tm : TermManager) (size : Nat) (base : UInt32 := 10) : Env cvc5.Sort :=
     mkFiniteFieldSortOfString tm (toString size) base
 
+/-- Create a datatype sort.
+
+- `dtypeDecl` The datatype declaration from which the sort is created.
+-/
+extern_def mkDatatypeSort : TermManager → (dtypeDecl : DatatypeDecl) → Env cvc5.Sort
+
+/-- Create a vector of datatype sorts.
+
+The names of the datatype declarations must be distinct.
+
+- `dtypeDecls` The datatype declarations from which the sort is created.
+-/
+extern_def mkDatatypeSorts : TermManager → (dtypeDecls : Array DatatypeDecl) → Env (Array cvc5.Sort)
+
 /-- Create function sort.
 
 - `sorts` The sort of the function arguments.
@@ -1575,6 +1591,14 @@ extern_def mkSkolem : TermManager →  (id : SkolemId) → (indices : Array Term
 -/
 extern_def!? getNumIndicesForSkolemId : TermManager → (id : SkolemId) → Except Error Nat
 
+/-- Create a sort parameter.
+
+- `symbol` The name of the sort.
+
+**Warning**: This function is experimental and may change in future versions.
+-/
+extern_def mkParamSort : TermManager → (symbol : String) → Env cvc5.Sort
+
 /-- Create a predicate sort.
 
 This is equivalent to calling `mkFunctionSort` with Boolean sort as the codomain.
@@ -1583,12 +1607,6 @@ This is equivalent to calling `mkFunctionSort` with Boolean sort as the codomain
 -/
 extern_def mkPredicateSort : TermManager → (sorts : Array cvc5.Sort) → Env cvc5.Sort
 
-/-- Create a tuple sort.
-
-- `sorts` The sorts of the elements of the tuple.
--/
-extern_def mkTupleSort : TermManager → (sorts : Array cvc5.Sort) → Env cvc5.Sort
-
 /-- Create a record sort.
 
 **Warning**: This function is experimental and may change in future versions.
@@ -1596,16 +1614,6 @@ extern_def mkTupleSort : TermManager → (sorts : Array cvc5.Sort) → Env cvc5.
 - `fields` The list of fields of the record.
 -/
 extern_def mkRecordSort : TermManager → (fields : Array (String × cvc5.Sort)) → Env cvc5.Sort
-
-/-- Create an uninterpreted sort constructor sort.
-
-An uninterpreted sort constructor is an uninterpreted sort with arity > 0.
-
-- `arity` The arity of the sort (must be > 0).
-- `symbol` The symbol of the sort.
--/
-extern_def mkUninterpretedSortConstructorSort :
-  TermManager → (arity : Nat) → (symbol : String := "") → Env cvc5.Sort
 
 /-- Create a set parameter.
 
@@ -1658,33 +1666,100 @@ This is for creating yet unresolved sort placeholders for mutually recursive par
 extern_def mkUnresolvedDatatypeSort :
   TermManager → (symbol : String) → (arity : Nat := 0) → Env cvc5.Sort
 
+/-- Create an uninterpreted sort constructor sort.
+
+An uninterpreted sort constructor is an uninterpreted sort with arity > 0.
+
+- `arity` The arity of the sort (must be > 0).
+- `symbol` The symbol of the sort.
+-/
+extern_def mkUninterpretedSortConstructorSort :
+  TermManager → (arity : Nat) → (symbol : String := "") → Env cvc5.Sort
+
+/-- Create a tuple sort.
+
+- `sorts` The sorts of the elements of the tuple.
+-/
+extern_def mkTupleSort : TermManager → (sorts : Array cvc5.Sort) → Env cvc5.Sort
+
 /-- Create a nullable sort.
 
 - `sort` The sort of the element of the nullable.
 -/
 extern_def mkNullableSort : TermManager → (sort : cvc5.Sort) → Env cvc5.Sort
 
-/-- Create a sort parameter.
+/-! ### Operators -/
 
-- `symbol` The name of the sort.
+/-- Create operator of Kind:
 
-**Warning**: This function is experimental and may change in future versions.
+- `Kind.BITVECTOR_EXTRACT`
+- `Kind.BITVECTOR_REPEAT`
+- `Kind.BITVECTOR_ROTATE_LEFT`
+- `Kind.BITVECTOR_ROTATE_RIGHT`
+- `Kind.BITVECTOR_SIGN_EXTEND`
+- `Kind.BITVECTOR_ZERO_EXTEND`
+- `Kind.DIVISIBLE`
+- `Kind.FLOATINGPOINT_TO_FP_FROM_FP`
+- `Kind.FLOATINGPOINT_TO_FP_FROM_IEEE_BV`
+- `Kind.FLOATINGPOINT_TO_FP_FROM_REAL`
+- `Kind.FLOATINGPOINT_TO_FP_FROM_SBV`
+- `Kind.FLOATINGPOINT_TO_FP_FROM_UBV`
+- `Kind.FLOATINGPOINT_TO_SBV`
+- `Kind.FLOATINGPOINT_TO_UBV`
+- `Kind.INT_TO_BITVECTOR`
+- `Kind.TUPLE_PROJECT`
+
+See `cvc5.Kind` for a description of the parameters.
+
+- `kind` The kind of the operator.
+- `args` The arguments (indices) of the operator.
+
+If `args` is empty, the `Op` simply wraps the `cvc5.Kind`. The `Kind` can be used in
+`Solver.mkTerm` directly without creating an `Op` first.
 -/
-extern_def mkParamSort : TermManager → (symbol : String) → Env cvc5.Sort
+extern_def mkOpOfIndices : TermManager → (kind : Kind) → (args : Array Nat := #[]) → Env Op
+with mkOp := @mkOpOfIndices
 
+/--Create operator of kind `Kind.DIVISIBLE` to support arbitrary precision integers.
 
+See `cvc5.Kind` for a description of the parameters.
 
-/-- Create a Boolean constant.
-
-- `b`: The Boolean constant.
+- `kind` The kind of the operator.
+- `arg` The string argument to this operator.
 -/
-extern_def mkBoolean : TermManager → (b : Bool) → Env Term
+extern_def mkOpOfString : TermManager → (kind : Kind) → (arg : String) → Env Op
+
+/-! ### Terms -/
+
+/-- Create n-ary term of given kind.
+
+- `kind` The kind of the term.
+- `children` The children of the term.
+-/
+extern_def mkTerm : TermManager → (kind : Kind) → (children : Array Term := #[]) → Env Term
+
+/-- Create n-ary term of given kind from a given operator.
+
+Create operators with `mkOp`.
+
+- `op` The operator.
+- `children` The children of the term.
+-/
+extern_def mkTermOfOp : TermManager → (op : Op) → (children : Array Term := #[]) → Env Term
+
+/-! ### Constants, values, and special terms -/
 
 /-- Create a Boolean true constant. -/
 extern_def mkTrue : TermManager → Env Term
 
 /-- Create a Boolean false constant. -/
 extern_def mkFalse : TermManager → Env Term
+
+/-- Create a Boolean constant.
+
+- `b`: The Boolean constant.
+-/
+extern_def mkBoolean : TermManager → (b : Bool) → Env Term
 
 /-- Create a constant representing the number Pi. -/
 extern_def mkPi : TermManager → Env Term
@@ -1923,21 +1998,7 @@ then `kind` would be `Kind.ADD`, and `args` would be `#[x, y]`. This function wo
 -/
 extern_def mkNullableLift : TermManager → (kind : Kind) → (args : Array Term) → Env Term
 
-/-- Create n-ary term of given kind.
-
-- `kind` The kind of the term.
-- `children` The children of the term.
--/
-extern_def mkTerm : TermManager → (kind : Kind) → (children : Array Term := #[]) → Env Term
-
-/-- Create n-ary term of given kind from a given operator.
-
-Create operators with `mkOp`.
-
-- `op` The operator.
-- `children` The children of the term.
--/
-extern_def mkTermOfOp : TermManager → (op : Op) → (children : Array Term := #[]) → Env Term
+/-! ### Constants and variables -/
 
 /-- Create a free constant.
 
@@ -1960,50 +2021,15 @@ call to `mkVar`.
 -/
 extern_def mkVar : TermManager → (srt : cvc5.Sort) → (name : String := "") → Env Term
 
-/-- Create operator of Kind:
-
-- `Kind.BITVECTOR_EXTRACT`
-- `Kind.BITVECTOR_REPEAT`
-- `Kind.BITVECTOR_ROTATE_LEFT`
-- `Kind.BITVECTOR_ROTATE_RIGHT`
-- `Kind.BITVECTOR_SIGN_EXTEND`
-- `Kind.BITVECTOR_ZERO_EXTEND`
-- `Kind.DIVISIBLE`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_FP`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_IEEE_BV`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_REAL`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_SBV`
-- `Kind.FLOATINGPOINT_TO_FP_FROM_UBV`
-- `Kind.FLOATINGPOINT_TO_SBV`
-- `Kind.FLOATINGPOINT_TO_UBV`
-- `Kind.INT_TO_BITVECTOR`
-- `Kind.TUPLE_PROJECT`
-
-See `cvc5.Kind` for a description of the parameters.
-
-- `kind` The kind of the operator.
-- `args` The arguments (indices) of the operator.
-
-If `args` is empty, the `Op` simply wraps the `cvc5.Kind`. The `Kind` can be used in
-`Solver.mkTerm` directly without creating an `Op` first.
--/
-extern_def mkOpOfIndices : TermManager → (kind : Kind) → (args : Array Nat := #[]) → Env Op
-with mkOp := @mkOpOfIndices
-
-/--Create operator of kind `Kind.DIVISIBLE` to support arbitrary precision integers.
-
-See `cvc5.Kind` for a description of the parameters.
-
-- `kind` The kind of the operator.
-- `arg` The string argument to this operator.
--/
-extern_def mkOpOfString : TermManager → (kind : Kind) → (arg : String) → Env Op
+/-! ### Datatype constructor declaration -/
 
 /-- Create a datatype constructor declaration.
 
 - `name` The name of the datatype constructor.
 -/
 extern_def mkDatatypeConstructorDecl : TermManager → (name : String) → Env DatatypeConstructorDecl
+
+/-! ### Datatype declaration -/
 
 /-- Create a datatype declaration.
 
@@ -2013,20 +2039,6 @@ extern_def mkDatatypeConstructorDecl : TermManager → (name : String) → Env D
 -/
 extern_def mkDatatypeDecl : TermManager → (name : String) →
   (params : Array cvc5.Sort := #[]) → (isCoDatatype : Bool := false) → Env DatatypeDecl
-
-/-- Create a datatype sort.
-
-- `dtypeDecl` The datatype declaration from which the sort is created.
--/
-extern_def mkDatatypeSort : TermManager → (dtypeDecl : DatatypeDecl) → Env cvc5.Sort
-
-/-- Create a vector of datatype sorts.
-
-The names of the datatype declarations must be distinct.
-
-- `dtypeDecls` The datatype declarations from which the sort is created.
--/
-extern_def mkDatatypeSorts : TermManager → (dtypeDecls : Array DatatypeDecl) → Env (Array cvc5.Sort)
 
 end TermManager
 
