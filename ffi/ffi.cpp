@@ -1368,6 +1368,91 @@ LEAN_EXPORT lean_obj_res term_getFloatingPointValue(lean_obj_arg t)
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
+LEAN_EXPORT uint8_t term_isSetValue(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isSetValue());
+}
+
+LEAN_EXPORT lean_obj_res term_getSetValue(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  std::set<Term> elemVec = term_unbox(t)->getSetValue();
+  lean_object* elems = lean_mk_empty_array();
+  for (auto elem : elemVec)
+  {
+    elems = lean_array_push(elems, term_box(new Term(elem)));
+  }
+  return except_ok(elems);
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT uint8_t term_isSequenceValue(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isSequenceValue());
+}
+
+LEAN_EXPORT lean_obj_res term_getSequenceValue(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  std::vector<Term> elemVec = term_unbox(t)->getSequenceValue();
+  lean_object* elems = lean_mk_empty_array();
+  for (auto elem : elemVec)
+  {
+    elems = lean_array_push(elems, term_box(new Term(elem)));
+  }
+  return except_ok(elems);
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT uint8_t term_isCardinalityConstraint(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isCardinalityConstraint());
+}
+
+LEAN_EXPORT lean_obj_res term_getCardinalityConstraint(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  std::pair<Sort, uint32_t> pair = term_unbox(t)->getCardinalityConstraint();
+  return except_ok(
+    prod_mk(
+      lean_box(0), lean_box(0),
+      sort_box(new Sort(std::get<0>(pair))),
+      lean_box_uint32(std::get<1>(pair))
+    )
+  );
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT uint8_t term_isRealAlgebraicNumber(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isRealAlgebraicNumber());
+}
+
+LEAN_EXPORT lean_obj_res term_getRealAlgebraicNumberDefiningPolynomial(lean_obj_arg t,lean_obj_arg v)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+    term_box(new Term(
+      term_unbox(t)->getRealAlgebraicNumberDefiningPolynomial(*term_unbox(v)))));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res term_getRealAlgebraicNumberLowerBound(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+    term_box(new Term(term_unbox(t)->getRealAlgebraicNumberLowerBound())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res term_getRealAlgebraicNumberUpperBound(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+    term_box(new Term(term_unbox(t)->getRealAlgebraicNumberUpperBound())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
 LEAN_EXPORT lean_obj_res l_mkRat(lean_obj_arg num, lean_obj_arg den);
 
 LEAN_EXPORT lean_obj_res term_getRationalValue(lean_obj_arg t)

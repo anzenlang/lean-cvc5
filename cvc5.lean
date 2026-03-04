@@ -1699,8 +1699,97 @@ value term.
 -/
 extern_def!? getFloatingPointValue : Term → Except Error (UInt32 × UInt32 × Term)
 
+/-- Determine if this term is a set value.
 
+A term is a set value if it is considered to be a (canonical) constant set value. A canonical set
+value is one whole AST is:
 
+```smtlib
+(union (singleton c_1) ... (union (singleton c_{n-1}) (singleton c_n))))
+```
+
+where `c_1 ... c_n` are values ordered by id such that `c_1 > ... > c_n`.
+
+**NB:** a universe set term (`Kind.SET_UNIVERSE`) is not considered to be a set value.
+-/
+extern_def isSetValue : Term → Bool
+
+/-- Get a set value as an array of terms.
+
+**NB:** asserts `isSetValue`.
+-/
+extern_def!? getSetValue : Term → Except Error (Array Term)
+
+/-- Determine if this term is a sequence value.
+
+A term is a sequence value if it has kind `Kind.CONST_SEQUENCE`. In contrast to values for the set
+sort (as described in `isSetValue`), a sequence value is represented as a term with no children.
+
+Semantically, a sequence value is a concatenation of unit sequences whose elements are themselves
+values. For example:
+
+```smtlib
+(seq.++ (seq.unit 0) (seq.unit 1))
+```
+
+The above term has two representations in `Term`. One is as the sequence concatenation term:
+
+```lisp
+(SEQ_CONCAT (SEQ_UNIT 0) (SEQ_UNIT 1))
+```
+
+where `0` and `1` are the terms corresponding to the integer constants `0` and `1`.
+
+Alternatively, the above term is represented as the constant sequence value:
+
+```lisp
+CONST_SEQUENCE_{0, 1}
+```
+
+where calling `getSequenceValue` on the latter returns the array `#[0, 1]`.
+
+The former term is not a sequence value, but the latter term is.
+
+Constant sequences cannot be constructed directly *via* the API. They are returned in response to
+API calls such as `Solver.getValue` and `Solver.simplify`.
+-/
+extern_def isSequenceValue : Term → Bool
+
+/-- Get a sequence value as a vector of terms. -/
+extern_def!? getSequenceValue : Term → Except Error (Array Term)
+
+/-- Determine if this term is a cardinality constraint. -/
+extern_def isCardinalityConstraint : Term → Bool
+
+/-- Get a cardinality constraint as a pair of its sort and upper bound.
+
+**NB:** asserts `isCardinalityConstraint`.
+-/
+extern_def!? getCardinalityConstraint : Term → Except Error (cvc5.Sort × UInt32)
+
+/-- Determine if this term is a real algebraic number. -/
+extern_def isRealAlgebraicNumber : Term → Bool
+
+/-- Get the defining polynomial for a real algebraic number term, expressed in terms of the given
+variable.
+
+**NB:** asserts `isRealAlgebraicNumber`.
+
+- `v` The variable over which to express the polynomial.
+-/
+extern_def!? getRealAlgebraicNumberDefiningPolynomial : Term → (v : Term) → Except Error Term
+
+/-- Get the lower bound for a real algebraic number value.
+
+**NB:** asserts `isRealAlgebraicNumber`.
+-/
+extern_def!? getRealAlgebraicNumberLowerBound : Term → Except Error Term
+
+/-- Get the upper bound for a real algebraic number value.
+
+**NB:** asserts `isRealAlgebraicNumber`.
+-/
+extern_def!? getRealAlgebraicNumberUpperBound : Term → Except Error Term
 
 /-- Is this term a skolem? -/
 extern_def isSkolem : Term → Bool
