@@ -3852,6 +3852,158 @@ LEAN_EXPORT lean_obj_res solver_declareSort(lean_obj_arg solver,
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
+LEAN_EXPORT lean_obj_res solver_defineFun(lean_obj_arg solver,
+                                                 lean_obj_arg symbol,
+                                                 lean_obj_arg boundVars,
+                                                 lean_obj_arg sort,
+                                                 lean_obj_arg body,
+                                                 uint8_t global,
+                                                 lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> boundVarVec;
+  for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
+  {
+    boundVarVec.push_back(*term_unbox(lean_array_get(
+        term_box(new Term()), boundVars, lean_usize_to_nat(i))));
+  }
+  Term term = solver_unbox(solver)->defineFun(
+    lean_string_cstr(symbol),
+    boundVarVec,
+    *sort_unbox(sort),
+    *term_unbox(body),
+    bool_unbox(global)
+  );
+  return env_val(term_box(new Term(term)), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_defineFunRec(lean_obj_arg solver,
+                                                 lean_obj_arg symbol,
+                                                 lean_obj_arg boundVars,
+                                                 lean_obj_arg sort,
+                                                 lean_obj_arg body,
+                                                 uint8_t global,
+                                                 lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> boundVarVec;
+  for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
+  {
+    boundVarVec.push_back(*term_unbox(lean_array_get(
+        term_box(new Term()), boundVars, lean_usize_to_nat(i))));
+  }
+  Term term = solver_unbox(solver)->defineFunRec(
+    lean_string_cstr(symbol),
+    boundVarVec,
+    *sort_unbox(sort),
+    *term_unbox(body),
+    bool_unbox(global)
+  );
+  return env_val(term_box(new Term(term)), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_defineFunsRec(lean_obj_arg solver,
+                                                 lean_obj_arg funs,
+                                                 lean_obj_arg boundVars,
+                                                 lean_obj_arg bodies,
+                                                 uint8_t global,
+                                                 lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> funVec;
+  for (size_t i = 0, n = lean_array_size(funs); i < n; ++i)
+  {
+    funVec.push_back(*term_unbox(lean_array_get(
+        term_box(new Term()), funs, lean_usize_to_nat(i))));
+  }
+  std::vector<std::vector<Term>> boundVarVecVec;
+  for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
+  {
+    std::vector<Term> boundVarVec;
+    lean_obj_res boundVarArray =
+      lean_array_get(lean_mk_empty_array(), boundVars, lean_usize_to_nat(i));
+    for (size_t j = 0, n = lean_array_size(boundVarArray); j < n; ++j) {
+      boundVarVec.push_back(*term_unbox(lean_array_get(
+        term_box(new Term()), boundVars, lean_usize_to_nat(j))));
+    }
+    boundVarVecVec.push_back(boundVarVec);
+  }
+  std::vector<Term> bodyVec;
+  for (size_t i = 0, n = lean_array_size(bodies); i < n; ++i)
+  {
+    bodyVec.push_back(*term_unbox(lean_array_get(
+        term_box(new Term()), bodies, lean_usize_to_nat(i))));
+  }
+  solver_unbox(solver)->defineFunsRec(
+    funVec,
+    boundVarVecVec,
+    bodyVec,
+    bool_unbox(global)
+  );
+  return env_val(mk_unit_unit(), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getAssertions(lean_obj_arg solver,
+                                             lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> assertionVec = solver_unbox(solver)->getAssertions();
+  lean_object* assertions = lean_mk_empty_array();
+  for (const Term& assertion : assertionVec)
+  {
+    assertions = lean_array_push(assertions, term_box(new Term(assertion)));
+  }
+  return env_val(assertions, ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getInfo(lean_obj_arg solver, lean_obj_arg flag,
+                                             lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(lean_mk_string(solver_unbox(solver)->getInfo(lean_string_cstr(flag)).c_str()), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getOption(lean_obj_arg solver, lean_obj_arg option,
+                                             lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(lean_mk_string(solver_unbox(solver)->getOption(lean_string_cstr(option)).c_str()), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getOptionNames(lean_obj_arg solver,
+                                             lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<std::string> optionNameVec = solver_unbox(solver)->getOptionNames();
+  lean_object* optionNames = lean_mk_empty_array();
+  for (const std::string& optionName : optionNameVec)
+  {
+    optionNames = lean_array_push(optionNames, lean_mk_string(optionName.c_str()));
+  }
+  return env_val(optionNames, ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getUnsatAssumptions(lean_obj_arg solver,
+                                             lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> assertions = solver_unbox(solver)->getUnsatAssumptions();
+  lean_object* as = lean_mk_empty_array();
+  for (const Term& assertion : assertions)
+  {
+    as = lean_array_push(as, term_box(new Term(assertion)));
+  }
+  return env_val(as, ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
 LEAN_EXPORT lean_obj_res solver_getUnsatCore(lean_obj_arg solver,
                                              lean_obj_arg ioWorld)
 {
@@ -3863,6 +4015,57 @@ LEAN_EXPORT lean_obj_res solver_getUnsatCore(lean_obj_arg solver,
     as = lean_array_push(as, term_box(new Term(assertion)));
   }
   return env_val(as, ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getUnsatCoreLemmas(lean_obj_arg solver,
+                                             lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> assertions = solver_unbox(solver)->getUnsatCoreLemmas();
+  lean_object* as = lean_mk_empty_array();
+  for (const Term& assertion : assertions)
+  {
+    as = lean_array_push(as, term_box(new Term(assertion)));
+  }
+  return env_val(as, ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getTimeoutCore(lean_obj_arg solver,
+                                             lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::pair<Result, std::vector<Term>> pair = solver_unbox(solver)->getTimeoutCore();
+  std::vector<Term> termVec = std::get<1>(pair);
+  lean_object* terms = lean_mk_empty_array();
+  for (const Term& term : termVec)
+  {
+    terms = lean_array_push(terms, term_box(new Term(term)));
+  }
+  return env_val(prod_mk(lean_box(0), lean_box(0), result_box(new Result(std::get<0>(pair))), terms), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getTimeoutCoreAssuming(lean_obj_arg solver,
+  lean_obj_arg assumptions,
+                                             lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> formulas;
+  for (size_t i = 0, n = lean_array_size(assumptions); i < n; ++i)
+  {
+    formulas.push_back(*term_unbox(lean_array_get(
+        term_box(new Term()), assumptions, lean_usize_to_nat(i))));
+  }
+  std::pair<Result, std::vector<Term>> pair = solver_unbox(solver)->getTimeoutCoreAssuming(formulas);
+  std::vector<Term> termVec = std::get<1>(pair);
+  lean_object* terms = lean_mk_empty_array();
+  for (const Term& term : termVec)
+  {
+    terms = lean_array_push(terms, term_box(new Term(term)));
+  }
+  return env_val(prod_mk(lean_box(0), lean_box(0), result_box(new Result(std::get<0>(pair))), terms), ioWorld);
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
@@ -3878,6 +4081,33 @@ LEAN_EXPORT lean_obj_res solver_getProof(lean_obj_arg solver,
     ps = lean_array_push(ps, proof_box(new Proof(proof)));
   }
   return env_val(ps, ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_proofToString(lean_obj_arg solver,
+                                              lean_obj_arg proof,
+
+                                              lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      lean_mk_string(
+          solver_unbox(solver)->proofToString(*proof_unbox(proof)).c_str()),
+      ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getLearnedLiterals(lean_obj_arg solver,
+                                             lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> termVec = solver_unbox(solver)->getLearnedLiterals();
+  lean_object* terms = lean_mk_empty_array();
+  for (const Term& term : termVec)
+  {
+    terms = lean_array_push(terms, term_box(new Term(term)));
+  }
+  return env_val(terms, ioWorld);
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
@@ -3931,16 +4161,35 @@ LEAN_EXPORT lean_obj_res solver_getModelDomainElements(lean_obj_arg solver,
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 
-LEAN_EXPORT lean_obj_res solver_proofToString(lean_obj_arg solver,
-                                              lean_obj_arg proof,
-
-                                              lean_obj_arg ioWorld)
+LEAN_EXPORT lean_obj_res solver_isModelCoreSymbol(lean_obj_arg solver, lean_obj_arg v,
+                                                  lean_obj_arg ioWorld)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
-  return env_val(
-      lean_mk_string(
-          solver_unbox(solver)->proofToString(*proof_unbox(proof)).c_str()),
-      ioWorld);
+  return env_bool(solver_unbox(solver)->isModelCoreSymbol(*term_unbox(v)), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_getModel(lean_obj_arg solver,
+                                          lean_obj_arg sorts,
+                                          lean_obj_arg consts,
+                                          lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Sort> sortVec;
+  for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
+  {
+    sortVec.push_back(*sort_unbox(
+        lean_array_get(sort_box(new Sort()), sorts, lean_usize_to_nat(i))));
+  }
+  std::vector<Term> constVec;
+  for (size_t i = 0, n = lean_array_size(consts); i < n; ++i)
+  {
+    constVec.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), consts, lean_usize_to_nat(i))));
+  }
+  return env_val(lean_mk_string(solver_unbox(solver)->getModel(
+                     sortVec, constVec).c_str()),
+                 ioWorld);
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 

@@ -2671,51 +2671,106 @@ extern_def declareSort :
   (solver : Solver) → (symbol : String) → (arity : UInt32) → (fresh : Bool := true)
   → Env cvc5.Sort
 
+/-- Define n-ary function.
 
+```smtlib
+(define-fun <function_def>)
+```
 
-
-
-/-- Get a string representation of the version of this solver. -/
-extern_def getVersion : (solver : Solver) → Env String
-
-/-- Set option.
-
-- `option`: The option name.
-- `value`: The option value.
+- `symbol`: The name of the function.
+- `boundVars`: The parameters to this function.
+- `sort`: The sort of the return value of this function.
+- `body`: The function body.
+- `global`: Determines whether this definition is global (*i.e.* persists when popping the context).
 -/
-extern_def setOption : (solver : Solver) → (option value : String) → Env Unit
+extern_def defineFun : (solver : Solver)
+  → (symbol : String) → (boundVars : Array Term) → (sort : cvc5.Sort) → (body : Term)
+  → (global : Bool := false)
+  → Env Term
 
-/-- Remove all assertions. -/
-extern_def resetAssertions : (solver : Solver) → Env Unit
+/-- Define recursive function.
 
-/-- Set logic.
+```smtlib
+(define-fun-rec <function_def>)
+```
 
-- `logic`: The logic to set.
+- `symbol`: The name of the function.
+- `boundVars`: The parameters to this function.
+- `sort`: The sort of the return value of this function.
+- `body`: The function body.
+- `global`: Determines whether this definition is global (*i.e.* persists when popping the context).
 -/
-extern_def setLogic : (solver : Solver) → (logic : String) → Env Unit
+extern_def defineFunRec : (solver : Solver)
+  → (symbol : String) → (boundVars : Array Term) → (sort : cvc5.Sort) → (body : Term)
+  → (global : Bool := false)
+  → Env Term
 
-/-- Determine if `setLogic` has been called. -/
-extern_def isLogicSet : (solver : Solver) → Env Bool
+/-- Define recursive functions.
 
-/-- Get the logic set the solver.
+```smtlib
+(define-funs-rec
+  ( <function_decl>_1 ... <function_decl>_n )
+  (     <body>_1      ...     <body>_n      )
+)
+```
 
-Asserts `isLogicSet`.
+- `funs`: The sorted functions, each created with `TermManager.mkConst`.
+- `boundVars`: The list of parameters to the functions.
+- `bodies`: The list of function bodies of the functions.
+- `global`: Determines whether this definition is global (*i.e.* persists when popping the context).
 -/
-extern_def getLogic : (solver : Solver) → Env String
-  with
-    /-- The logic previously set if any, `none` otherwise. -/
-    getLogic? (solver : Solver) : Env (Option String) := do
-      if ← solver.isLogicSet then solver.getLogic else return none
+extern_def defineFunsRec : (solver : Solver)
+  → (funs : Array Term) → (boundVars : Array (Array Term)) → (bodies : Array Term)
+  → (global : Bool := false)
+  → Env Unit
+
+/-- Get the list of asserted formulas.
+
+```smtlib
+(get-assertions)
+```
+-/
+extern_def getAssertions : (solver : Solver) → Env (Array Term)
+
+/-- Get info from the solver.
+
+```smtlib
+(get-info <info_flag>)
+```
+
+- `flag`: The info flag.
+-/
+extern_def getInfo : (solver : Solver) → (flag : String) → Env String
+
+/-- Get the value of a given option.
+
+```smtlib
+(get-option <keyword>)
+```
+
+- `option`: The option for which the value is queried.
+-/
+extern_def getOption : (solver : Solver) → (option : String) → Env String
+
+/-- Get all option names that can be used with `setOption`, `getOption`, and `getOptionInfo`. -/
+extern_def getOptionNames : (solver : Solver) → Env (Array String)
+
+/-- Get the set of unsat (*failed*) assumptions.
+
+```smtlib
+(get-unsat-assumptions)
+```
+
+Requires to enable option `produce-unsat-assumption`.
+-/
+extern_def getUnsatAssumptions : (solver : Solver) → Env (Array Term)
 
 /--
 Get the unsatisfiable core.
 
-SMT-LIB:
-
-\verbatim embed:rst:leading-asterisk
-.. code:: smtlib
-
-  (get-unsat-core)
+```smtlib
+(get-unsat-core)
+```
 
 Requires to enable option `produce-unsat-cores`.
 
@@ -2729,11 +2784,80 @@ Returns a set of terms representing the unsatisfiable core.
 -/
 extern_def getUnsatCore : (solver : Solver) → Env (Array Term)
 
+/-- Get the lemmas used to derive unsatisfiability.
+
+```smtlib
+(get-unsat-core-lemmas)
+```
+
+Requires the SAT proof unsat core mode, so to enable option `unsat-cores-mode=sat-proof`.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getUnsatCoreLemmas : (solver : Solver) → Env (Array Term)
+
+/-- Get a timeout core.
+
+This function computes a subset of the current assertions that couse a timeout. It may make multiple
+checks for satisfiability internally, each limited by the timeout value given by
+`timeout-core-timeout`.
+
+If the result is unknown and the reason is timeout, then returned the set of assertions corresponds
+to a subset of the current assertions that cause a timeout in the specified time
+`timeout-core-timeout`. If the result is unsat, then the list of formulas correspond to an unsat
+core for the current assertions. Otherwise, the result is sat, indicating that the current
+assertions are satisfiable, and the returned set of assertions is empty.
+
+```smtlib
+(get-timeout-core)
+```
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getTimeoutCore : (solver : Solver) → Env (Result × Array Term)
+
+/-- Get a timeout core of the given assumptions.
+
+This function computes a subset of the current assertions that couse a timeout when added to the
+current assertions `timeout-core-timeout`.
+
+If the result is unknown and the reason is timeout, then returned the set of assertions corresponds
+to a subset of the given assertions that cause a timeout when added to the current assertions in the
+specified time `timeout-core-timeout`. If the result is unsat, then the set of assumptions together
+with the current assertions correspond to an unsat core for the current assertions. Otherwise, the
+result is sat, indicating that the given assumptions plus the current assertions are satisfiable,
+and the returned set of assertions is empty.
+
+**NB:** this command does not require being preceeded by a call to `checkSat`.
+
+```smtlib
+(get-timeout-core (<assert>*))
+```
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getTimeoutCoreAssuming :
+  (solver : Solver) → (assumptions : Array Term) → Env (Result × Array Term)
+
 /-- Get a proof associated with the most recent call to `checkSat`.
 
 Requires to enable option `produce-proofs`.
 -/
 extern_def getProof : (solver : Solver) → Env (Array Proof)
+
+/-- Prints a proof as a string in a selected proof format mode.
+
+Other aspects of printing are taken from the solver options.
+
+- `proof`: A proof, usually obtained from `getProof`.
+-/
+extern_def proofToString : (solver : Solver) → Proof → Env String
+
+/-- Get a list of learned literals that are entailed by the current set of assertions.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getLearnedLiterals : (solver : Solver) → Env (Array Term)
 
 /--
 Get the values of the given term in the current model.
@@ -2774,13 +2898,70 @@ The current model interprets the uninterpreted sort `s` as a finite sort whose d
 -/
 extern_def getModelDomainElements (solver : Solver) (s : cvc5.Sort) : Env (Array Term)
 
-/-- Prints a proof as a string in a selected proof format mode.
+/-- Determine if the model value of the given free constant was essential for showing
+satisfiability of the last `checkSat` query based on the current model.
 
-Other aspects of printing are taken from the solver options.
+For any free constant `v`, this will only return false if `model-cores` has been set to true.
 
-- `proof`: A proof, usually obtained from `getProof`.
+**Warning**: this function is experimental and may change in future versions.
+
+- `v`: The term in question.
 -/
-extern_def proofToString : (solver : Solver) → Proof → Env String
+extern_def isModelCoreSymbol : (solver : Solver) → (v: Term) → Env Bool
+
+/-- Get the model.
+
+```smtlib
+(get-model)
+```
+
+Requires to enable option `produce-models`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `sorts`: The list of uninterpreted sorts that should be printed in the model.
+- `consts`: The list of free constants that should be printed in the model. A subset of these may be
+  printed based on `isModelCoreSymbol`.
+-/
+extern_def getModel :
+  (solver : Solver) → (sorts : Array cvc5.Sort) → (consts : Array Term) → Env String
+
+
+
+
+
+
+/-- Get a string representation of the version of this solver. -/
+extern_def getVersion : (solver : Solver) → Env String
+
+/-- Set option.
+
+- `option`: The option name.
+- `value`: The option value.
+-/
+extern_def setOption : (solver : Solver) → (option value : String) → Env Unit
+
+/-- Remove all assertions. -/
+extern_def resetAssertions : (solver : Solver) → Env Unit
+
+/-- Set logic.
+
+- `logic`: The logic to set.
+-/
+extern_def setLogic : (solver : Solver) → (logic : String) → Env Unit
+
+/-- Determine if `setLogic` has been called. -/
+extern_def isLogicSet : (solver : Solver) → Env Bool
+
+/-- Get the logic set the solver.
+
+Asserts `isLogicSet`.
+-/
+extern_def getLogic : (solver : Solver) → Env String
+  with
+    /-- The logic previously set if any, `none` otherwise. -/
+    getLogic? (solver : Solver) : Env (Option String) := do
+      if ← solver.isLogicSet then solver.getLogic else return none
 
 /-- Create a Sygus grammar.
 
