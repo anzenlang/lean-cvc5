@@ -1107,8 +1107,8 @@ extern_def!? hasSymbol : cvc5.Sort → Except Error Bool
 /-- Get the symbol of this sort.
 
 The symbol of this sort is the string that was provided when consrtucting it *via* one of
-`Solver.mkUninterpretedSort`, `Solver.mkUnresolvedSort`, or
-`Solver.mkUninterpretedSortConstructorSort`.
+`TermManager.mkUninterpretedSort`, `TermManager.mkUnresolvedSort`, or
+`TermManager.mkUninterpretedSortConstructorSort`.
 -/
 extern_def!? getSymbol : cvc5.Sort → Except Error String
 
@@ -2199,7 +2199,7 @@ extern_def mkSepNil : TermManager → (sort : cvc5.Sort) → Env Term
 
 - `s` The string this constant represents.
 -/
-extern_def mkString : TermManager → (s : String) → Env Term
+extern_def mkString : TermManager → (s : String) → (useEscSequences : Bool := false) → Env Term
 
 /-- Create an empty sequence of the given element sort.
 
@@ -2599,6 +2599,82 @@ end InputParser
 
 namespace Solver
 
+/-! ### Formula handling -/
+
+/-- Simplify a term or formula based on rewriting and (optionally) applying substitutions for
+solved variables.
+
+If `applySubs` is true, then for example, if `(= x 0)` was asserted to this solver, this function
+may replace occurrences of `x` with `0`.
+
+- `t` The term to simplify.
+- `applySubs` True to apply substitutions for solved variables.
+-/
+extern_def simplify : (solver : Solver) → (term : Term) → (applySubs : Bool := false) → Env Term
+
+/-- Assert a formula.
+
+- `term`: The formula to assert.
+-/
+extern_def assertFormula : (solver : Solver) → Term → Env Unit
+
+/-- Check satisfiability. -/
+extern_def checkSat : (solver : Solver) → Env Result
+
+/-- Check satisfiability assuming the given formulas.
+
+- `assumptions`: The formulas to assume.
+-/
+extern_def checkSatAssuming : (solver : Solver) → (assumptions : Array Term) → Env Result
+
+/-- Create datatype sort.
+
+```smtlib
+(declare-datatype <symbol> <datatype_decl>)
+```
+
+- `symbol`: The name of the datatype sort.
+- `ctors`: The constructor declarations of the datatype sort.
+-/
+extern_def declareDatatype :
+  (solver : Solver) → (symbol : String) → (ctors : Array DatatypeConstructorDecl) → Env cvc5.Sort
+
+/-- Declare n-ary function symbol.
+
+```smtlib
+(declare-fun <symbol> ( <sort>* ) <sort>)
+```
+
+- `symbol`: The name of the function.
+- `sorts`: The sorts of the parameters to this function.
+- `sort`: The sort of the return value of this function.
+- `fresh`: If true, then this method always returns a new Term. Otherwise, this method will always
+  return the same Term for each call with the given sorts and symbol where fresh is false.
+-/
+extern_def declareFun :
+  (solver : Solver) → (symbol : String)
+  → (sorts : Array cvc5.Sort) → (sort : cvc5.Sort) → (fresh : Bool := true)
+  → Env Term
+
+/-- Declare uninterpreted sort.
+
+```smtlib
+(declare-sort <symbol> <numeral>)
+```
+
+- `symbol`: The name of the sort.
+- `arity`: The arity of the sort.
+- `fresh`: If true, then this function always returns a new sort. Otherwise, it will always return
+  the same sort for each call with the given arity and symbol where `fresh` is `false`.
+-/
+extern_def declareSort :
+  (solver : Solver) → (symbol : String) → (arity : UInt32) → (fresh : Bool := true)
+  → Env cvc5.Sort
+
+
+
+
+
 /-- Get a string representation of the version of this solver. -/
 extern_def getVersion : (solver : Solver) → Env String
 
@@ -2630,52 +2706,6 @@ extern_def getLogic : (solver : Solver) → Env String
     /-- The logic previously set if any, `none` otherwise. -/
     getLogic? (solver : Solver) : Env (Option String) := do
       if ← solver.isLogicSet then solver.getLogic else return none
-
-/-- Simplify a term or formula based on rewriting and (optionally) applying substitutions for
-solved variables.
-
-If `applySubs` is true, then for example, if `(= x 0)` was asserted to this solver, this function
-may replace occurrences of `x` with `0`.
-
-- `t` The term to simplify.
-- `applySubs` True to apply substitutions for solved variables.
--/
-extern_def simplify : (solver : Solver) → (term : Term) → (applySubs : Bool := false) → Env Term
-
-/--
-Declare n-ary function symbol.
-
-SMT-LIB:
-
-\verbatim embed:rst:leading-asterisk
- .. code:: smtlib
-
-     (declare-fun <symbol> ( <sort>* ) <sort>)
- \endverbatim
-
-- `symbol`: The name of the function.
-- `sorts`: The sorts of the parameters to this function.
-- `sort`: The sort of the return value of this function.
-- `fresh`: If true, then this method always returns a new Term. Otherwise, this method will always
-  return the same Term for each call with the given sorts and symbol where fresh is false.
--/
-extern_def declareFun (solver : Solver)
-  (symbol : String) (sorts : Array cvc5.Sort) (sort : cvc5.Sort) (fresh := true) : Env Term
-
-/-- Assert a formula.
-
-- `term`: The formula to assert.
--/
-extern_def assertFormula : (solver : Solver) → Term → Env Unit
-
-/-- Check satisfiability. -/
-extern_def checkSat : (solver : Solver) → Env Result
-
-/-- Check satisfiability assuming the given formulas.
-
-- `assumptions`: The formulas to assume.
--/
-extern_def checkSatAssuming : (solver : Solver) → (assumptions : Array Term) → Env Result
 
 /--
 Get the unsatisfiable core.

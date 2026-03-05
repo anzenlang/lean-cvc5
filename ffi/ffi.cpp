@@ -2531,11 +2531,12 @@ LEAN_EXPORT lean_obj_res termManager_mkSepNil(lean_obj_arg tm,
 
 LEAN_EXPORT lean_obj_res termManager_mkString(lean_obj_arg tm,
                                               lean_obj_arg s,
+                                              uint8_t useEscSequences,
                                               lean_obj_arg ioWorld)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
   return env_val(term_box(new Term(mut_tm_unbox(tm)->mkString(
-                     utf8_to_escaped_cstr(lean_string_cstr(s)), true))),
+                     utf8_to_escaped_cstr(lean_string_cstr(s)), useEscSequences))),
                  ioWorld);
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
@@ -3819,6 +3820,35 @@ LEAN_EXPORT lean_obj_res solver_checkSatAssuming(lean_obj_arg solver,
   }
   Result res = solver_unbox(solver)->checkSatAssuming(formulas);
   return env_val(result_box(new Result(res)), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_declareDatatype(lean_obj_arg solver,
+                                                 lean_obj_arg symbol,
+                                                  lean_obj_arg ctors,
+                                                 lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<DatatypeConstructorDecl> ctorVec;
+  for (size_t i = 0, n = lean_array_size(ctors); i < n; ++i)
+  {
+    ctorVec.push_back(*datatypeConstructorDecl_unbox(lean_array_get(
+        datatypeConstructorDecl_box(new DatatypeConstructorDecl()), ctors, lean_usize_to_nat(i))));
+  }
+  return env_val(sort_box(new Sort(
+    solver_unbox(solver)->declareDatatype(lean_string_cstr(symbol), ctorVec))), ioWorld);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
+}
+
+LEAN_EXPORT lean_obj_res solver_declareSort(lean_obj_arg solver,
+                                                 lean_obj_arg symbol,
+                                                  uint32_t arity,
+                                                  uint8_t fresh,
+                                                 lean_obj_arg ioWorld)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(sort_box(new Sort(
+    solver_unbox(solver)->declareSort(lean_string_cstr(symbol), arity, bool_unbox(fresh)))), ioWorld);
   CVC5_LEAN_API_TRY_CATCH_ENV_END(ioWorld);
 }
 

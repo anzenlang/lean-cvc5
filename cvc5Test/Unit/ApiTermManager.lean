@@ -732,12 +732,13 @@ test![TestApiBlackTermManager, mkSepNil] tm => do
 test![TestApiBlackTermManager, mkString] tm => do
   tm.mkString "" |> assertOkDiscard
   tm.mkString "asdfasdf" |> assertOkDiscard
-  assertEq "\"asdf\\u{5c}nasdf\"" (← tm.mkString "asdf\\nasdf").toString
-  assertEq "\"asdf\\u{5c}nasdf\"" (← tm.mkString "asdf\u005cnasdf").toString
+  assertEq "\"asdf\\u{5c}nasdf\"" (← tm.mkString "asdf\\nasdf" true).toString
+  assertEq "\"asdf\\u{5c}nasdf\"" (← tm.mkString "asdf\u005cnasdf" true).toString
+  assertEq "\"asdf\\u{5c}u{005c}nasdf\"" (← tm.mkString "asdf\\u{005c}nasdf").toString
 
   let strings := ["", "ascii text", "utf8 → π ←"]
   for s in strings do
-    assertEq (← (← tm.mkString s).getStringValue) s
+    assertEq (← (← tm.mkString s true).getStringValue) s
 
 test![TestApiBlackTermManager, mkTerm] tm => do
   let bv32Sort ← tm.mkBitVectorSort 32
