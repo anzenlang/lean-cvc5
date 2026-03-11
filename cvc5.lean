@@ -2926,25 +2926,377 @@ Requires to enable option `produce-models`.
 extern_def getModel :
   (solver : Solver) → (sorts : Array cvc5.Sort) → (consts : Array Term) → Env String
 
+/-- Do quantifier elimination.
 
+```smtlib
+(get-qe <q>)
+```
 
+**NB:** Quantifier elimination is only complete for logics such as LRA, LIA, and BV.
 
+**Warning**: this function is experimental and may change in future versions.
 
+- `q`: A quantified formula of the form `QX_1 ... QX_n, P(x_1...x_i, y_1...y_j)` where `QX` is a set
+  of quantified variables of the form `Q x_1...x_k` and `P(x_1...x_i, y_1...y_j)` is a
+  quantifier-free formula.
 
-/-- Get a string representation of the version of this solver. -/
-extern_def getVersion : (solver : Solver) → Env String
-
-/-- Set option.
-
-- `option`: The option name.
-- `value`: The option value.
+Returns a formula `Φ` such that, given the current set of formulas `A` asserted to this solver:
+- `(a ∧ Q)` and (A ∧ Φ) are equivalent, and
+- `Φ` is a quantifier-free formula containing only free variables in `y_1...y_n`.
 -/
-extern_def setOption : (solver : Solver) → (option value : String) → Env Unit
+extern_def getQuantifierElimination : (solver : Solver) → (q : Term) → Env Term
 
-/-- Remove all assertions. -/
+/-- Do partial quantifier elimination, which can be used for incrementally computing the result of a
+  quantifier elimination.
+
+```smtlib
+(get-qe-disjunct <q>)
+```
+
+
+**NB:** Quantifier elimination is only complete for logics such as LRA, LIA, and BV.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `q`: A quantified formula of the form `QX_1 ... QX_n, P(x_1...x_i, y_1...y_j)` where `QX` is a set
+  of quantified variables of the form `Q x_1...x_k` and `P(x_1...x_i, y_1...y_j)` is a
+  quantifier-free formula.
+
+Returns a formula `Φ` such that, given the current set of formulas `A` asserted to this solver:
+- `A ∧ q → A ∧ Φ` if `Q` is `∀`, and `A ∧ Φ → A ∧ q` if `Q` is `∃`;
+- `Φ` is a quantifier-free formula containing only free variables in `y_1...y_n`;
+- if `Q` is `∃`, let `A ∧ Q_n` be the formula `A ∧ ¬ (Φ ∧ Q_1) ∧ ... ∧ ¬ (Φ ∧ Q_n)` where for each
+  `i ∈ [1, n]`, formula `Φ ∧ Q_i` is the result of calling `getQuantifierEliminationDisjunct` for
+  `q` with the set of assertions `A ∧ Q_{i-1}`.
+
+  Similarly, if `Q` is `∀`, then let `A ∧ Q_n` be `A ∧ (Φ ∧ Q_1) ∧ ... ∧ (Φ ∧ Q_n)` where `Φ ∧ Q_i`
+  is the same as above.
+
+  In either case, we have that `Φ ∧ Q_j` will eventually be true or false, for some finite `j`.
+-/
+extern_def getQuantifierEliminationDisjunct : (solver : Solver) → (q : Term) → Env Term
+
+/-- When using separation logic, sets the location sort and the datatype sort to the given ones.
+
+This function should be invoked exactly once, before any separation logic constraints are provided.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `locSort`: The location sort of the heap.
+- `dataSort`: The data sort of the heap.
+-/
+extern_def declareSepHeap :
+  (solver : Solver) → (locSort : cvc5.Sort) → (dataSort : cvc5.Sort) → Env Unit
+
+/-- When using separation logic, obtain the term for the heap.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getValueSepHeap : (solver : Solver) → Env Term
+
+/-- When using separation logic, obtain the term for nil.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getValueSepNil : (solver : Solver) → Env Term
+
+/-- Declare a symbolic pool of terms with the given initial value.
+
+For details on how pools are used to specify instructions for quantifier instantiation, see
+`Kind.INST_POOL`
+
+```smtlib
+(declare-pool <symbol> <sort> ( <term>* ))
+```
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `symbol`: The name of the pool.
+- `sort`: The sort of the elements of the pool.
+- `initValue` The initial value of the pool.
+-/
+extern_def declarePool :
+  (solver : Solver) → (symbol : String) → (sort : cvc5.Sort) → (initValue : Array Term) → Env Term
+
+/-- Declare an oracle function with reference to an implementation.
+
+Oracle functions have a different semantics with respect to ordinary declared functions. In
+particular, for an input to be satisfiable, its oracle functions are implicitly universally
+quantified.
+
+This function is used in part for implementing this command:
+
+```smtlib
+(declare-oracle-fun <sym> ( <sort>* ) <sort> <sym>)
+```
+
+In particular, the above command is implemented by constructing a function over terms that wraps a
+call to binary sym via a text interface.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `symbol`: The name of the oracle.
+- `sorts`: The sorts of the parameters to this function.
+- `sort`: The sort of the return value of this function.
+- `fn`: The function that implements the oracle function.
+-/
+extern_def declareOracleFun :
+  (solver : Solver) → (symbol : String)
+  → (sorts : Array cvc5.Sort) → (sort : cvc5.Sort)
+  → (fn : Array Term → Term)
+  → Env Term
+
+/-- Pop (a) level(s) from the assertion stack.
+
+```smtlib
+(pop <numeral>)
+```
+
+- `nscopes`: The number of levels to pop.
+-/
+extern_def pop : (solver : Solver) → (nscopes : UInt32 := 1) → Env Unit
+
+/-- Get an interpolant if one exists, the null term otherwise.
+
+Given that `A → B` is valid, this function determines a term `I` over the shared variables of `A` and `B`, such that `A → I` and `I → B` are valid. `A` is the current set of assertions and `B` is the conjecture, given as `conj`.
+
+```smtlib
+(get-interpolant <symbol> <conj>)
+```
+
+**NB:** in SMT-LIB, `<symbol>` assigns a symbol to the interpolant.
+
+**NB:** Requires option `produce-interpolants` to be set to a mode different from `none`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+-/
+extern_def getInterpolantSimple : (solver : Solver) → (conj : Term) → Env Term
+
+/-- Get an interpolant if one exists, the null term otherwise.
+
+Given that `A → B` is valid, this function determines a term `I` over the shared variables of `A`
+and `B`, such that `A → I` and `I → B` are valid. `I` is constructed from the given grammar. `A` is
+the current set of assertions and `B` is the conjecture, given as `conj`.
+
+```smtlib
+(get-interpolant <symbol> <conj> <grammar>)
+```
+
+**NB:** in SMT-LIB, `<symbol>` assigns a symbol to the interpolant.
+
+**NB:** Requires option `produce-interpolants` to be set to a mode different from `none`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+- `grammar`: The grammar for the interpolant `I`.
+-/
+extern_def getInterpolantOfGrammar :
+  (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env Term
+
+/-- Get an interpolant if one exists, the null term otherwise.
+
+Given that `A → B` is valid, this function determines a term `I` over the shared variables of `A`
+and `B`, such that `A → I` and `I → B` are valid. If a grammar `G` is provided, `I` is constructed
+from `G`. `A` is the current set of assertions and `B` is the conjecture, given as `conj`.
+
+```smtlib
+(get-interpolant <symbol> <conj>)
+(get-interpolant <symbol> <conj> <grammar>)
+```
+
+**NB:** in SMT-LIB, `<symbol>` assigns a symbol to the interpolant.
+
+**NB:** Requires option `produce-interpolants` to be set to a mode different from `none`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+- `grammar`: The optional grammar for the interpolant `I`.
+-/
+def getInterpolant
+  (solver : Solver) (conj : Term) (grammar : Option Grammar := none)
+: Env Term :=
+  if let some grammar := grammar
+  then solver.getInterpolantOfGrammar conj grammar
+  else solver.getInterpolantSimple conj
+
+/-- Get the next interpolant if any, the null term otherwise.
+
+Can only be called immediately after a successful call to `getInterpolant`,
+`getInterpolantOfGrammar`, `getInterpolant?`, `getInterpolantNext`, or `getInterpolantNext`. It is
+guaranteed to produce a syntactically different interpolant *w.r.t.* the last returned interpolant
+if successful.
+
+```smtlib
+(get-interpolant-next)
+```
+
+Requires to enable incremental mode, and option `produce-interpolants` to be set to a mode different
+from `none`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+Returns a term `I` such that `A → I` and `I → B` and valid, where `A` is the current set of
+assertions and `B` is given in the input by `conj`, or the null term if such a term cannot be found.
+-/
+extern_def getInterpolantNext : (solver : Solver) → Env Term
+
+/-- Get an abduct if one exists, the null term otherwise.
+
+```smtlib
+(get-abduct <conj>)
+```
+
+**NB:** Requires to enable option `produce-abducts`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+
+Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is unsatisfiable, where `A` is
+the current set of assertions and `B` is given in the input by `conj`, or the null term if such a
+term cannot be found.
+-/
+private extern_def getAbductSimple : (solver : Solver) → (conj : Term) → Env Term
+
+/-- Get an abduct if one exists, the null term otherwise.
+
+```smtlib
+(get-abduct <conj> <grammar>)
+```
+
+**NB:** Requires to enable option `produce-abducts`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+- `grammar`: The grammar for the abduct `C`.
+
+Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is unsatisfiable, where `A` is
+the current set of assertions and `B` is given in the input by `conj`, or the null term if such a
+term cannot be found.
+-/
+extern_def getAbductOfGrammar :
+  (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env Term
+
+/-- Get an abduct if one exists.
+
+```smtlib
+(get-abduct <conj>)
+(get-abduct <conj> <grammar>)
+```
+
+**NB:** Requires to enable option `produce-abducts`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+- `grammar`: The optional grammar for the abduct `C`.
+
+Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is unsatisfiable, where `A` is
+the current set of assertions and `B` is given in the input by `conj`, or the null term if such a
+term cannot be found.
+-/
+def getAbduct
+  (solver : Solver) (conj : Term) (grammar : Option Grammar := none)
+: Env Term :=
+  if let some grammar := grammar
+  then solver.getAbductOfGrammar conj grammar
+  else solver.getAbductSimple conj
+
+/-- Get the next interpolant if any, the null term otherwise.
+
+Can only be called immediately after a successful call to `getAbduct`, `getAbductOfGrammar`,
+`getAbduct?`, `getAbductNext`, or `getAbductNext?`. It is guaranteed to produce a syntactically
+different abduct *w.r.t.* the last returned abduct if successful.
+
+```smtlib
+(get-abduct-next)
+```
+
+Requires to enable incremental mode, and option `produce-abducts`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is unsatisfiable, where `A` is
+the current set of assertions and `B` is given in the input by the last call to a `getAbduct`-like
+function, or the null term if such a term cannot be found.
+-/
+extern_def getAbductNext : (solver : Solver) → Env Term
+
+/-- Block the current model. Can be called only if immediately preceded by a SAT or INVALID query.
+
+```smtlib
+(block-model)
+```
+
+**NB:** requires enabling option `produce-models`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `mode`: The mode to use for blocking.
+-/
+extern_def blockModel : (solver : Solver) → (mode : BlockModelsMode) → Env Unit
+
+/-- Block the current model values of (at least) the values in `terms`.
+
+Can be called only if immediately preceded by a SAT query.
+
+```smtlib
+(block-model-values ( <term>+ ))
+```
+
+**NB:** requires enabling option `produce-models`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `terms`: The model values to block.
+-/
+extern_def blockModelValues : (solver : Solver) → (terms : Array Term) → Env Unit
+
+/-- Produce a string containing information about all instantiations made by the quantifier module.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getInstantiations : (solver : Solver) → Env String
+
+/-- Push (a) level(s) to the assertion stack.
+
+```smtlib
+(push <numeral>)
+```
+
+- `nscopes`: The number of levels to push.
+-/
+extern_def push : (solver : Solver) → (nscopes : UInt32 := 1) → Env Unit
+
+/-- Remove all assertions.
+
+```smtlib
+(reset-assertions)
+```
+-/
 extern_def resetAssertions : (solver : Solver) → Env Unit
 
+/-- Set info.
+
+```smtlib
+(set-info <attribute>)
+```
+
+- `keyword`: The info flag.
+- `value`: The value of the info flag.
+-/
+extern_def setInfo : (solver : Solver) → (keyword value : String) → Env Unit
+
 /-- Set logic.
+
+```smtlib
+(set-logic <symbol>)
+```
 
 - `logic`: The logic to set.
 -/
@@ -2962,6 +3314,26 @@ extern_def getLogic : (solver : Solver) → Env String
     /-- The logic previously set if any, `none` otherwise. -/
     getLogic? (solver : Solver) : Env (Option String) := do
       if ← solver.isLogicSet then solver.getLogic else return none
+
+/-- Set option.
+
+- `option`: The option name.
+- `value`: The option value.
+-/
+extern_def setOption : (solver : Solver) → (option value : String) → Env Unit
+
+/-- Append \p symbol to the current list of universal variables.
+
+SyGuS v2:
+
+```smtlib
+(declare-var <symbol> <sort>)
+```
+
+- `sort` The sort of the universal variable.
+- `symbol` The name of the universal variable.
+-/
+extern_def declareSygusVar : Solver → (symbol : String) → (sort : cvc5.Sort) → Env Term
 
 /-- Create a Sygus grammar.
 
@@ -3024,19 +3396,6 @@ def synthFun (solver: Solver)
   if let some grammar := grammar
   then solver.synthFunWithGrammar symbol boundVars sort grammar
   else solver.synthFunWithoutGrammar symbol boundVars sort
-
-/-- Append \p symbol to the current list of universal variables.
-
-SyGuS v2:
-
-```smtlib
-(declare-var <symbol> <sort>)
-```
-
-- `sort` The sort of the universal variable.
-- `symbol` The name of the universal variable.
--/
-extern_def declareSygusVar : Solver → (symbol : String) → (sort : cvc5.Sort) → Env Term
 
 /-- Add a forumla to the set of Sygus constraints.
 
@@ -3184,7 +3543,7 @@ SyGuS v2:
   in this call, which by default will be the grammars specified by the function(s)-to-synthesize in
   the current context.
 
-Returns the result of the find, which is the null term if the call failed.
+Returns the result of the find, which is the null term if this call failed.
 
 **Warning**: this function is experimental and may change in future versions.
 -/
@@ -3210,6 +3569,9 @@ Returns the result of the find, which is the null term if this call failed.
 **Warning**: this function is experimental and may change in future versions.
 -/
 extern_def findSynthNext : Solver → Env Term
+
+/-- Get a string representation of the version of this solver. -/
+extern_def getVersion : (solver : Solver) → Env String
 
 end Solver
 
