@@ -15,6 +15,13 @@
 - `addPlugin`: `Plugin` API missing
 - `getStatistics`: `Statistics` API missing
 
-## Notes
+## Notes in C++ API/tests
 
-Cvc5 `Solver`'s `declareSygusVar`'s documentation seem to be a bad copy-paste.
+### API
+
+- `Solver`'s `declareSygusVar`'s documentation seem to be a bad copy-paste.
+
+### Tests
+
+- [part of solver test`defineFunRecGlobal`](https://github.com/cvc5/cvc5/blob/e342ecb325520619db2a1f49e95f96ebca8029f2/test/unit/api/cpp/api_solver_black.cpp#L516-L519)
+  seems wrong: it checks `tm.mkFunctionSort #[srt] srt` fails when `srt` is not a sort from `tm`
