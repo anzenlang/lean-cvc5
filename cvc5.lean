@@ -2705,6 +2705,24 @@ extern_def defineFunRec : (solver : Solver)
   → (global : Bool := false)
   → Env Term
 
+/-- Define recursive function.
+
+```smtlib
+(define-fun-rec <function_def>)
+```
+
+Create parameter `fn` with `TermManager.mkConst`.
+
+- `fn`: The sorted function.
+- `bound_vars`: The parameters to this function.
+- `term` The function body.
+- `global` Determines whether this definition is global (*i.e.* persists when popping the context).
+-/
+extern_def defineFunRecTerm : (solver : Solver)
+  → (fn : Term) → (boundVars : Array Term) → (body : Term)
+  → (global : Bool := false)
+  → Env Term
+
 /-- Define recursive functions.
 
 ```smtlib
