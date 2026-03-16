@@ -499,6 +499,422 @@ test![TestApiBlackSolver, defineFunRecGlobal] tm solver => do
   solver'.defineFunRecTerm g' #[b] b true |> assertError
     "Given term is not associated with the term manager of this solver"
 
+test![TestApiBlackSolver, defineFunsRec] tm solver => do
+  let uninterpreted ← tm.mkUninterpretedSort "U"
+  let int ← tm.getIntegerSort
+  let bvSort ← tm.mkBitVectorSort 32
+  let funSort1 ← tm.mkFunctionSort #[bvSort, bvSort] bvSort
+  let funSort2 ← tm.mkFunctionSort #[uninterpreted] int
+  let b1 ← tm.mkVar bvSort "b1"
+  let b11 ← tm.mkVar bvSort "b1"
+  let b2 ← tm.mkVar int "b2"
+  let b4 ← tm.mkVar uninterpreted "b4"
+  let v1 ← tm.mkConst bvSort "v1"
+  let v2 ← tm.mkConst int "v2"
+  let v4 ← tm.mkConst uninterpreted "v4"
+  let f1 ← tm.mkConst funSort1 "f1"
+  let f2 ← tm.mkConst funSort2 "f2"
+  let f3 ← tm.mkConst bvSort "f3"
+
+  solver.defineFunsRec #[f1, f2] #[#[b1, b11], #[b4]] #[v1, v2] |> assertOkDiscard
+  solver.defineFunsRec #[f1, f2] #[#[v1, b11], #[b4]] #[v1, v2] |> assertError
+    "invalid bound variable in 'bvars' at index 0, expected a bound variable"
+  solver.defineFunsRec #[f1, f3] #[#[b1, b11], #[b4]] #[v1, v2] |> assertError
+    "invalid argument 'f3' for 'fun', expected function or nullary symbol"
+  solver.defineFunsRec #[f1, f2] #[#[b1], #[b4]] #[v1, v2] |> assertError
+    "invalid size of argument 'bvars', expected '2'"
+  solver.defineFunsRec #[f1, f2] #[#[b1, b2], #[b4]] #[v1, v2] |> assertError
+    "invalid sort of parameter in 'bvars' at index 1, expected sort '(_ BitVec 32)'"
+  solver.defineFunsRec #[f1, f2] #[#[b1, b11], #[b4]] #[v1, v4] |> assertError
+    "invalid sort of function body in 'terms' at index 1, expected 'Int'"
+
+  let tm' ← TermManager.new
+  let solver' ← Solver.new tm'
+  let int' ← tm'.getIntegerSort
+  let uSort2 ← tm'.mkUninterpretedSort "U"
+  let bvSort2 ← tm'.mkBitVectorSort 32
+  let funSort12 ← tm'.mkFunctionSort #[bvSort2, bvSort2] bvSort2
+  let funSort22 ← tm'.mkFunctionSort #[uSort2] int'
+  let b12 ← tm'.mkVar bvSort2 "b1"
+  let b112 ← tm'.mkVar bvSort2 "b1"
+  let b42 ← tm'.mkVar uSort2 "b4"
+  let v12 ← tm'.mkConst bvSort2 "v1"
+  let v22 ← tm'.mkConst int' "v2"
+  let f12 ← tm'.mkConst funSort12 "f1"
+  let f22 ← tm'.mkConst funSort22 "f2"
+  solver'.defineFunsRec #[f12, f22] #[#[b12, b112], #[b42]] #[v12, v22] |> assertOk
+  solver'.defineFunsRec #[f1, f22] #[#[b12, b112], #[b42]] #[v12, v22] |> assertError
+    "invalid term in 'funs' at index 0, \
+    expected a term associated with the term manager of this solver"
+  solver'.defineFunsRec #[f12, f2] #[#[b12, b112], #[b42]] #[v12, v22] |> assertError
+    "invalid term in 'funs' at index 1, \
+    expected a term associated with the term manager of this solver"
+  solver'.defineFunsRec #[f12, f22] #[#[b1, b112], #[b42]] #[v12, v22] |> assertError
+    "invalid term in 'bvars' at index 0, \
+    expected a term associated with the term manager of this solver"
+  solver'.defineFunsRec #[f12, f22] #[#[b12, b11], #[b42]] #[v12, v22] |> assertError
+    "invalid term in 'bvars' at index 1, \
+    expected a term associated with the term manager of this solver"
+  solver'.defineFunsRec #[f12, f22] #[#[b12, b112], #[b4]] #[v12, v22] |> assertError
+    "invalid term in 'bvars' at index 0, \
+    expected a term associated with the term manager of this solver"
+  solver'.defineFunsRec #[f12, f22] #[#[b12, b112], #[b42]] #[v1, v22] |> assertError
+    "invalid term in 'terms' at index 0, \
+    expected a term associated with the term manager of this solver"
+  solver'.defineFunsRec #[f12, f22] #[#[b12, b112], #[b42]] #[v12, v2] |> assertError
+    "invalid term in 'terms' at index 1, \
+    expected a term associated with the term manager of this solver"
+
+test![TestApiBlackSolver, defineFunsRecWrongLogic] tm solver => do
+  solver.setLogic "QF_BV"
+  let int ← tm.getIntegerSort
+  let uninterpreted ← tm.mkUninterpretedSort "U"
+  let bvSort ← tm.mkBitVectorSort 32
+  let funSort1 ← tm.mkFunctionSort #[bvSort, bvSort] bvSort
+  let funSort2 ← tm.mkFunctionSort #[uninterpreted] int
+  let b ← tm.mkVar bvSort "b"
+  let u ← tm.mkVar uninterpreted "u"
+  let v1 ← tm.mkConst bvSort "v1"
+  let v2 ← tm.mkConst int "v2"
+  let f1 ← tm.mkConst funSort1 "f1"
+  let f2 ← tm.mkConst funSort2 "f2"
+  solver.defineFunsRec #[f1, f2] #[#[b, b], #[u]] #[v1, v2] |> assertError
+    "recursive function definitions require a logic with quantifiers"
+
+test![TestApiBlackSolver, defineFunsRecGlobal] tm solver => do
+  let bool ← tm.getBooleanSort
+  let fSort ← tm.mkFunctionSort #[bool] bool
+
+  solver.push
+  let bTrue ← tm.mkBoolean true
+  let b ← tm.mkVar bool "b"
+  let gSym ← tm.mkConst fSort "g"
+  -- `(define-funs-rec ((g ((b Bool)) Bool)) (b))`
+  solver.defineFunsRec #[gSym] #[#[b]] #[b] true
+
+  -- `(assert (not (g true)))`
+  tm.mkTerm Kind.APPLY_UF #[gSym, bTrue] >>= Term.notTerm >>= solver.assertFormula
+  assertTrue (← solver.checkSat).isUnsat
+  solver.pop
+  -- `(assert (not (g true)))`
+  tm.mkTerm Kind.APPLY_UF #[gSym, bTrue] >>= Term.notTerm >>= solver.assertFormula
+  assertTrue (← solver.checkSat).isUnsat
+
+test![TestApiBlackSolver, defineFunsRecGlobal] tm solver => do
+  let bool ← tm.getBooleanSort
+  let a ← tm.mkConst bool "a"
+  let b ← tm.mkConst bool "b"
+  solver.assertFormula a
+  solver.assertFormula b
+  let asserts := #[a, b]
+  assertEq asserts (← solver.getAssertions)
+
+test![TestApiBlackSolver, getInfo] tm solver => do
+  solver.getInfo "name" |> assertOkDiscard
+  solver.getInfo "asdf" |> assertError "unrecognized flag: asdf."
+
+test![TestApiBlackSolver, getOption] tm solver => do
+  solver.getOption "incremental" |> assertOkDiscard
+  solver.getOption "asdf" |> assertError
+    "Error in option parsing: Unrecognized option key or setting: asdf"
+
+test![TestApiBlackSolver, getOptionNames] tm solver => do
+  let names ← solver.getOptionNames
+  assertTrue (100 < names.size)
+  names.findIdx? (· == "verbose") |>.isSome |> assertTrue
+  names.findIdx? (· == "foobar") |>.isSome |> assertFalse
+
+-- test![TestApiBlackSolver, getOptionInfo] tm solver => do
+
+test![TestApiBlackSolver, getUnsatAssumptions1] tm solver => do
+  solver.setOption "incremental" "false"
+  solver.checkSatAssuming #[(← tm.mkFalse)] |> assertOkDiscard
+  solver.getUnsatAssumptions |> assertError
+    "cannot get unsat assumptions unless explicitly enabled (try --produce-unsat-assumptions)"
+
+test![TestApiBlackSolver, getUnsatAssumptions2] tm solver => do
+  solver.setOption "incremental" "true"
+  solver.setOption "produce-unsat-assumptions" "false"
+  solver.checkSatAssuming #[(← tm.mkFalse)] |> assertOkDiscard
+  solver.getUnsatAssumptions |> assertError
+    "cannot get unsat assumptions unless explicitly enabled (try --produce-unsat-assumptions)"
+
+test![TestApiBlackSolver, getUnsatAssumptions3] tm solver => do
+  solver.setOption "incremental" "true"
+  solver.setOption "produce-unsat-assumptions" "true"
+  solver.checkSatAssuming #[(← tm.mkFalse)] |> assertOkDiscard
+  solver.getUnsatAssumptions |> assertOkDiscard
+  solver.checkSatAssuming #[(← tm.mkTrue)] |> assertOkDiscard
+  solver.getUnsatAssumptions |> assertError "cannot get unsat assumptions unless in unsat mode."
+
+test![TestApiBlackSolver, getUnsatCore1] tm solver => do
+  solver.setOption "incremental" "false"
+  solver.assertFormula (← tm.mkFalse)
+  solver.checkSat |> assertOkDiscard
+  solver.getUnsatCore |> assertError
+    "cannot get unsat core unless explicitly enabled (try --produce-unsat-cores)"
+
+test![TestApiBlackSolver, getUnsatCore2] tm solver => do
+  solver.setOption "incremental" "true"
+  solver.setOption "produce-unsat-cores" "false"
+  solver.assertFormula (← tm.mkFalse)
+  solver.checkSat |> assertOkDiscard
+  solver.getUnsatCore |> assertError
+    "cannot get unsat core unless explicitly enabled (try --produce-unsat-cores)"
+
+test![TestApiBlackSolver, getUnsatCoreAndProof] tm solver => do
+  solver.setOption "incremental" "true"
+  solver.setOption "produce-unsat-cores" "true"
+  solver.setOption "produce-proofs" "true"
+
+  let int ← tm.getIntegerSort
+  let bool ← tm.getBooleanSort
+  let uninterpreted ← tm.mkUninterpretedSort "U"
+
+  let uToIntSort ← tm.mkFunctionSort #[uninterpreted] int
+  let intPredSort ← tm.mkFunctionSort #[int] bool
+
+  let x ← tm.mkConst uninterpreted "x"
+  let y ← tm.mkConst uninterpreted "y"
+  let f ← tm.mkConst uToIntSort "f"
+  let p ← tm.mkConst intPredSort "p"
+  let zero ← tm.mkInteger 0
+  let one ← tm.mkInteger 1
+  let f_x ← tm.mkTerm Kind.APPLY_UF #[f, x]
+  let f_y ← tm.mkTerm Kind.APPLY_UF #[f, y]
+  let sum ← tm.mkTerm Kind.ADD #[f_x, f_y]
+  let p_0 ← tm.mkTerm Kind.APPLY_UF #[p, zero]
+  let p_f_y ← tm.mkTerm Kind.APPLY_UF #[p, f_y]
+  tm.mkTerm Kind.GT #[zero, f_x] >>= solver.assertFormula
+  tm.mkTerm Kind.GT #[zero, f_y] >>= solver.assertFormula
+  tm.mkTerm Kind.GT #[sum, one] >>= solver.assertFormula
+  solver.assertFormula p_0
+  p_f_y.notTerm >>= solver.assertFormula
+  assertTrue (← solver.checkSat).isUnsat
+
+  let uc ← assertOk solver.getUnsatCore
+  assertFalse uc.isEmpty
+
+  solver.getProof |> assertOkDiscard
+  solver.getProof ProofComponent.SAT |> assertOkDiscard
+
+  solver.resetAssertions
+  for t in uc do
+    solver.assertFormula t
+  let res ← solver.checkSat
+  assertTrue res.isUnsat
+  solver.getProof |> assertOkDiscard
+
+test![TestApiBlackSolver, getUnsatCoreAndLemmas1] tm solver => do
+  solver.setOption "produce-unsat-cores" "true"
+  solver.setOption "unsat-cores-mode" "sat-proof"
+  -- cannot ask before a check sat
+  solver.getUnsatCoreLemmas |> assertError "cannot get unsat core unless in unsat mode."
+
+  tm.mkFalse >>= solver.assertFormula
+  assertTrue (← solver.checkSat).isUnsat
+  solver.getUnsatCoreLemmas |> assertOkDiscard
+
+test![TestApiBlackSolver, getUnsatCoreAndLemmas2] tm solver => do
+  solver.setOption "incremental" "true"
+  solver.setOption "produce-unsat-cores" "true"
+  solver.setOption "produce-proofs" "true"
+
+  let int ← tm.getIntegerSort
+  let bool ← tm.getBooleanSort
+  let uninterpreted ← tm.mkUninterpretedSort "U"
+
+  let uToIntSort ← tm.mkFunctionSort #[uninterpreted] int
+  let intPredSort ← tm.mkFunctionSort #[int] bool
+
+  let x ← tm.mkConst uninterpreted "x"
+  let y ← tm.mkConst uninterpreted "y"
+  let f ← tm.mkConst uToIntSort "f"
+  let p ← tm.mkConst intPredSort "p"
+  let zero ← tm.mkInteger 0
+  let one ← tm.mkInteger 1
+  let f_x ← tm.mkTerm Kind.APPLY_UF #[f, x]
+  let f_y ← tm.mkTerm Kind.APPLY_UF #[f, y]
+  let sum ← tm.mkTerm Kind.ADD #[f_x, f_y]
+  let p_0 ← tm.mkTerm Kind.APPLY_UF #[p, zero]
+  let p_f_y ← tm.mkTerm Kind.APPLY_UF #[p, f_y]
+  tm.mkTerm Kind.GT #[zero, f_x] >>= solver.assertFormula
+  tm.mkTerm Kind.GT #[zero, f_y] >>= solver.assertFormula
+  tm.mkTerm Kind.GT #[sum, one] >>= solver.assertFormula
+  solver.assertFormula p_0
+  p_f_y.notTerm >>= solver.assertFormula
+  assertTrue (← solver.checkSat).isUnsat
+
+  solver.getUnsatCoreLemmas |> assertOkDiscard
+
+test![TestApiBlackSolver, getAbduct] tm solver => do
+  solver.setLogic "QF_LIA"
+  solver.setOption "produce-abducts" "true"
+  solver.setOption "incremental" "false"
+
+  let zero ← tm.mkInteger 0
+  let bool ← tm.getBooleanSort
+  let int ← tm.getIntegerSort
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+
+  -- assumptions for abduction `x > 0`
+  tm.mkTerm Kind.GT #[x, zero] >>= solver.assertFormula
+  -- conjecture for abduction `y > 0`
+  let conj ← tm.mkTerm Kind.GT #[y, zero]
+  -- call the abduction api, while the resulting abduct is the output
+  let output ← solver.getAbduct conj
+  -- we expect the resulting output to be a boolean formula
+  assertTrue (¬ output.isNull ∧ output.getSort.isBoolean)
+
+  -- try with a grammar, a simple grammar admitting true
+  let truen ← tm.mkBoolean true
+  let start ← tm.mkVar bool
+  let mut g ← solver.mkGrammar #[] #[start]
+  let conj2 ← tm.mkTerm Kind.GT #[x, zero]
+  solver.getAbduct conj2 g |> assertError
+    "invalid grammar, must have at least one rule for each non-terminal symbol"
+  g ← g.addRule start truen
+  -- call the abduction api, while the resulting abduct is the output
+  let output2 ← solver.getAbduct conj2 g
+  -- abduct must be true
+  assertEq truen output2
+
+  let tm' ← TermManager.new
+  let solver' ← Solver.new tm'
+  solver'.setOption "produce-abducts" "true"
+  let int' ← tm'.getIntegerSort
+  let xx ← tm'.mkConst int' "x"
+  let yy ← tm'.mkConst int' "y"
+  let zzero ← tm'.mkInteger 0
+  let sstart ← tm'.getBooleanSort >>= tm'.mkVar
+  tm'.mkTerm Kind.GT #[← tm'.mkTerm Kind.ADD #[xx, yy], zzero] >>= solver'.assertFormula
+  let mut gg ← solver'.mkGrammar #[] #[sstart]
+  gg ← tm'.mkTrue >>= gg.addRule sstart
+  let cconj2 ← tm'.mkTerm Kind.EQUAL #[zzero, zzero]
+  solver'.getAbduct cconj2 gg |> assertOkDiscard
+  solver'.getAbduct conj2 |> assertError
+    "Given term is not associated with the term manager of this solver"
+  solver'.getAbduct conj2 gg |> assertError
+    "Given term is not associated with the term manager of this solver"
+  solver'.getAbduct cconj2 g |> assertError
+    "Given grammar is not associated with the term manager of this solver"
+
+test![TestApiBlackSolver, getAbduct2] tm solver => do
+  solver.setLogic "QF_LIA"
+  solver.setOption "incremental" "false"
+  let int ← tm.getIntegerSort
+  let zero ← tm.mkInteger 0
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+  -- assumptions for abduction: `x > 0`
+  tm.mkTerm Kind.GT #[x, zero] >>= solver.assertFormula
+  -- conjecture for abduction: `y > 0`
+  let conj ← tm.mkTerm Kind.GT #[y, zero]
+  -- fails due to option not set
+  solver.getAbduct conj |> assertError
+    "cannot get abduct unless abducts are enabled (try --produce-abducts)"
+
+test![TestApiBlackSolver, getAbductNext] tm solver => do
+  solver.setLogic "QF_LIA"
+  solver.setOption "produce-abducts" "true"
+  solver.setOption "incremental" "true"
+
+  let int ← tm.getIntegerSort
+  let zero ← tm.mkInteger 0
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+
+  -- assumptions for abduction: `x > 0`
+  tm.mkTerm Kind.GT #[x, zero] >>= solver.assertFormula
+  -- conjecture for abduction: `y > 0`
+  let conj ← tm.mkTerm Kind.GT #[y, zero]
+  -- call the abduction api, while the resulting abduct is the output
+  let output ← solver.getAbduct conj
+  let output2 ← solver.getAbductNext
+  -- should produce a different output
+  assertTrue (output != output2)
+
+test![TestApiBlackSolver, getInterpolant] tm solver => do
+  solver.setLogic "QF_LIA"
+  solver.setOption "produce-interpolants" "true"
+  solver.setOption "incremental" "false"
+
+  let int ← tm.getIntegerSort
+  let bool ← tm.getBooleanSort
+  let zero ← tm.mkInteger 0
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+  let z ← tm.mkConst int "z"
+
+  -- assumptions for interpolation: `x + y > 0 ∧ x < 0`
+  tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[x, y], zero] >>= solver.assertFormula
+  tm.mkTerm Kind.LT #[x, zero] >>= solver.assertFormula
+  -- conjecture for interpolation: `y + z > 0 ∨ z < 0`
+  let conj ← tm.mkTerm Kind.OR #[
+    ← tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[y, z], zero],
+    ← tm.mkTerm Kind.LT #[z, zero],
+  ]
+  -- call the interpolation api, while the resulting interpolant is the output
+  let output ← solver.getInterpolant conj
+  -- we expect the resulting output to be a boolean formula
+  assertTrue output.getSort.isBoolean
+
+  -- try with a grammar, a simple grammar admitting true
+  let truen ← tm.mkBoolean true
+  let start ← tm.mkVar bool
+  let mut g ← solver.mkGrammar #[] #[start]
+  let conj2 ← tm.mkTerm Kind.EQUAL #[zero, zero]
+  solver.getInterpolant conj2 g |> assertError
+    "invalid grammar, must have at least one rule for each non-terminal symbol"
+  g ← g.addRule start truen |> assertOk
+  -- call the interpolation api, while the resulting interpolant is the output
+  let output2 ← solver.getInterpolant conj2 g
+  -- interpolant must be true
+  assertEq truen output2
+
+  let tm' ← TermManager.new
+  let solver' ← Solver.new tm'
+  solver'.setOption "produce-interpolants" "true"
+  let zzero ← tm'.mkInteger 0
+  let sstart ← tm'.getBooleanSort >>= tm'.mkVar
+  let mut gg ← solver'.mkGrammar #[] #[sstart]
+  gg ← tm'.mkTrue >>= gg.addRule sstart
+  let cconj2 ← tm'.mkTerm Kind.EQUAL #[zzero, zzero]
+  solver'.getInterpolant cconj2 gg |> assertOkDiscard
+  solver'.getInterpolant conj2 |> assertError
+    "Given term is not associated with the term manager of this solver"
+  solver'.getInterpolant conj2 gg |> assertError
+    "Given term is not associated with the term manager of this solver"
+  solver'.getInterpolant cconj2 g |> assertError
+    "Given grammar is not associated with the term manager of this solver"
+
+test![TestApiBlackSolver, getInterpolantNext] tm solver => do
+  solver.setLogic "QF_LIA"
+  solver.setOption "produce-interpolants" "true"
+  solver.setOption "incremental" "true"
+
+  let int ← tm.getIntegerSort
+  let zero ← tm.mkInteger 0
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+  let z ← tm.mkConst int "z"
+  -- assumptions for interpolation: `x + y > 0 ∧ x < 0`
+  tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[x, y], zero] >>= solver.assertFormula
+  tm.mkTerm Kind.LT #[x, zero] >>= solver.assertFormula
+  -- conjecture for interpolation: `y + z > 0 ∨ z < 0`
+  let conj ← tm.mkTerm Kind.OR #[
+    ← tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[y, z], zero],
+    ← tm.mkTerm Kind.LT #[z, zero],
+  ]
+  let output ← solver.getInterpolant conj
+  let output2 ← solver.getInterpolantNext
+
+  -- we expect the next output to be distinct
+  assertTrue (output != output2)
+
+
+
 
 /-! # Synthesis/sygus -/
 
