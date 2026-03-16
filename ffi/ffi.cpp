@@ -4092,11 +4092,11 @@ LEAN_EXPORT lean_obj_res solver_getTimeoutCoreAssuming(lean_obj_arg solver,
 }
 
 LEAN_EXPORT lean_obj_res solver_getProof(lean_obj_arg solver,
-
+                                          uint8_t pc,
                                          lean_obj_arg ioWorld)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
-  std::vector<Proof> proofs = solver_unbox(solver)->getProof();
+  std::vector<Proof> proofs = solver_unbox(solver)->getProof(static_cast<cvc5::modes::ProofComponent>(pc));
   lean_object* ps = lean_mk_empty_array();
   for (const Proof& proof : proofs)
   {

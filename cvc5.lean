@@ -2860,8 +2860,19 @@ extern_def getTimeoutCoreAssuming :
 /-- Get a proof associated with the most recent call to `checkSat`.
 
 Requires to enable option `produce-proofs`.
+
+```smtlib
+(get-proof :c)
+```
+
+**NB:** requires to enable option `produce-proofs`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `c`: The component of the proof to return.
 -/
-extern_def getProof : (solver : Solver) → Env (Array Proof)
+extern_def getProof :
+  (solver : Solver) → (c : ProofComponent := ProofComponent.FULL) → Env (Array Proof)
 
 /-- Prints a proof as a string in a selected proof format mode.
 
