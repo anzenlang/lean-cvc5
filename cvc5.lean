@@ -2878,15 +2878,23 @@ extern_def getProof :
 
 Other aspects of printing are taken from the solver options.
 
+**Warning**: this function is experimental and may change in future versions.
+
 - `proof`: A proof, usually obtained from `getProof`.
+- `format`: The proof format used to print the proof. Must be `ProofFormat.NONE` if the proof is
+  from a component other than `ProofComponent.FULL`.
 -/
-extern_def proofToString : (solver : Solver) → Proof → Env String
+extern_def proofToString :
+  (solver : Solver) → (proof : Proof) → (format : ProofFormat := ProofFormat.DEFAULT) → Env String
 
 /-- Get a list of learned literals that are entailed by the current set of assertions.
 
 **Warning**: this function is experimental and may change in future versions.
+
+- `t`: The type of learned literals to return.
 -/
-extern_def getLearnedLiterals : (solver : Solver) → Env (Array Term)
+extern_def getLearnedLiterals :
+  (solver : Solver) → (t : LearnedLitType := LearnedLitType.INPUT) → Env (Array Term)
 
 /--
 Get the values of the given term in the current model.
@@ -3068,11 +3076,15 @@ call to binary sym via a text interface.
 - `sorts`: The sorts of the parameters to this function.
 - `sort`: The sort of the return value of this function.
 - `fn`: The function that implements the oracle function.
+
+# TODO
+
+Causes the tests to crash in a very weird way, see `cvc5Test/Unit/ApiSolverOracleFun.lean`.
 -/
 extern_def declareOracleFun :
   (solver : Solver) → (symbol : String)
   → (sorts : Array cvc5.Sort) → (sort : cvc5.Sort)
-  → (fn : Array Term → Term)
+  → (fn : Array Term → Env Term)
   → Env Term
 
 /-- Pop (a) level(s) from the assertion stack.
