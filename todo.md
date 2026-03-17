@@ -15,6 +15,9 @@
 - `addPlugin`: `Plugin` API missing
 - `getStatistics`: `Statistics` API missing
 - `getOptionInfo`: `OptionInfo` API missing
+- `assertionNames` parameter of `Solver.proofToString`
+- `declareOracleFun`: implemented but tests crash in a very weird way, see
+  `cvc5Test/Unit/ApiSolverOracleFun.lean`
 
 ## Notes in C++ API/tests
 
