@@ -1906,97 +1906,96 @@ test![TestApiBlackSolver, declareOracleFunError] tm solver => do
   solver.declareOracleFun "f" #[nullSort] int (fun _input => tm.mkInteger 0) |> assertError
     "invalid null domain sort in 'sorts' at index 0"
 
--- test![TestApiBlackSolver, declareOracleFunUnsat] tm solver => do
---   solver.setOption "oracles" "true"
---   let oracle (terms : Array Term) : Env Term := do
---     if let some term := terms[0]? then
---       if let some val := term.getUInt32Value? then
---         return ← val.toNat.succ |> Int.ofNat |> tm.mkInteger
---     tm.mkInteger 0
---   -- `f` is the function implementing `(lambda ((x Int)) (+ x 1))`
---   let f ← solver.declareOracleFun "f" #[int] int oracle
---   let three ← tm.mkInteger 3
---   let five ← tm.mkInteger 5
---   let eq ← tm.mkTerm Kind.EQUAL #[← tm.mkTerm Kind.APPLY_UF #[f, three], five]
---   solver.assertFormula eq
---   -- `(f 3) = 5`
---   assertTrue (← solver.checkSat).isUnsat
+-- #TODO `declareOracleFun` is buggy, but some tests are available in `ApiSolverOracleFun`
 
---   let tm' ← TermManager.new
---   let solver' ← Solver.new tm'
---   solver'.setOption "oracles" "true"
---   let int' ← tm'.getIntegerSort
---   let oracle' (terms : Array Term) : Env Term := do
---     if let some term := terms[0]? then
---       if let some val := term.getUInt32Value? then
---         return ← val.toNat.succ |> Int.ofNat |> tm'.mkInteger
---     tm'.mkInteger 0
---   solver'.declareOracleFun "f" #[int'] int oracle' |> assertError
---     "Given sort is not associated with the term manager of this solver"
---   solver'.declareOracleFun "f" #[int] int' oracle' |> assertError
---     "invalid domain sort in 'sorts' at index 0, \
---     expected a sort associated with the term manager of this solver object"
+-- #TODO `Plugin`-related functions not implemented
 
---   -- this cannot be caught during declaration, is caught during check-sat
---   let f2 ← solver'.declareOracleFun "f2" #[int'] int' oracle
---   let eq2 ← tm'.mkTerm Kind.EQUAL #[
---     ← tm'.mkTerm Kind.APPLY_UF #[f2, ← tm'.mkInteger 3], ← tm'.mkInteger 5
---   ]
---   solver'.assertFormula eq2
---   solver'.checkSat |> assertError
---     "Evaluated an oracle call that is not associated with the term manager of this solver"
+test![TestApiBlackSolver, verticalBars] tm solver => do
+  let a ← solver.declareFun "|a |" #[] real
+  assertEq "|a |" a.toString
 
---   -- added from the original test to check we're handling nested errors properly
---   let tm'' ← TermManager.new
---   let solver'' ← Solver.new tm''
---   solver''.setOption "oracles" "true"
---   let int'' ← tm''.getIntegerSort
---   let f3 ← solver''.declareOracleFun "f3" #[int''] int''
---     fun _ => throw (Error.error "internal failure")
---   let eq3 ← tm''.mkTerm Kind.EQUAL #[
---     ← tm''.mkTerm Kind.APPLY_UF #[f3, ← tm''.mkInteger 3], ← tm''.mkInteger 5
---   ]
---   solver''.assertFormula eq3
---   solver''.checkSat |> assertError "internal failure"
+test![TestApiBlackSolver, getVersion] tm solver => do
+  solver.getVersion |> assertOkDiscard
 
--- test![TestApiBlackSolver, declareOracleFunSat] tm solver => do
---   solver.setOption "oracles" "true"
---   solver.setOption "produce-models" "true"
---   -- `f` is the function implementing `(lambda ((x Int)) (% x 10))`
---   let f ← solver.declareOracleFun "f" #[int] int fun terms => do
---     if let some term := terms[0]? then
---       if let some val := term.getUInt32Value? then
---         return ← tm.mkInteger (val.toNat % 10)
---     tm.mkInteger 0
---   let seven ← tm.mkInteger 7
---   let x ← tm.mkConst int "x"
---   let lb ← tm.mkTerm Kind.GEQ #[x, ← tm.mkInteger 0]
---   solver.assertFormula lb
---   let ub ← tm.mkTerm Kind.LEQ #[x, ← tm.mkInteger 100]
---   solver.assertFormula ub
---   let eq ← tm.mkTerm Kind.EQUAL #[← tm.mkTerm Kind.APPLY_UF #[f, x], seven]
---   solver.assertFormula eq
---   -- `x ≥ 0 ∧ x ≤ 100 ∧ (f x) = 7`
---   assertTrue (← solver.checkSat).isSat
---   let xval ← solver.getValue x
---   assertTrue xval.isUInt32Value
---   assertTrue <| xval.getUInt32Value!.toNat % 10 == 7
+test![TestApiBlackSolver, multipleSolvers] tm _solver => do
+  let (value1, zero, definedFunction) ← do
+    let s1 ← Solver.new tm
+    s1.setLogic "ALL"
+    s1.setOption "produce-models" "true"
+    let f1 ← s1.declareFun "f1" #[] int
+    let x ← tm.mkVar int "x"
+    let zero ← tm.mkInteger 0
+    let definedFunction ← s1.defineFun "f" #[ x ] int zero
+    f1.eqTerm zero >>= s1.assertFormula
+    s1.checkSat |> assertOkDiscard
+    let value1 ← s1.getValue f1
+    pure (value1, zero, definedFunction)
+  assertEq zero value1
+  let value2 ← do
+    let s2 ← Solver.new tm
+    s2.setLogic "ALL"
+    s2.setOption "produce-models" "true"
+    let f2 ← s2.declareFun "f2" #[] int
+    f2.eqTerm value1 >>= s2.assertFormula
+    s2.checkSat |> assertOkDiscard
+    s2.getValue f2
+  assertEq value1 value2
+  let value3 ← do
+    let s3 ← Solver.new tm
+    s3.setLogic "ALL"
+    s3.setOption "produce-models" "true"
+    let f3 ← s3.declareFun "f3" #[] int
+    let apply ← tm.mkTerm Kind.APPLY_UF #[definedFunction, zero]
+    f3.eqTerm apply >>= s3.assertFormula
+    s3.checkSat |> assertOkDiscard
+    s3.getValue f3
+  assertEq value1 value3
 
--- test![TestApiBlackSolver, declareOracleFunSat2] tm solver => do
---   solver.setOption "oracles" "true"
---   solver.setOption "produce-models" "true"
-  -- -- `eq` is the function implementing `(lambda ((x Int) (y Int)) (= x y))`
-  -- let eq ← solver.declareOracleFun "eq" #[int, int] bool fun terms => do
-  --   if let some t1 := terms[0]? then
-  --     if let some t2 := terms[1]? then
-  --       return ← tm.mkBoolean (t1 == t2)
-  --   throw (Error.error "expected exactly two terms")
-  -- let x ← tm.mkConst int "x"
-  -- let y ← tm.mkConst int "y"
-  -- let neq ← tm.mkTerm Kind.NOT #[← tm.mkTerm Kind.APPLY_UF #[eq, x, y]]
-  -- solver.assertFormula neq
-  -- -- `(not (eq x y))`
+test![TestApiBlackSolver, basicFiniteField] tm solver => do
+  solver.setOption "produce-models" "true"
+
+  let F ← tm.mkFiniteFieldSort 5
+  let a ← tm.mkConst F "a"
+  let b ← tm.mkConst F "b"
+  assertEq 5 F.getFiniteFieldSize!
+
+  let inv ← tm.mkTerm Kind.EQUAL
+    #[← tm.mkTerm Kind.FINITE_FIELD_MULT #[a, b], ← tm.mkFiniteFieldElem 1 F]
+  let aIsTwo ← tm.mkTerm Kind.EQUAL #[a, ← tm.mkFiniteFieldElem 2 F]
+
+  solver.assertFormula inv
+  solver.assertFormula aIsTwo
+  -- -- #TODO requires a cvc5 dyn-lib with *cocoa* linked
   -- assertTrue (← solver.checkSat).isSat
-  -- let xval ← solver.getValue x
-  -- let yval ← solver.getValue y
-  -- assertNe xval yval
+  -- assertEq 2 (← solver.getValue a).getFiniteFieldValue!
+  -- assertEq (-2) (← solver.getValue b).getFiniteFieldValue!
+
+  let bIsTwo ← tm.mkTerm Kind.EQUAL #[b, ← tm.mkFiniteFieldElem 2 F]
+  solver.assertFormula bIsTwo
+  -- -- #TODO requires a cvc5 dyn-lib with *cocoa* linked
+  -- assertFalse (← solver.checkSat).isSat
+
+-- -- requires a cvc5 dyn-lib with *cocoa* linked
+test![TestApiBlackSolver, basicFiniteField] tm solver => do
+  solver.setOption "produce-models" "true"
+
+  let F ← tm.mkFiniteFieldSortOfString "101" 2
+  let a ← tm.mkConst F "a"
+  let b ← tm.mkConst F "b"
+  assertEq 5 F.getFiniteFieldSize!
+
+  let inv ← tm.mkTerm Kind.EQUAL
+    #[← tm.mkTerm Kind.FINITE_FIELD_MULT #[a, b], ← tm.mkFiniteFieldElemOfString "1" F 3]
+  let aIsTwo ← tm.mkTerm Kind.EQUAL #[a, ← tm.mkFiniteFieldElemOfString "10" F 2]
+
+  solver.assertFormula inv
+  solver.assertFormula aIsTwo
+  -- -- #TODO requires a cvc5 dyn-lib with *cocoa* linked
+  -- assertTrue (← solver.checkSat).isSat
+  -- assertEq 2 (← solver.getValue a).getFiniteFieldValue!
+  -- assertEq (-2) (← solver.getValue b).getFiniteFieldValue!
+
+  let bIsTwo ← tm.mkTerm Kind.EQUAL #[b, ← tm.mkFiniteFieldElemOfString "2" F]
+  solver.assertFormula bIsTwo
+  -- -- #TODO requires a cvc5 dyn-lib with *cocoa* linked
+  -- assertFalse (← solver.checkSat).isSat
