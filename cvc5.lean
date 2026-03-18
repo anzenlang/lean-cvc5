@@ -1920,10 +1920,11 @@ extern_def mkFloatingPointSort : TermManager → (exp sig : UInt32) → Env cvc5
 
 - `size` The modulus of the field. Must be a prime.
 -/
-extern_def mkFiniteFieldSortOfString : TermManager → (size : String) → (base : UInt32) → Env cvc5.Sort
+extern_def mkFiniteFieldSortOfString :
+  TermManager → (size : String) → (base : UInt32 := 10) → Env cvc5.Sort
 with
-  mkFiniteFieldSort (tm : TermManager) (size : Nat) (base : UInt32 := 10) : Env cvc5.Sort :=
-    mkFiniteFieldSortOfString tm (toString size) base
+  mkFiniteFieldSort (tm : TermManager) (size : Nat) : Env cvc5.Sort :=
+    mkFiniteFieldSortOfString tm (toString size) (base := 10)
 
 /-- Create a datatype sort.
 
@@ -2243,8 +2244,11 @@ range, it will be reduced modulo size before being constructed.
 - `sort` The field sort.
 - `base` The base of the string representation of `value`, default `10`.
 -/
-extern_def mkFiniteFieldElem :
+extern_def mkFiniteFieldElemOfString :
   TermManager → (value : String) → (sort : cvc5.Sort) → (base : UInt32 := 10) → Env Term
+with
+  mkFiniteFieldElem (tm : TermManager) (value : Int) (sort : cvc5.Sort) : Env Term :=
+    tm.mkFiniteFieldElemOfString (base := 10) (toString value) sort
 
 /-- Create a constant array with the provided constant value stored at every index.
 
