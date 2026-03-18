@@ -143,6 +143,7 @@ macro_rules
     if let some tmIdent := tmIdent? then
       let boolIdent := `bool |> Lean.mkIdent
       let intIdent := `int |> Lean.mkIdent
+      let realIdent := `real |> Lean.mkIdent
       let uninterpretedIdent := `uninterpreted |> Lean.mkIdent
       if let some (some solverIdent) := solverIdent? then
         `(do
@@ -150,6 +151,7 @@ macro_rules
             let $solverIdent:ident ← Solver.new $tmIdent
             let $boolIdent ← $tmIdent:ident |>.getBooleanSort
             let $intIdent ← $tmIdent:ident |>.getIntegerSort
+            let $realIdent ← $tmIdent:ident |>.getRealSort
             let $uninterpretedIdent ← $tmIdent:ident |>.mkUninterpretedSort "u"
             $code:term
         )
