@@ -2497,10 +2497,8 @@ LEAN_EXPORT lean_obj_res termManager_mkBitVectorOfString(lean_obj_arg tm,
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
-LEAN_EXPORT lean_obj_res termManager_mkFiniteFieldElem(lean_obj_arg tm,
-                                                       lean_obj_arg value,
-                                                       lean_obj_arg sort,
-                                                       uint32_t base)
+LEAN_EXPORT lean_obj_res termManager_mkFiniteFieldElemOfString(
+    lean_obj_arg tm, lean_obj_arg value, lean_obj_arg sort, uint32_t base)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
   return env_val(term_box(new Term(mut_tm_unbox(tm)->mkFiniteFieldElem(
