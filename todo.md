@@ -3,7 +3,7 @@
 - statistics
 - `OptionInfo`
 - `DriverOptions`
-- `Plugin`
+- `Plugin`s
 - `Statistics`
 
 ## Solver
