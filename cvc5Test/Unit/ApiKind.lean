@@ -7,11 +7,20 @@ import cvc5Test.Init
 
 namespace cvc5.Test
 
-test![TestApiKind, kindToString] do
-  for idx in [Kind.INTERNAL_KIND.ctorIdx : Kind.LAST_KIND.ctorIdx] do
-    let k := Kind.ofNat idx
-    -- if this assertion fails, `s_kinds` in `cvc5.cpp` is missing kind `k`.
-    assertNe k.toString "?"
+partial def iterAll [Monad m] (f : Kind → m Unit) : m Unit :=
+  loop none 0
+where loop (prev : Option Kind) (n : Nat) : m Unit := do
+  let k := Kind.ofNat n
+  f k
+  if prev = some k then return () else loop (some k) n.succ
+
+test![TestApiKind, kindToString] do iterAll fun
+  | k@.INTERNAL_KIND => assertEq "INTERNAL_KIND" k.toString
+  | k@.UNDEFINED_KIND => assertEq "UNDEFINED_KIND" k.toString
+  | k => do
+    let s := k.toString
+    assertNe "INTERNAL_KIND" s
+    assertNe "UNDEFINED_KIND" s
 
 test![TestApiKind, kindHash] do
   -- assertion failures here indicate a problem in lean-to-cpp conversion

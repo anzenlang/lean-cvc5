@@ -18,8 +18,7 @@ test![TestApiBlackSynthResult, isNull] do
   -- null `SynthResult` cannot be constructed, skipping test
   return ()
 
-test![TestApiBlackSynthResult, hasSolution] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSynthResult, hasSolution] tm solver => do
   solver.setOption "sygus" "true"
   let bool ← tm.getBooleanSort
   let _f ← solver.synthFun "f" #[] bool
@@ -32,8 +31,7 @@ test![TestApiBlackSynthResult, hasSolution] tm => do
   assertFalse res.isUnknown
   assertEq res.toString "(SOLUTION)"
 
-test![TestApiBlackSynthResult, hasNoSolution] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSynthResult, hasNoSolution] tm solver => do
   solver.setOption "sygus" "true"
   let bool ← tm.getBooleanSort
   let _f ← solver.synthFun "f" #[] bool
@@ -46,12 +44,18 @@ test![TestApiBlackSynthResult, hasNoSolution] tm => do
   assertFalse res.isUnknown
   assertEq res.toString "(NO_SOLUTION)"
 
-test![TestApiBlackSynthResult, isUnknown] do
-  -- no test for `SynthResult.isUnknown`
-  return ()
+test![TestApiBlackSynthResult, isUnknown] tm solver => do
+  solver.setOption "sygus" "true"
+  let _f ← solver.synthFun "f" #[] bool
+  let boolTerm ← tm.mkFalse
+  solver.addSygusConstraint boolTerm
+  let res ← solver.checkSynth
+  assertFalse res.isNull
+  assertFalse res.hasSolution
+  assertTrue res.hasNoSolution
+  assertFalse res.isUnknown
 
-test![TestApiBlackSynthResult, equalHash] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSynthResult, equalHash] tm solver => do
   solver.setOption "sygus" "true"
   let bool ← tm.getBooleanSort
   let _f ← solver.synthFun "f" #[] bool

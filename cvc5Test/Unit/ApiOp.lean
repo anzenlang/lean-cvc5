@@ -7,38 +7,30 @@ import cvc5Test.Init
 
 namespace cvc5.Test
 
-test! tm => do
-  let bv1 ←
-    tm.mkOp Kind.BITVECTOR_EXTRACT #[31, 1]
-    |> assertOk
-  let bv1' ←
-    tm.mkOp Kind.BITVECTOR_EXTRACT #[31, 1]
-    |> assertOk
-  let bv2 ←
-    tm.mkOp Kind.BITVECTOR_EXTRACT #[31, 2]
-    |> assertOk
-  assertEq bv1 bv1'
-  assertNe bv1 bv2
+test![TestApiBlackOp, hash] tm => do
+  let op1 ← tm.mkOp Kind.BITVECTOR_EXTRACT #[31, 1]
+  let op2 ← tm.mkOp Kind.BITVECTOR_EXTRACT #[31, 2]
+  assertEq op1.hash op1.hash
+  assertNe op1.hash op2.hash
+  Op.null () |>.hash |> assertEq 0
 
-test! tm => do
-  let x ← tm.mkOp Kind.BITVECTOR_EXTRACT #[31, 1] |> assertOk
-  assertEq x.getKind Kind.BITVECTOR_EXTRACT
+test![TestApiBlackOp, getKind] tm => do
+  let x ← tm.mkOp Kind.BITVECTOR_EXTRACT #[31, 1]
+  assertEq Kind.BITVECTOR_EXTRACT x.getKind
 
-test! tm => do
+test![TestApiBlackOp, isNull] tm => do
   let x := Op.null ()
   assertEq x.isNull true
-  let y ← tm.mkOp Kind.BITVECTOR_EXTRACT #[31, 1] |> assertOk
+  let y ← tm.mkOp Kind.BITVECTOR_EXTRACT #[31, 1]
   assertEq y.isNull false
   assertNe x y
 
-test! tm => do
-  tm.mkOp Kind.ADD
-  |> assertOkDiscard
-  tm.mkOp Kind.BITVECTOR_EXTRACT
-  |> assertError
+test![TestApiBlackOp, opFromKind] tm => do
+  tm.mkOp Kind.ADD |> assertOkDiscard
+  tm.mkOp Kind.BITVECTOR_EXTRACT |> assertError
     "invalid number of indices for operator BITVECTOR_EXTRACT, expected 2 but got 0."
 
-test! tm => do
+test![TestApiBlackOp, getNumIndices] tm => do
   -- operators with 0 indices
   let plus ← tm.mkOp Kind.ADD |> assertOk
 
@@ -87,21 +79,21 @@ test! tm => do
   -- operators with n indices
   let indices := #[0, 3, 2, 0, 1, 2];
   let tupleProject ← tm.mkOp Kind.TUPLE_PROJECT indices;
-  assertEq indices.size tupleProject.getNumIndices
+  assertEq tupleProject.getNumIndices indices.size
 
   let relationProject ← tm.mkOp Kind.RELATION_PROJECT indices
-  assertEq indices.size relationProject.getNumIndices
+  assertEq relationProject.getNumIndices indices.size
 
   let tableProject ← tm.mkOp Kind.TABLE_PROJECT indices
-  assertEq indices.size tableProject.getNumIndices
+  assertEq tableProject.getNumIndices indices.size
 
-test! tm => do
+test![TestApiBlackOp, subscriptOperator] tm => do
   -- operators with 0 indices
   let plus ← tm.mkOp Kind.ADD |> assertOk
 
-  -- can't test that `plus[0]` fails as there are no legal indices at lean-level
-  assertEq plus.isIndexed false
-  assertEq plus.getNumIndices 0
+  assertEq false plus.isIndexed
+  assertEq 0 plus.getNumIndices
+  assertEq none plus[0]?
 
   -- helper for 1/n-indexed operators
   let check (op : Op) (idx : Nat) (intValue : Int) : cvc5.Env Unit :=
@@ -162,25 +154,9 @@ test! tm => do
   for idx in [0 : indices.size] do
     check tupleProject idx indices[idx]!
 
-/-
-Not sure what to do for the end of the test below. Original test is
-
-```cpp
-Op bitvector_repeat_ot = d_mkOp(Kind::BITVECTOR_REPEAT, {5});
-std::string op_repr = bitvector_repeat_ot.toString();
-ASSERT_EQ(bitvector_repeat_ot.toString(), op_repr);
-{
-  std::stringstream ss;
-  ss << bitvector_repeat_ot;
-  ASSERT_EQ(ss.str(), op_repr);
-}
-```
-
-I don't know what test would make sense at lean-level for this last block, so it's ignored. The only
-check left is not very interesting though.
--/
-test! tm => do
-  let bitvectorRepeatOt ← tm.mkOp Kind.BITVECTOR_REPEAT #[5]
-  let opRepr := bitvectorRepeatOt.toString
-  assertEq bitvectorRepeatOt.toString opRepr
-  -- not sure what to do here, see comment above
+test![TestApiBlackOp, opScopingToString] tm => do
+  let bvRepeatOp ← tm.mkOp Kind.BITVECTOR_REPEAT #[5]
+  let opRepr := bvRepeatOp.toString
+  assertEq opRepr bvRepeatOp.toString
+  -- the assertion above is a tautology:
+  have : opRepr = bvRepeatOp.toString := rfl

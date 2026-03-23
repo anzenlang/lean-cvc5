@@ -7,24 +7,28 @@ import cvc5Test.Init
 
 namespace cvc5.Test
 
+partial def ProofRule.iterAll [Monad m] (f : ProofRule → m Unit) : m Unit :=
+  loop none 0
+where loop (prev : Option ProofRule) (n : Nat) : m Unit := do
+  let k := ProofRule.ofNat n
+  f k
+  if prev = some k then return () else loop (some k) n.succ
+
 test![TestApiBlackProofRule, proofRuleToString] do
-  for idx in [ProofRule.ASSUME.ctorIdx : ProofRule.UNKNOWN.ctorIdx] do
-    let pr := ProofRule.ofNat idx
-    -- if this assertion fails, the switch is missing rule `pr`.
-    assertNe pr.toString "?"
+  ProofRule.iterAll fun pr => assertNe "?" pr.toString
 
 test![TestApiBlackProofRule, proofRuleHash] do
-  for idx in [ProofRule.ASSUME.ctorIdx : ProofRule.UNKNOWN.ctorIdx] do
-    let pr := ProofRule.ofNat idx
-    assertEq pr.hash ⟨pr.ctorIdx⟩
+  assertEq ProofRule.UNKNOWN.ctorIdx ProofRule.UNKNOWN.hash.toNat
 
-test![TestApiBlackProofRewriteRule, proofRuleToString] do
-  for idx in [ProofRule.ASSUME.ctorIdx : ProofRule.UNKNOWN.ctorIdx] do
-    let pr := ProofRule.ofNat idx
-    -- if this assertion fails, the switch is missing rule `pr`.
-    assertNe pr.toString "?"
+partial def ProofRewriteRule.iterAll [Monad m] (f : ProofRewriteRule → m Unit) : m Unit :=
+  loop none 0
+where loop (prev : Option ProofRewriteRule) (n : Nat) : m Unit := do
+  let k := ProofRewriteRule.ofNat n
+  f k
+  if prev = some k then return () else loop (some k) n.succ
 
-test![TestApiBlackProofRewriteRule, proofRuleHash] do
-  for idx in [ProofRule.ASSUME.ctorIdx : ProofRule.UNKNOWN.ctorIdx] do
-    let pr := ProofRule.ofNat idx
-    assertEq pr.hash ⟨pr.ctorIdx⟩
+test![TestApiBlackProofRewriteRule, proofRewriteRuleToString] do
+  ProofRewriteRule.iterAll fun pr => assertNe "?" pr.toString
+
+test![TestApiBlackProofRewriteRule, proofRewriteRuleHash] do
+  assertEq ProofRewriteRule.NONE.ctorIdx ProofRewriteRule.NONE.hash.toNat

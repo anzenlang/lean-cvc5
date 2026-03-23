@@ -22,6 +22,12 @@ def parseLogicCommand (parser : InputParser) (logic : String) : Env Command := d
 test![TestApiBlackInputParser, constructSymbolManager] tm => do
   let _ ← SymbolManager.new tm
 
+-- -- skipped as the lean API does not allow retrieving the solver
+-- test![TestApiBlackInputParser, getSolver]
+
+-- -- skipped as the lean API does not allow retrieving the symbol manager
+-- test![TestApiBlackInputParser, getSymbolManager]
+
 test![TestApiBlackInputParser, setFileInput] tm => do
   let solver ← Solver.new tm
   let parser ← InputParser.new solver
@@ -122,6 +128,9 @@ test![TestApiBlackInputParser, setStringInput] tm => do
   let cmd ← parser.nextCommand
   assertTrue cmd.isNull
 
+-- -- tests `InputParser.setStreamInput`, which the lean API does not have
+-- test![TestApiBlackInputParser, nextCommand]
+
 test![TestApiBlackInputParser, nextCommandNoInput] tm => do
   let solver ← Solver.new tm
   let parser ← InputParser.new solver
@@ -166,11 +175,11 @@ test![TestApiBlackInputParser, nextTerm2] tm => do
   parser.appendIncrementalStringInput "(+ a 1)\n"
   let term ← assertOk parser.nextTerm
   assertFalse term.isNull
-  assertEq term.getKind Kind.ADD
+  assertEq (← term.getKind) Kind.ADD
   parser.appendIncrementalStringInput "(+ b 1)\n"
   assertError "Symbol 'b' not declared as a variable" parser.nextTerm
 
-test![TestApiBlackInputParser, setAndAppendIncrementalStringInput] tm => do
+test![TestApiBlackInputParser, multipleParsers] tm => do
   let solver1 ← Solver.new tm
   let parser1 ← InputParser.new solver1
   let symbols ← parser1.getSymbolManager
@@ -215,6 +224,9 @@ test![TestApiBlackInputParser, setAndAppendIncrementalStringInput] tm => do
     "Logic mismatch when initializing InputParser.\n\
     The solver's logic: QF_LRA\nThe symbol manager's logic: QF_LIA"
 
+-- -- no dedicated parser error
+-- test![TestApiBlackInputParser, parserErrors]
+
 test![TestApiBlackInputParser, incrementalSetString] tm => do
   let solver ← Solver.new tm
   let parser ← InputParser.new solver
@@ -246,4 +258,4 @@ test![TestApiBlackInputParser, getDeclaredTermsAndSorts] tm => do
   let terms ← symbols.getDeclaredTerms
   assertEq sorts.size 1
   assertEq terms.size 1
-  assertEq terms[0]!.getSort sorts[0]!
+  assertEq (← terms[0]!.getSort) sorts[0]!

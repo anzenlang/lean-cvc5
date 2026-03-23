@@ -7,14 +7,16 @@ import cvc5Test.Init
 
 namespace cvc5.Test
 
+partial def iterAll [Monad m] (f : SkolemId → m Unit) : m Unit :=
+  loop none 0
+where loop (prev : Option SkolemId) (n : Nat) : m Unit := do
+  let k := SkolemId.ofNat n
+  f k
+  if prev = some k then return () else loop (some k) n.succ
+
 test![TestApiBlackSkolemId, skolemIdToString] do
-  for idx in [SkolemId.INTERNAL.ctorIdx : SkolemId.NONE.ctorIdx] do
-    let si := SkolemId.ofNat idx
-    -- if this assertion fails, the switch in `enum_to_string.cpp` is missing id `si`.
-    assertNe si.toString "?"
+  iterAll fun si => assertNe "?" si.toString
 
 test![TestApiBlackSkolemId, skolemIdHash] do
-  for idx in [SkolemId.INTERNAL.ctorIdx : SkolemId.NONE.ctorIdx] do
-    let si := SkolemId.ofNat idx
-    assertEq si.hash ⟨si.ctorIdx⟩
-  assertNe SkolemId.PURIFY.hash SkolemId.INTERNAL.hash
+  assertEq SkolemId.PURIFY.ctorIdx SkolemId.PURIFY.hash.toNat
+  assertNe SkolemId.PURIFY.ctorIdx SkolemId.INTERNAL.hash.toNat

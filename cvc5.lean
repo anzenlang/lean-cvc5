@@ -824,15 +824,15 @@ extern_def!? getName : DatatypeSelector → Except Error String
 
 /-- Get the selector term of this datatype selector.
 
-Selector terms are a class of function-like terms of selector sort (`Sort.isDatatypeSelector`), and
-should be used as the first argument of terms of kind `Kind.APPLY_SELECTOR`.
+Selector terms are a class of function-like terms of selector sort (`cvc5.Sort.isDatatypeSelector`),
+and should be used as the first argument of terms of kind `Kind.APPLY_SELECTOR`.
 -/
 extern_def getTerm : DatatypeSelector → Env Term
 
 /-- Get the updater term of this datatype selector.
 
 Similar to selectors, updater terms are a class of function-like terms of updater sort
-(`Sort.isDatatypeUpdater`), and should be used as the first argument of terms of kind
+(`cvc5.Sort.isDatatypeUpdater`), and should be used as the first argument of terms of kind
 `Kind.APPLY_UPDATER`.
 -/
 extern_def getUpdaterTerm : DatatypeSelector → Env Term
@@ -868,10 +868,10 @@ extern_def!? getName : DatatypeConstructor → Except Error String
 /-- Get the constructor term of this datatype constructor.
 
 Datatype constructors are a special class of function-like terms whose sort is datatype constructor
-(`Sort.isDatatypeConstructor`). All datatype constructors, including nullary ones, should be used as
-the first argument to terms whose kind is `Kind.APPLY_CONSTRUCTOR`. For example, the nil list can
-be constructor by `tm.mkTerm Kind.APPLY_CONSTRUCTOR #[t]`, where `tm` is a `TermManager` and `t` is
-the term returned by this function.
+(`cvc5.Sort.isDatatypeConstructor`). All datatype constructors, including nullary ones, should be
+used as the first argument to terms whose kind is `Kind.APPLY_CONSTRUCTOR`. For example, the nil
+list can be constructor by `tm.mkTerm Kind.APPLY_CONSTRUCTOR #[t]`, where `tm` is a `TermManager`
+and `t` is the term returned by this function.
 
 This function should not be used for parametric datatypes. Instead, use the function
 `DatatypeConstructor.getInstantiatedTerm`.
@@ -912,7 +912,7 @@ extern_def getInstantiatedTerm : DatatypeConstructor → (retSort : cvc5.Sort) �
 /-- Get the tester term of this datatype constructor.
 
 Similar to constructors, testers are a class of function-like terms of tester sort
-(`Sort.isDatatypeTester`) which should be used as the first argument of terms of kind
+(`cvc5.Sort.isDatatypeTester`) which should be used as the first argument of terms of kind
 `Kind.APPLY_TESTER`.
 -/
 extern_def getTesterTerm : DatatypeConstructor → Env Term
@@ -1375,6 +1375,11 @@ extern_def null : Unit → Op
 
 instance : Inhabited Op := ⟨null ()⟩
 
+/-- Hash function. -/
+protected extern_def hash : Op → UInt64
+
+instance : Hashable Op := ⟨Op.hash⟩
+
 /-- Syntactic equality operator. -/
 protected extern_def beq : Op → Op → Bool
 
@@ -1417,6 +1422,34 @@ protected extern_def beq : Term → Term → Bool
 
 instance : BEq Term := ⟨Term.beq⟩
 
+/-- Less than comparison. -/
+protected extern_def blt : Term → Term → Bool
+
+/-- Greater than comparison. -/
+protected extern_def bgt : Term → Term → Bool
+
+/-- Less than or equal comparison. -/
+protected extern_def ble : Term → Term → Bool
+
+/-- Greater than or equal comparison. -/
+protected extern_def bge : Term → Term → Bool
+
+/-- Comparison of two terms. -/
+protected def compare (t1 t2 : cvc5.Term) : Ordering :=
+  if t1.beq t2 then .eq else if t1.bgt t2 then .gt else .lt
+
+instance : Ord Term := ⟨Term.compare⟩
+
+instance : LT Term := ⟨(Term.blt · ·)⟩
+
+instance : DecidableLT Term :=
+  fun t1 t2 => if h : t1.blt t2 then .isTrue h else .isFalse h
+
+instance : LE Term := ⟨(Term.ble · ·)⟩
+
+instance : DecidableLE Term :=
+  fun t1 t2 => if h : t1.ble t2 then .isTrue h else .isFalse h
+
 protected extern_def hash : Term → UInt64
 
 instance : Hashable Term := ⟨Term.hash⟩
@@ -1439,13 +1472,13 @@ instance : GetElem Term Nat Term fun t i => i < t.getNumChildren where
   getElem t i h := t.get ⟨i, h⟩
 
 /-- Get the id of this term. -/
-extern_def getId : Term → Nat
+extern_def!? getId : Term → Except Error Nat
 
 /-- Get the kind of this term. -/
-extern_def getKind : Term → Kind
+extern_def!? getKind : Term → Except Error Kind
 
 /-- Get the sort of this term. -/
-extern_def getSort : Term → cvc5.Sort
+extern_def!? getSort : Term → Except Error cvc5.Sort
 
 /-- Simultaneously replace `terms` with `replacements` in `term`.
 
@@ -1480,7 +1513,7 @@ extern_def!? getOp : Term → Except Error Op
 
 For example, free constants and variables have symbols.
 -/
-extern_def hasSymbol : Term → Bool
+extern_def!? hasSymbol : Term → Except Error Bool
 
 /-- Get the symbol of this term.
 

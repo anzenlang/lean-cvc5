@@ -733,7 +733,7 @@ test![TestApiBlackSolver, getAbduct] tm solver => do
   -- call the abduction api, while the resulting abduct is the output
   let output ← solver.getAbduct conj
   -- we expect the resulting output to be a boolean formula
-  assertTrue (¬ output.isNull ∧ output.getSort.isBoolean)
+  assertTrue (¬ output.isNull ∧ (← output.getSort).isBoolean)
 
   -- try with a grammar, a simple grammar admitting true
   let truen ← tm.mkBoolean true
@@ -822,7 +822,7 @@ test![TestApiBlackSolver, getInterpolant] tm solver => do
   -- call the interpolation api, while the resulting interpolant is the output
   let output ← solver.getInterpolant conj
   -- we expect the resulting output to be a boolean formula
-  assertTrue output.getSort.isBoolean
+  assertTrue (← output.getSort).isBoolean
 
   -- try with a grammar, a simple grammar admitting true
   let truen ← tm.mkBoolean true
@@ -884,7 +884,7 @@ test![TestApiBlackSolver, declarePool] tm solver => do
   -- declare a ppol with initial value `{0, x, y}`
   let p ← solver.declarePool "p" int #[zero, x, y]
   -- ppol should have the same sort
-  assertTrue (p.getSort == setSort)
+  assertTrue ((← p.getSort) == setSort)
   -- cannot pass null sort
   solver.declarePool "i" (Sort.null ()) #[] |> assertError "invalid null argument for 'sort'"
 
@@ -1822,7 +1822,7 @@ test![TestApiBlackSolver, findSynth] tm solver => do
   -- should enumerate based on the grammar of the function to synthesize above
   let term ← solver.findSynth .ENUM
   assertFalse term.isNull
-  assertTrue term.getSort.isBoolean
+  assertTrue (← term.getSort).isBoolean
 
 test![TestApiBlackSolver, findSynth2] tm solver => do
   solver.setOption "sygus" "true"
@@ -1837,10 +1837,10 @@ test![TestApiBlackSolver, findSynth2] tm solver => do
   -- should enumerate true/false
   let term ← solver.findSynth .ENUM grammar
   assertFalse term.isNull
-  assertTrue term.getSort.isBoolean
+  assertTrue (← term.getSort).isBoolean
   let term ← solver.findSynthNext
   assertFalse term.isNull
-  assertTrue term.getSort.isBoolean
+  assertTrue (← term.getSort).isBoolean
 
 test![TestApiBlackSolver, tupleProject] tm solver => do
   let elements := #[
@@ -1876,7 +1876,7 @@ test![TestApiBlackSolver, tupleProject] tm solver => do
   let op ← tm.mkOp Kind.TUPLE_PROJECT indices
   let projection ← tm.mkTermOfOp op #[tuple]
 
-  let datatype ← tuple.getSort.getDatatype
+  let datatype ← (← tuple.getSort).getDatatype
   let constructor := datatype[0]!
 
   for index in indices do

@@ -258,7 +258,7 @@ test![TestApiBlackDatatype, mkDatatypeSortsSelUnres] tm => do
   assertTrue dtsTreeNodeLeftCodom.isDatatype
   assertEq dtsTreeNodeLeftCodom dtSorts[0]!
 
-test![TestApiBlackDatatype, mkDatatypeSortsSelUnres] tm => do
+test![TestApiBlackDatatype, datatypeStructs] tm => do
   let int ← tm.getIntegerSort
   let bool ← tm.getBooleanSort
 
@@ -277,7 +277,7 @@ test![TestApiBlackDatatype, mkDatatypeSortsSelUnres] tm => do
   assertFalse dt.isCodatatype
   assertFalse dt.isTuple
   assertFalse dt.isRecord
-  assertFalse <| ← assertOk dt.isFinite
+  assertFalse <| ← dt.isFinite
   assertTrue dt.isWellFounded
   -- get constructor
   let dcons := dt[0]!

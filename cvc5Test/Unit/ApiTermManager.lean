@@ -56,20 +56,20 @@ test![TestApiBlackTermManager, mkFiniteFieldSort] tm => do
   tm.mkFiniteFieldSort 6 |> assertError
     "invalid argument '6' for 'modulus', expected modulus is prime"
 
-  tm.mkFiniteFieldSort 1100101 2 |> assertOkDiscard
-  tm.mkFiniteFieldSort 10202 3 |> assertOkDiscard
-  tm.mkFiniteFieldSort 401 5 |> assertOkDiscard
+  tm.mkFiniteFieldSortOfString "1100101" |> assertOkDiscard
+  tm.mkFiniteFieldSortOfString "10202" 3 |> assertOkDiscard
+  tm.mkFiniteFieldSortOfString "401" 5 |> assertOkDiscard
   tm.mkFiniteFieldSortOfString "791a" 11 |> assertOkDiscard
   tm.mkFiniteFieldSortOfString "970f" 16 |> assertOkDiscard
   tm.mkFiniteFieldSortOfString "8CC5" 16 |> assertOkDiscard
 
-  tm.mkFiniteFieldSort 1100100 2 |> assertError
+  tm.mkFiniteFieldSortOfString "1100100" 2 |> assertError
     "invalid argument '1100100' for 'modulus', expected modulus is prime"
-  tm.mkFiniteFieldSort 10201 3 |> assertError
+  tm.mkFiniteFieldSortOfString "10201" 3 |> assertError
     "invalid argument '10201' for 'modulus', expected modulus is prime"
-  tm.mkFiniteFieldSort 400 5 |> assertError
+  tm.mkFiniteFieldSortOfString "400" 5 |> assertError
     "invalid argument '400' for 'modulus', expected modulus is prime"
-  tm.mkFiniteFieldSort 7919 11 |> assertError
+  tm.mkFiniteFieldSortOfString "7919" 11 |> assertError
     "invalid argument '7919' for 'modulus', expected modulus is prime"
   tm.mkFiniteFieldSortOfString "970e" 16 |> assertError
     "invalid argument '970e' for 'modulus', expected modulus is prime"
@@ -506,7 +506,7 @@ test![TestApiBlackTermManager, mkRoundingMode] tm => do
   assertEq "roundNearestTiesToAway"
     (← tm.mkRoundingMode RoundingMode.ROUND_NEAREST_TIES_TO_AWAY).toString
 
-test![TestApiBlackTermManager, mkRoundingMode] tm => do
+test![TestApiBlackTermManager, mkFloatingPoint] tm => do
   let t1 ← tm.mkBitVector 8
   let t2 ← tm.mkBitVector 4
   tm.mkFloatingPoint 3 5 t1 |> assertOkDiscard
@@ -568,7 +568,7 @@ test![TestApiBlackTermManager, mkCardinalityConstraint] tm => do
   tm'.mkCardinalityConstraint su 3 |> assertError
     "Given sort is not associated with this term manager"
 
-test![TestApiBlackTermManager, mkEmptyBag] tm => do
+test![TestApiBlackTermManager, mkEmptySet] tm => do
   let s ← tm.mkSetSort (← tm.getBooleanSort)
   tm.mkEmptySet (Sort.null ()) |> assertError
     "invalid null argument for 'sort'"

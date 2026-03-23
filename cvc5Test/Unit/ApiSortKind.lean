@@ -7,16 +7,17 @@ import cvc5Test.Init
 
 namespace cvc5.Test
 
-test![TestApiSortKind, sortKindToString] do
-  let mut skStr := ""
-  for idx in [SortKind.INTERNAL_SORT_KIND.ctorIdx : SortKind.LAST_SORT_KIND.ctorIdx] do
-    let sk := SortKind.ofNat idx
-    skStr := toString sk
-    if sk = SortKind.INTERNAL_SORT_KIND then
-      assertEq skStr "INTERNAL_SORT_KIND"
-    else if sk = SortKind.UNDEFINED_SORT_KIND then
-      assertEq skStr "UNDEFINED_SORT_KIND"
-    else
-      -- if this assertion fails, `s_kinds` in `cvc5.cpp` is missing kind `sk`.
-      assertNe skStr "UNDEFINED_SORT_KIND"
-      assertNe skStr "INTERNAL_SORT_KIND"
+partial def iterAll [Monad m] (f : SortKind → m Unit) : m Unit :=
+  loop none 0
+where loop (prev : Option SortKind) (n : Nat) : m Unit := do
+  let k := SortKind.ofNat n
+  f k
+  if prev = some k then return () else loop (some k) n.succ
+
+test![TestApiSortKind, sortKindToString] do iterAll fun
+  | sk@SortKind.INTERNAL_SORT_KIND => assertEq "INTERNAL_SORT_KIND" sk.toString
+  | sk@SortKind.UNDEFINED_SORT_KIND => assertEq "UNDEFINED_SORT_KIND" sk.toString
+  | sk => do
+    let s := sk.toString
+    assertNe "INTERNAL_SORT_KIND" s
+    assertNe "UNDEFINED_SORT_KIND" s

@@ -72,7 +72,7 @@ def createRewriteProof (tm : TermManager) : Env Proof := do
 
 end
 
-test![TestApiBlackProof, solver] do
+test![TestApiBlackProof, nullProof] do
   let proof := Proof.null ()
   assertEq proof.getRule ProofRule.UNKNOWN
   -- skipping test in original file for the hash being equal to the constructor index
