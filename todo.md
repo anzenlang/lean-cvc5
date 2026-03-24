@@ -19,9 +19,9 @@ https://github.com/cvc5/cvc5/tree/main/test/unit/api/cpp
 - [x] api_sort_kind_black
 - [x] api_symbol_manager_black
 - [x] api_synth_result_black
-- [ ] api_term_black
+- [x] api_term_black
 - [x] api_term_manager_black
-- [ ] api_types_black
+- [x] api_types_black
 
 # Skipped
 
@@ -60,3 +60,6 @@ https://github.com/cvc5/cvc5/tree/main/test/unit/api/cpp
 
 - [this term test](https://github.com/cvc5/cvc5/blob/78cdc5e7b6d127944f92dba7292335782bd0b03e/test/unit/api/cpp/api_term_black.cpp#L654-L655)
   does not use its `t2`, I'm pretty sure it should be in the assertion instead of `t1`
+
+- [`Term.getReal` tests](https://github.com/cvc5/cvc5/blob/78cdc5e7b6d127944f92dba7292335782bd0b03e/test/unit/api/cpp/api_term_black.cpp#L796-L861)
+  are severely lacking, with virtually no error-testing
