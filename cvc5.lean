@@ -1836,7 +1836,9 @@ extern_def isSequenceValue : Term → Bool
 extern_def!? getSequenceValue : Term → Except Error (Array Term)
 
 /-- Determine if this term is a cardinality constraint. -/
-extern_def isCardinalityConstraint : Term → Bool
+private extern_def isCardinalityConstraintInternal : Term → Bool
+with isCardinalityConstraint (t : Term) :=
+  if t.isNull then false else t.isCardinalityConstraintInternal
 
 /-- Get a cardinality constraint as a pair of its sort and upper bound.
 

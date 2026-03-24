@@ -1260,7 +1260,7 @@ LEAN_EXPORT lean_obj_res term_getBooleanValue(lean_obj_arg t)
 
 LEAN_EXPORT uint8_t term_isFiniteFieldValue(lean_obj_arg t)
 {
-  return bool_box(term_unbox(t)->isBooleanValue());
+  return bool_box(term_unbox(t)->isFiniteFieldValue());
 }
 
 LEAN_EXPORT lean_obj_res term_getFiniteFieldValue(lean_obj_arg t)
@@ -1471,7 +1471,7 @@ LEAN_EXPORT lean_obj_res term_getSequenceValue(lean_obj_arg t)
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
-LEAN_EXPORT uint8_t term_isCardinalityConstraint(lean_obj_arg t)
+LEAN_EXPORT uint8_t term_isCardinalityConstraintInternal(lean_obj_arg t)
 {
   return bool_box(term_unbox(t)->isCardinalityConstraint());
 }
