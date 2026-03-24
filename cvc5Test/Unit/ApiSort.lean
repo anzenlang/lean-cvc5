@@ -234,7 +234,7 @@ test![TestApiBlackSort, datatypeSorts] tm => do
   -- get constructor
   let dCons := dt[0]!
   let consTerm ← dCons.getTerm
-  let consSort := consTerm.getSort
+  let consSort ← consTerm.getSort
   assertTrue consSort.isDatatypeConstructor
   assertFalse consSort.isDatatypeTester
   assertFalse consSort.isDatatypeSelector
@@ -246,19 +246,19 @@ test![TestApiBlackSort, datatypeSorts] tm => do
 
   -- get tester
   let testerTerm ← dCons.getTesterTerm
-  assertTrue testerTerm.getSort.isDatatypeTester
-  assertEq (← testerTerm.getSort.getDatatypeTesterDomainSort) dTypeSort
+  assertTrue (← testerTerm.getSort).isDatatypeTester
+  assertEq (← (← testerTerm.getSort).getDatatypeTesterDomainSort) dTypeSort
   let booleanSort ← tm.getBooleanSort
-  assertEq (← testerTerm.getSort.getDatatypeTesterCodomainSort) booleanSort
+  assertEq (← (← testerTerm.getSort).getDatatypeTesterCodomainSort) booleanSort
   assertError "not a tester sort: Bool" booleanSort.getDatatypeTesterDomainSort
   assertError "not a tester sort: Bool" booleanSort.getDatatypeTesterCodomainSort
 
   -- get selector
   let dSelTail := dCons[1]!
   let tailTerm ← dSelTail.getTerm
-  assertTrue tailTerm.getSort.isDatatypeSelector
-  (← tailTerm.getSort.getDatatypeSelectorDomainSort) |> assertEq dTypeSort
-  (← tailTerm.getSort.getDatatypeSelectorCodomainSort) |> assertEq dTypeSort
+  assertTrue (← tailTerm.getSort).isDatatypeSelector
+  (← (← tailTerm.getSort).getDatatypeSelectorDomainSort) |> assertEq dTypeSort
+  (← (← tailTerm.getSort).getDatatypeSelectorCodomainSort) |> assertEq dTypeSort
   assertError "not a selector sort: Bool" booleanSort.getDatatypeSelectorDomainSort
   assertError "not a selector sort: Bool" booleanSort.getDatatypeSelectorCodomainSort
 
