@@ -14,6 +14,12 @@ import cvc5.Types
 @[export prod_mk]
 private def mkProd := @Prod.mk
 
+@[export prod_mk_int32_uint32]
+private def mkProd32 : Int32 → UInt32 → Int32 × UInt32 := Prod.mk
+
+@[export prod_mk_int64_uint64]
+private def mkProd64 : Int64 → UInt64 → Int64 × UInt64 := Prod.mk
+
 namespace cvc5
 
 namespace Kind
@@ -1463,12 +1469,14 @@ instance : ToString Term := ⟨Term.toString⟩
 extern_def isNull : Term → Bool
 
 /-- Get the number of children of this term. -/
-extern_def getNumChildren : Term → Nat
+extern_def!? getNumChildren : Term → Except Error Nat
+with getNumChildrenD (t : Term) (default : Nat := 0) : Nat :=
+  if let .ok n := t.getNumChildren then n else default
 
 /-- Get the child term of this term at a given index. -/
-protected extern_def get : (t : Term) → Fin t.getNumChildren → Term
+protected extern_def get : (t : Term) → Fin t.getNumChildrenD → Term
 
-instance : GetElem Term Nat Term fun t i => i < t.getNumChildren where
+instance : GetElem Term Nat Term fun t i => i < t.getNumChildrenD where
   getElem t i h := t.get ⟨i, h⟩
 
 /-- Get the id of this term. -/
@@ -1634,6 +1642,42 @@ extern_def isStringValue : Term → Bool
 
 /-- Get the native integral value of an integral value. -/
 extern_def!? getStringValue : Term → Except Error String
+
+/-- Determine if this term is a rational value whose numerator fits into an `Int32` value and its
+denominator fits into a `UInt32` value.
+-/
+extern_def isReal32Value : Term → Bool
+
+/-- Get the 32 bit integer representations of the numerator and denominator of a rational value.
+
+**NB:** Requires that this term is a rational value and its numerator and denominator fit into 32
+bit integer values (see `Term.isReal32Value`).
+-/
+extern_def getReal32Value : Term → Except Error (Int32 × UInt32)
+
+/-- Determine if this term is a rational value whose numerator fits into an `Int64` value and its
+denominator fits into a `UInt64` value.
+-/
+extern_def isReal64Value : Term → Bool
+
+/-- Get the 64 bit integer representations of the numerator and denominator of a rational value.
+
+**NB:** Requires that this term is a rational value and its numerator and denominator fit into 64
+bit integer values (see `Term.isReal64Value`).
+-/
+extern_def getReal64Value : Term → Except Error (Int64 × UInt64)
+
+/-- Determine if this term is a rational value.
+
+**NB:** A term of kind `Kind.PI` is not considered to be a real value.
+-/
+extern_def isRealValue : Term → Bool
+
+/-- Get a string representation of this rational value.
+
+**NB:** Requires that this term is a rational value (see `Term.isRealValue`).
+-/
+extern_def getRealValue : Term → Except Error String
 
 /-- Get the native rational value of a real, rational-compatible value. -/
 extern_def!? getRationalValue : Term → Except Error Rat
@@ -1843,17 +1887,18 @@ by. For example, the array diff skolem `SkolemId.ARRAY_DEQ_DIFF` is indexed by t
 extern_def!? getSkolemIndices : Term → Except Error (Array Term)
 
 protected def forIn {β : Type u} [Monad m] (t : Term) (b : β) (f : Term → β → m (ForInStep β)) : m β :=
-  let rec loop (i : Nat) (h : i ≤ t.getNumChildren) (b : β) : m β := do
+  let rec loop (i : Nat) (h : i ≤ t.getNumChildrenD) (b : β) : m β := do
     match i, h with
     | 0,   _ => pure b
     | i+1, h =>
-      have h' : i < t.getNumChildren := Nat.lt_of_lt_of_le (Nat.lt_succ_self i) h
-      have : t.getNumChildren - 1 < t.getNumChildren := Nat.sub_lt (Nat.zero_lt_of_lt h') (by decide)
-      have : t.getNumChildren - 1 - i < t.getNumChildren := Nat.lt_of_le_of_lt (Nat.sub_le (t.getNumChildren - 1) i) this
-      match (← f t[t.getNumChildren - 1 - i] b) with
+      have h' : i < t.getNumChildrenD := Nat.lt_of_lt_of_le (Nat.lt_succ_self i) h
+      have : t.getNumChildrenD - 1 < t.getNumChildrenD := Nat.sub_lt (Nat.zero_lt_of_lt h') (by decide)
+      have : t.getNumChildrenD - 1 - i < t.getNumChildrenD :=
+        Nat.lt_of_le_of_lt (Nat.sub_le (t.getNumChildrenD - 1) i) this
+      match (← f t[t.getNumChildrenD - 1 - i] b) with
       | ForInStep.done b  => pure b
       | ForInStep.yield b => loop i (Nat.le_of_lt h') b
-  loop t.getNumChildren (Nat.le_refl _) b
+  loop t.getNumChildrenD (Nat.le_refl _) b
 
 instance [Monad m] : ForIn m Term Term where
   forIn := Term.forIn

@@ -11,6 +11,10 @@ lean_obj_res prod_mk(lean_obj_arg T,
                      lean_obj_arg t,
                      lean_obj_arg u);
 
+lean_obj_res prod_mk_int32_uint32(int32_t num, uint32_t den);
+
+lean_obj_res prod_mk_int64_uint64(int64_t num, uint64_t den);
+
 /** Borrows the first element of a product/pair, does not change any ref-count.
  */
 lean_obj_res prod_fst(b_lean_obj_arg prod)
@@ -1348,6 +1352,44 @@ LEAN_EXPORT lean_obj_res term_getStringValue(lean_obj_arg t)
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
+LEAN_EXPORT uint8_t term_isReal32Value(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isReal32Value());
+}
+
+LEAN_EXPORT lean_obj_res term_getReal32Value(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  std::pair<int32_t, uint32_t> pair = term_unbox(t)->getReal32Value();
+  return except_ok(prod_mk_int32_uint32(std::get<0>(pair), std::get<1>(pair)));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT uint8_t term_isReal64Value(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isReal64Value());
+}
+
+LEAN_EXPORT lean_obj_res term_getReal64Value(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  std::pair<int64_t, uint64_t> pair = term_unbox(t)->getReal64Value();
+  return except_ok(prod_mk_int64_uint64(std::get<0>(pair), std::get<1>(pair)));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT uint8_t term_isRealValue(lean_obj_arg t)
+{
+  return bool_box(term_unbox(t)->isRealValue());
+}
+
+LEAN_EXPORT lean_obj_res term_getRealValue(lean_obj_arg t)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(lean_mk_string(term_unbox(t)->getRealValue().c_str()));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
 LEAN_EXPORT uint8_t term_isFloatingPointPosZero(lean_obj_arg t)
 {
   return bool_box(term_unbox(t)->isFloatingPointPosZero());
@@ -1523,7 +1565,9 @@ LEAN_EXPORT lean_obj_res term_getId(lean_obj_arg t)
 
 LEAN_EXPORT lean_obj_res term_getNumChildren(lean_obj_arg t)
 {
-  return lean_usize_to_nat(term_unbox(t)->getNumChildren());
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(lean_usize_to_nat(term_unbox(t)->getNumChildren()));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
 LEAN_EXPORT uint8_t term_isSkolem(lean_obj_arg t)
