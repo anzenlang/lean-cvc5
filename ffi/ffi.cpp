@@ -4143,15 +4143,14 @@ LEAN_EXPORT lean_obj_res solver_declareOracleFun(lean_obj_arg solver,
         {
           terms = lean_array_push(terms, term_box(new Term(elem)));
         }
-        // lean_object* except = lean_apply_2(fn, terms, lean_box(0));
         lean_inc(fn);
         lean_object* except = lean_apply_2(fn, terms, lean_box(0));
         if (lean_obj_tag(except) == 1)
         {
           lean_object* term = lean_ctor_get(except, 0);
-          lean_inc(term);
+          Term t = *term_unbox(term);
           lean_dec_ref(except);
-          return *term_unbox(term);
+          return t;
         }
         else if (lean_obj_tag(except) == 0)
         {
