@@ -6,14 +6,23 @@ using namespace cvc5;
 
 extern "C" {
 
-lean_obj_res prod_mk(lean_obj_arg T,
+lean_obj_res prod_mk_generic(lean_obj_arg T,
                      lean_obj_arg U,
                      lean_obj_arg t,
                      lean_obj_arg u);
 
-lean_obj_res prod_mk_int32_uint32(int32_t num, uint32_t den);
+lean_obj_res prod_mk(lean_obj_arg t,
+                     lean_obj_arg u) {
+                      return prod_mk_generic(lean_box(0), lean_box(0), t, u);
+                     }
 
-lean_obj_res prod_mk_int64_uint64(int64_t num, uint64_t den);
+lean_obj_res prod_mk_int32_uint32(int32_t num, uint32_t den) {
+  return prod_mk(lean_box_uint32(num), lean_box_uint32(den));
+}
+
+lean_obj_res prod_mk_int64_uint64(int64_t num, uint64_t den) {
+  return prod_mk(lean_box_uint64(num), lean_box_uint64(den));
+}
 
 /** Borrows the first element of a product/pair, does not change any ref-count.
  */
@@ -257,6 +266,11 @@ lean_obj_res env_error_string(lean_obj_arg e)
   }                                                                     \
   catch (char const* e) { return env_error_string(lean_mk_string(e)); } \
   catch (lean_object * e) { return env_error(e); }                      \
+  catch (const std::exception& ex) {                                  \
+    return env_error_string(lean_string_append(lean_mk_string("std::exception "), lean_mk_string(ex.what())));                \
+  } catch (const std::string& ex) {                                     \
+    return env_error_string(lean_string_append(lean_mk_string("std::string "), lean_mk_string(ex.c_str()))); \
+  }                                                                     \
   catch (...)                                                           \
   {                                                                     \
     return env_error_string(                                            \
@@ -1425,12 +1439,8 @@ LEAN_EXPORT lean_obj_res term_getFloatingPointValue(lean_obj_arg t)
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
   std::tuple<uint32_t, uint32_t, Term> triplet =
       term_unbox(t)->getFloatingPointValue();
-  return except_ok(prod_mk(lean_box(0),
-                           lean_box(0),
-                           lean_box_uint32(std::get<0>(triplet)),
-                           prod_mk(lean_box(0),
-                                   lean_box(0),
-                                   lean_box_uint32(std::get<1>(triplet)),
+  return except_ok(prod_mk(lean_box_uint32(std::get<0>(triplet)),
+                           prod_mk(lean_box_uint32(std::get<1>(triplet)),
                                    term_box(new Term(std::get<2>(triplet))))));
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
@@ -1480,9 +1490,7 @@ LEAN_EXPORT lean_obj_res term_getCardinalityConstraint(lean_obj_arg t)
 {
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
   std::pair<Sort, uint32_t> pair = term_unbox(t)->getCardinalityConstraint();
-  return except_ok(prod_mk(lean_box(0),
-                           lean_box(0),
-                           sort_box(new Sort(std::get<0>(pair))),
+  return except_ok(prod_mk(sort_box(new Sort(std::get<0>(pair))),
                            lean_box_uint32(std::get<1>(pair))));
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
@@ -2330,7 +2338,7 @@ LEAN_EXPORT lean_obj_res termManager_mkRecordSort(lean_obj_arg tm,
   {
     lean_object* prod = lean_array_get(
         prod_mk(
-            lean_box(0), lean_box(0), lean_mk_string(""), sort_box(new Sort())),
+            lean_mk_string(""), sort_box(new Sort())),
         fields,
         lean_usize_to_nat(i));
     fieldsVec.push_back(std::make_pair(lean_string_cstr(prod_fst(prod)),
@@ -3481,9 +3489,7 @@ LEAN_EXPORT lean_obj_res symbolManager_getNamedTerms(b_lean_obj_arg sm)
   for (const auto& pair : namedTerms)
   {
     nt = lean_array_push(nt,
-                         prod_mk(lean_box(0),
-                                 lean_box(0),
-                                 term_box(new Term(pair.first)),
+                         prod_mk(term_box(new Term(pair.first)),
                                  lean_mk_string(pair.second.c_str())));
   }
   return env_val(nt);
@@ -3913,9 +3919,7 @@ LEAN_EXPORT lean_obj_res solver_getTimeoutCore(lean_obj_arg solver)
   {
     terms = lean_array_push(terms, term_box(new Term(term)));
   }
-  return env_val(prod_mk(lean_box(0),
-                         lean_box(0),
-                         result_box(new Result(std::get<0>(pair))),
+  return env_val(prod_mk(result_box(new Result(std::get<0>(pair))),
                          terms));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
@@ -3938,9 +3942,7 @@ LEAN_EXPORT lean_obj_res solver_getTimeoutCoreAssuming(lean_obj_arg solver,
   {
     terms = lean_array_push(terms, term_box(new Term(term)));
   }
-  return env_val(prod_mk(lean_box(0),
-                         lean_box(0),
-                         result_box(new Result(std::get<0>(pair))),
+  return env_val(prod_mk(result_box(new Result(std::get<0>(pair))),
                          terms));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
@@ -4141,24 +4143,29 @@ LEAN_EXPORT lean_obj_res solver_declareOracleFun(lean_obj_arg solver,
         {
           terms = lean_array_push(terms, term_box(new Term(elem)));
         }
+        // lean_object* except = lean_apply_2(fn, terms, lean_box(0));
+        lean_inc(fn);
         lean_object* except = lean_apply_2(fn, terms, lean_box(0));
-        if (lean_obj_tag(except) == 0)
-        {
-          lean_object* error = lean_ctor_get(except, 0);
-          lean_inc(error);
-          lean_dec_ref(except);
-          throw error;
-        }
-        else
+        if (lean_obj_tag(except) == 1)
         {
           lean_object* term = lean_ctor_get(except, 0);
           lean_inc(term);
           lean_dec_ref(except);
           return *term_unbox(term);
         }
+        else if (lean_obj_tag(except) == 0)
+        {
+          lean_object* error = lean_ctor_get(except, 0);
+          lean_inc(error);
+          lean_dec_ref(except);
+          throw error;
+        } else {
+          throw std::string("unexpected lean-obj-tag in 'Solver.declareOracleFun'");
+        }
       };
-  return env_val(term_box(new Term(solver_unbox(solver)->declareOracleFun(
-      lean_string_cstr(symbol), sortVec, *sort_unbox(sort), fun))));
+  Term t = solver_unbox(solver)->declareOracleFun(
+      lean_string_cstr(symbol), sortVec, *sort_unbox(sort), fun);
+  return env_val(term_box(new Term(t)));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 

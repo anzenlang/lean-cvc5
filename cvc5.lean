@@ -11,14 +11,8 @@ import cvc5.ProofRule
 import cvc5.SkolemId
 import cvc5.Types
 
-@[export prod_mk]
+@[export prod_mk_generic]
 private def mkProd := @Prod.mk
-
-@[export prod_mk_int32_uint32]
-private def mkProd32 : Int32 → UInt32 → Int32 × UInt32 := Prod.mk
-
-@[export prod_mk_int64_uint64]
-private def mkProd64 : Int64 → UInt64 → Int64 × UInt64 := Prod.mk
 
 namespace cvc5
 
@@ -1888,8 +1882,11 @@ by. For example, the array diff skolem `SkolemId.ARRAY_DEQ_DIFF` is indexed by t
 -/
 extern_def!? getSkolemIndices : Term → Except Error (Array Term)
 
-protected def forIn {β : Type u} [Monad m] (t : Term) (b : β) (f : Term → β → m (ForInStep β)) : m β :=
-  let rec loop (i : Nat) (h : i ≤ t.getNumChildrenD) (b : β) : m β := do
+protected def forIn {β : Type u} [Monad m]
+  (t : Term) (b : β) (f : Term → β → m (ForInStep β))
+: m β :=
+  loop t.getNumChildrenD (Nat.le_refl _) b
+where loop (i : Nat) (h : i ≤ t.getNumChildrenD) (b : β) : m β := do
     match i, h with
     | 0,   _ => pure b
     | i+1, h =>
@@ -1900,7 +1897,6 @@ protected def forIn {β : Type u} [Monad m] (t : Term) (b : β) (f : Term → β
       match (← f t[t.getNumChildrenD - 1 - i] b) with
       | ForInStep.done b  => pure b
       | ForInStep.yield b => loop i (Nat.le_of_lt h') b
-  loop t.getNumChildrenD (Nat.le_refl _) b
 
 instance [Monad m] : ForIn m Term Term where
   forIn := Term.forIn
