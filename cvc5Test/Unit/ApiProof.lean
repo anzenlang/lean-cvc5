@@ -104,21 +104,21 @@ test![TestApiBlackProof, getRewriteRule] tm => do
 
   assertOkDiscard proof.getRewriteRule
 
-test![TestApiBlackProof, getResult] solver => do
-  let proof ← createProof solver
+test![TestApiBlackProof, getResult] tm => do
+  let proof ← createProof tm
   let _ := proof.getResult
 
-test![TestApiBlackProof, getChildren] solver => do
-  let proof ← createProof solver
+test![TestApiBlackProof, getChildren] tm => do
+  let proof ← createProof tm
   let children := proof.getChildren
   assertFalse children.isEmpty
 
-test![TestApiBlackProof, getArguments] solver => do
-  let proof ← createProof solver
+test![TestApiBlackProof, getArguments] tm => do
+  let proof ← createProof tm
   let _ := proof.getArguments
 
-test![TestApiBlackProof, equalhash] solver => do
-  let x ← createProof solver
+test![TestApiBlackProof, equalhash] tm => do
+  let x ← createProof tm
   let kids := x.getChildren
   if h : 0 < kids.size then
     let y := kids[0]

@@ -22,14 +22,12 @@ def parseLogicCommand (parser : InputParser) (logic : String) : Env Command := d
 test![TestApiBlackInputParser, constructSymbolManager] tm => do
   let _ ← SymbolManager.new tm
 
-test![TestApiBlackInputParser, setFileInput] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, setFileInput] tm solver => do
   let parser ← InputParser.new solver
   assertError "Couldn't open file: nonexistent.smt2" do
     parser.setFileInput "nonexistent.smt2"
 
-test![TestApiBlackInputParser, setStreamInput] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, setStreamInput] tm solver => do
   let parser ← InputParser.new solver
   let symbols ← parser.getSymbolManager
   let s := "(set-logic QF_LIA)\n(declare-fun a () Bool)\n(declare-fun b () Bool)\n"
@@ -43,8 +41,7 @@ test![TestApiBlackInputParser, setStreamInput] tm => do
   loop ()
   assertTrue (← parser.isDone)
 
-test![TestApiBlackInputParser, setStreamInput'] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, setStreamInput'] tm solver => do
   let parser ← InputParser.new solver
   let symbols ← parser.getSymbolManager
   let s := "(set-logic QF_LIA)\n(declare-fun a () Bool)\n(declare-fun b () Bool)\n"
@@ -59,8 +56,7 @@ test![TestApiBlackInputParser, setStreamInput'] tm => do
   loop ()
   assertTrue (← parser.isDone)
 
-test![TestApiBlackInputParser, setAndAppendIncrementalStringInput] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, setAndAppendIncrementalStringInput] tm solver => do
   let parser ← InputParser.new solver
   let symbols ← parser.getSymbolManager
   parser.setIncrementalStringInput (name := "input_parser_black")
@@ -82,8 +78,7 @@ test![TestApiBlackInputParser, setAndAppendIncrementalStringInput] tm => do
   assertTrue cmd.isNull
   assertTrue (← parser.isDone)
 
-test![TestApiBlackInputParser, setAndAppendIncrementalStringInputInterleave] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, setAndAppendIncrementalStringInputInterleave] tm solver => do
   let parser ← InputParser.new solver
   let symbols ← parser.getSymbolManager
   parser.setIncrementalStringInput (name := "input_parser_black")
@@ -105,14 +100,12 @@ test![TestApiBlackInputParser, setAndAppendIncrementalStringInputInterleave] tm 
   assertTrue cmd.isNull
   assertTrue (← parser.isDone)
 
-test![TestApiBlackInputParser, appendIncrementalNoSet] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, appendIncrementalNoSet] tm solver => do
   let parser ← InputParser.new solver
   assertError "Input to parser not initialized" do
     parser.appendIncrementalStringInput "(set-logic ALL)"
 
-test![TestApiBlackInputParser, setStringInput] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, setStringInput] tm solver => do
   let parser ← InputParser.new solver
   let symbols ← parser.getSymbolManager
   parser.setStringInput "(set-logic ALL)" (name := "input_parser_black")
@@ -122,15 +115,13 @@ test![TestApiBlackInputParser, setStringInput] tm => do
   let cmd ← parser.nextCommand
   assertTrue cmd.isNull
 
-test![TestApiBlackInputParser, nextCommandNoInput] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, nextCommandNoInput] tm solver => do
   let parser ← InputParser.new solver
   parser.setStringInput "" (name := "input_parser_black")
   let cmd ← parser.nextCommand
   assertTrue cmd.isNull
 
-test![TestApiBlackInputParser, nextCommandNoIncrementalInput] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, nextCommandNoIncrementalInput] tm solver => do
   let parser ← InputParser.new solver
   parser.setIncrementalStringInput (name := "input_parser_black")
   let cmd ← parser.nextCommand
@@ -138,16 +129,14 @@ test![TestApiBlackInputParser, nextCommandNoIncrementalInput] tm => do
   let term ← parser.nextTerm
   assertTrue term.isNull
 
-test![TestApiBlackInputParser, nextTerm] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, nextTerm] tm solver => do
   let parser ← InputParser.new solver
   assertError "Input to parser not initialized" parser.nextTerm
   parser.setStringInput "" (name := "input_parser_black")
   let term ← parser.nextTerm
   assertTrue term.isNull
 
-test![TestApiBlackInputParser, nextTerm2] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, nextTerm2] tm solver => do
   -- adding a set-logic compared to the original test to silence warnings
   solver.setLogic "ALL"
   let parser ← InputParser.new solver
@@ -215,8 +204,7 @@ test![TestApiBlackInputParser, setAndAppendIncrementalStringInput] tm => do
     "Logic mismatch when initializing InputParser.\n\
     The solver's logic: QF_LRA\nThe symbol manager's logic: QF_LIA"
 
-test![TestApiBlackInputParser, incrementalSetString] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, incrementalSetString] tm solver => do
   let parser ← InputParser.new solver
   let symbols ← parser.getSymbolManager
   let mut out := ""
@@ -230,8 +218,7 @@ test![TestApiBlackInputParser, incrementalSetString] tm => do
     out := s!"{out}{output}"
   assertEq out ""
 
-test![TestApiBlackInputParser, getDeclaredTermsAndSorts] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackInputParser, getDeclaredTermsAndSorts] tm solver => do
   let parser ← InputParser.new solver
   let symbols ← parser.getSymbolManager
   parser.setIncrementalStringInput (name := "input_parser_black")

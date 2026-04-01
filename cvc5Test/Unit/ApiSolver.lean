@@ -16,11 +16,8 @@ namespace cvc5.Test
 
 /-! # Synthesis/sygus -/
 
-test![TestApiBlackSolver, declareSygusVar] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, declareSygusVar] tm solver => do
   solver.setOption "sygus" "true"
-  let bool ← tm.getBooleanSort
-  let int ← tm.getIntegerSort
   let funSort ← tm.mkFunctionSort #[int] bool
   let nullSort := cvc5.Sort.null ()
 
@@ -41,12 +38,9 @@ test![TestApiBlackSolver, declareSygusVar] tm => do
   solver'.declareSygusVar "" bool |> assertError
     "Given sort is not associated with the term manager of this solver"
 
-test![TestApiBlackSolver, declareSygusVar] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, declareSygusVar] tm solver => do
   let nullTerm := Term.null ()
   let boolTerm ← tm.mkBoolean true
-  let bool ← tm.getBooleanSort
-  let int ← tm.getIntegerSort
   let boolVar ← tm.mkVar bool
   let intVar ← tm.mkVar int
 
@@ -73,11 +67,8 @@ test![TestApiBlackSolver, declareSygusVar] tm => do
     "invalid term in 'ntSymbols' at index 0, \
     expected a term associated with the term manager of this solver"
 
-test![TestApiBlackSolver, synthFun] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, synthFun] tm solver => do
   solver.setOption "sygus" "true"
-  let bool ← tm.getBooleanSort
-  let int ← tm.getIntegerSort
   let fls ← tm.mkBoolean false
   let nullTerm := Term.null ()
   let term ← tm.mkVar bool "term"
@@ -118,8 +109,7 @@ test![TestApiBlackSolver, synthFun] tm => do
     "invalid term in 'boundVars' at index 0, \
     expected a term associated with the term manager of this solver"
 
-test![TestApiBlackSolver, addSygusConstraint] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, addSygusConstraint] tm solver => do
   solver.setOption "sygus" "true"
   let nullTerm := Term.null ()
   let boolTerm ← tm.mkBoolean true
@@ -137,8 +127,7 @@ test![TestApiBlackSolver, addSygusConstraint] tm => do
   solver2.addSygusConstraint boolTerm |> assertError
     "Given term is not associated with the term manager of this solver"
 
-test![TestApiBlackSolver, getSygusConstraints] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, getSygusConstraints] tm solver => do
   solver.setOption "sygus" "true"
   let tru ← tm.mkBoolean true
   let fls ← tm.mkBoolean false
@@ -146,8 +135,7 @@ test![TestApiBlackSolver, getSygusConstraints] tm => do
   solver.addSygusConstraint fls
   assertEq (← solver.getSygusConstraints) #[tru, fls]
 
-test![TestApiBlackSolver, addSygusAssume] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, addSygusAssume] tm solver => do
   solver.setOption "sygus" "true"
   let nullTerm := Term.null ()
   let boolTerm ← tm.mkBoolean true
@@ -165,8 +153,7 @@ test![TestApiBlackSolver, addSygusAssume] tm => do
   solver2.addSygusAssume boolTerm |> assertError
     "Given term is not associated with the term manager of this solver"
 
-test![TestApiBlackSolver, getSygusAssumptions] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, getSygusAssumptions] tm solver => do
   solver.setOption "sygus" "true"
   let tru ← tm.mkBoolean true
   let fls ← tm.mkBoolean false
@@ -174,13 +161,10 @@ test![TestApiBlackSolver, getSygusAssumptions] tm => do
   solver.addSygusAssume fls
   assertEq (← solver.getSygusAssumptions) #[tru, fls]
 
-test![TestApiBlackSolver, getSygusAssumptions] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, getSygusAssumptions] tm solver => do
   solver.setOption "sygus" "true"
   let nullTerm := Term.null ()
   let intTerm ← tm.mkInteger 1
-  let bool ← tm.getBooleanSort
-  let real ← tm.getRealSort
 
   let inv ← solver.declareFun "inv" #[real] bool
   let pre ← solver.declareFun "pre" #[real] bool
@@ -243,19 +227,16 @@ test![TestApiBlackSolver, getSygusAssumptions] tm => do
   solver'.addSygusInvConstraint inv' pre' trans' post |> assertError
     "Given term is not associated with the term manager of this solver"
 
-test![TestApiBlackSolver, checkSynth] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, checkSynth] tm solver => do
   solver.setOption "sygus" "true"
   solver.checkSynth |> assertOkDiscard
 
-test![TestApiBlackSolver, getSynthSolution] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, getSynthSolution] tm solver => do
   solver.setOption "sygus" "true"
   solver.setOption "incremental" "false"
 
   let nullTerm := Term.null ()
   let fls ← tm.mkBoolean false
-  let bool ← tm.getBooleanSort
   let f ← solver.synthFun "f" #[] bool
 
   solver.getSynthSolution f |> assertError
@@ -275,14 +256,12 @@ test![TestApiBlackSolver, getSynthSolution] tm => do
   (← Solver.new tm).getSynthSolution f |> assertError
     "solver is not in a state immediately preceded by a successful call to checkSynth"
 
-test![TestApiBlackSolver, getSynthSolutions] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, getSynthSolutions] tm solver => do
   solver.setOption "sygus" "true"
   solver.setOption "incremental" "false"
 
   let nullTerm := Term.null ()
   let fls ← tm.mkBoolean false
-  let bool ← tm.getBooleanSort
   let f ← solver.synthFun "f" #[] bool
 
   solver.getSynthSolutions #[] |> assertError
@@ -306,11 +285,9 @@ test![TestApiBlackSolver, getSynthSolutions] tm => do
   (← Solver.new tm).getSynthSolutions #[f] |> assertError
     "solver is not in a state immediately preceded by a successful call to checkSynth"
 
-test![TestApiBlackSolver, checkSynthNext] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, checkSynthNext] tm solver => do
   solver.setOption "sygus" "true"
   solver.setOption "incremental" "true"
-  let bool ← tm.getBooleanSort
   let f ← solver.synthFun "f" #[] bool
 
   let synthRes ← solver.checkSynth
@@ -320,30 +297,24 @@ test![TestApiBlackSolver, checkSynthNext] tm => do
   assertTrue synthRes.hasSolution
   solver.getSynthSolutions #[f] |> assertOkDiscard
 
-test![TestApiBlackSolver, checkSynthNext2] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, checkSynthNext2] tm solver => do
   solver.setOption "sygus" "true"
   solver.setOption "incremental" "false"
-  let bool ← tm.getBooleanSort
   let _f ← solver.synthFun "f" #[] bool
   solver.checkSynth |> assertOkDiscard
   solver.checkSynthNext |> assertError
     "cannot check for a next synthesis solution when not solving incrementally (use --incremental)"
 
-test![TestApiBlackSolver, checkSynthNext3] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, checkSynthNext3] tm solver => do
   solver.setOption "sygus" "true"
   solver.setOption "incremental" "true"
-  let bool ← tm.getBooleanSort
   let _f ← solver.synthFun "f" #[] bool
   solver.checkSynthNext |> assertError
     "Cannot check-synth-next unless immediately preceded \
     by a successful call to check-synth(-next)."
 
-test![TestApiBlackSolver, findSynth] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, findSynth] tm solver => do
   solver.setOption "sygus" "true"
-  let bool ← tm.getBooleanSort
   let start ← tm.mkVar bool
   let mut grammar ← solver.mkGrammar #[] #[start]
   solver.synthFun "f" #[] bool grammar |> assertError
@@ -360,11 +331,9 @@ test![TestApiBlackSolver, findSynth] tm => do
   assertFalse term.isNull
   assertTrue (← term.getSort).isBoolean
 
-test![TestApiBlackSolver, findSynth2] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackSolver, findSynth2] tm solver => do
   solver.setOption "sygus" "true"
   solver.setOption "incremental" "true"
-  let bool ← tm.getBooleanSort
   let start ← tm.mkVar bool
   let mut grammar ← solver.mkGrammar #[] #[start]
   let tru ← tm.mkBoolean true
