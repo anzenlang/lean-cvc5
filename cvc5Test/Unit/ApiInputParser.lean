@@ -166,7 +166,7 @@ test![TestApiBlackInputParser, nextTerm2] tm => do
   parser.appendIncrementalStringInput "(+ a 1)\n"
   let term ← assertOk parser.nextTerm
   assertFalse term.isNull
-  assertEq term.getKind Kind.ADD
+  assertEq (← term.getKind) Kind.ADD
   parser.appendIncrementalStringInput "(+ b 1)\n"
   assertError "Symbol 'b' not declared as a variable" parser.nextTerm
 
@@ -246,4 +246,4 @@ test![TestApiBlackInputParser, getDeclaredTermsAndSorts] tm => do
   let terms ← symbols.getDeclaredTerms
   assertEq sorts.size 1
   assertEq terms.size 1
-  assertEq terms[0]!.getSort sorts[0]!
+  assertEq (← terms[0]!.getSort) sorts[0]!

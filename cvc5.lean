@@ -675,6 +675,11 @@ private def mkExceptOkU32 : UInt32 → Except Error UInt32 :=
   .ok
 
 /-- Only used by FFI to inject values. -/
+@[export except_ok_i32]
+private def mkExceptOkI32 : Int32 → Except Error Int32 :=
+  .ok
+
+/-- Only used by FFI to inject values. -/
 @[export except_ok_u16]
 private def mkExceptOkU16 : UInt16 → Except Error UInt16 :=
   .ok
@@ -1342,6 +1347,34 @@ protected extern_def beq : Term → Term → Bool
 
 instance : BEq Term := ⟨Term.beq⟩
 
+/-- Less than comparison. -/
+protected extern_def blt : Term → Term → Bool
+
+/-- Greater than comparison. -/
+protected extern_def bgt : Term → Term → Bool
+
+/-- Less than or equal comparison. -/
+protected extern_def ble : Term → Term → Bool
+
+/-- Greater than or equal comparison. -/
+protected extern_def bge : Term → Term → Bool
+
+/-- Comparison of two terms. -/
+protected def compare (t1 t2 : cvc5.Term) : Ordering :=
+  if t1.beq t2 then .eq else if t1.bgt t2 then .gt else .lt
+
+instance : Ord Term := ⟨Term.compare⟩
+
+instance : LT Term := ⟨(Term.blt · ·)⟩
+
+instance : DecidableLT Term :=
+  fun t1 t2 => if h : t1.blt t2 then .isTrue h else .isFalse h
+
+instance : LE Term := ⟨(Term.ble · ·)⟩
+
+instance : DecidableLE Term :=
+  fun t1 t2 => if h : t1.ble t2 then .isTrue h else .isFalse h
+
 protected extern_def hash : Term → UInt64
 
 instance : Hashable Term := ⟨Term.hash⟩
@@ -1350,10 +1383,10 @@ instance : Hashable Term := ⟨Term.hash⟩
 extern_def isNull : Term → Bool
 
 /-- Get the kind of this term. -/
-extern_def getKind : Term → Kind
+extern_def!? getKind : Term → Except Error Kind
 
 /-- Get the sort of this term. -/
-extern_def getSort : Term → cvc5.Sort
+extern_def!? getSort : Term → Except Error cvc5.Sort
 
 /-- Determine if this term has an operator. -/
 extern_def hasOp : Term → Bool
@@ -1362,13 +1395,15 @@ extern_def hasOp : Term → Bool
 
 For example, free constants and variables have symbols.
 -/
-extern_def hasSymbol : Term → Bool
+extern_def!? hasSymbol : Term → Except Error Bool
 
 /-- Get the id of this term. -/
-extern_def getId : Term → Nat
+extern_def!? getId : Term → Except Error Nat
 
 /-- Get the number of children of this term. -/
-extern_def getNumChildren : Term → Nat
+private extern_def getNumChildrenInternal : Term → Nat
+with getNumChildren (t : Term) : Nat :=
+  if t.isNull then 0 else t.getNumChildrenInternal
 
 /-- Is this term a skolem? -/
 extern_def isSkolem : Term → Bool
@@ -1410,6 +1445,48 @@ The symbol of the term is the string that was provided when constructing it *via
 `mkVar`.
 -/
 extern_def!? getSymbol : Term → Except Error String
+
+/-- Boolean negation. -/
+extern_def notTerm : Term → Env Term
+
+/-- Boolean and.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def andTerm : (t1 t2 : Term) → Env Term
+
+/-- Boolean or.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def orTerm : (t1 t2 : Term) → Env Term
+
+/-- Boolean exclusive or.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def xorTerm : (t1 t2 : Term) → Env Term
+
+/-- Equality. -/
+extern_def eqTerm : (t1 t2 : Term) → Env Term
+
+/-- Boolean implication.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def impTerm : (t1 t2 : Term) → Env Term
+
+/-- If-then-else.
+
+- `cnd`: The condition, a Boolean term.
+- `thn`: The *then* term.
+- `els`: The *else* term.
+-/
+extern_def iteTerm : (cnd thn els : Term) → Env Term
 
 /-- Get skolem identifier of this term.
 

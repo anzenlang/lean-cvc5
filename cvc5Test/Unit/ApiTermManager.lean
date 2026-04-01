@@ -193,9 +193,9 @@ test![TestApiBlackTermManager, mkDatatypeSorts] tm => do
   let isort1 ← dtSorts[1]!.instantiate #[bool]
   let t1 ← tm.mkConst isort1 "t"
   let t0 ← do
-    let selector ← t1.getSort.getDatatype!.getSelector "s1" >>= DatatypeSelector.getTerm
+    let selector ← (← t1.getSort).getDatatype!.getSelector "s1" >>= DatatypeSelector.getTerm
     tm.mkTerm Kind.APPLY_SELECTOR #[selector, t1]
-  assertEq t0.getSort (dtSorts[0]!.instantiate! #[bool])
+  assertEq (← t0.getSort) (dtSorts[0]!.instantiate! #[bool])
 
   let _scope ← do
     let tm' ← TermManager.new
