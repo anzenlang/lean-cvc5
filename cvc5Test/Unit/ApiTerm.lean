@@ -720,539 +720,539 @@ test![TestApiBlackTerm, termCompare] tm => do
   assertTrue <| (t1 > t2) != (t1 < t2)
   assertTrue <| (t1 > t2 || t1 == t2) == (t1 ≥ t2)
 
--- test![TestApiBlackTerm, termChildren] tm => do
---   -- simple term `2+3`
---   let two ← tm.mkInteger 2
---   let t1 ← tm.mkTerm Kind.ADD #[two, ← tm.mkInteger 3]
---   assertEq two t1[0]!
---   assertEq 2 t1.getNumChildren
---   let n := Term.null ()
---   -- -- lean's version of `getNumChildren` produces `0` on `null` terms
---   -- n.getNumChildren |> assertError
---   --   "invalid call to 'size_t cvc5::Term::getNumChildren() const', expected non-null object"
---   assertEq 0 n.getNumChildren
+test![TestApiBlackTerm, termChildren] tm => do
+  -- simple term `2+3`
+  let two ← tm.mkInteger 2
+  let t1 ← tm.mkTerm Kind.ADD #[two, ← tm.mkInteger 3]
+  assertEq two t1[0]!
+  assertEq 2 t1.getNumChildren
+  let n := Term.null ()
+  -- -- lean's version of `getNumChildren` produces `0` on `null` terms
+  -- n.getNumChildren |> assertError
+  --   "invalid call to 'size_t cvc5::Term::getNumChildren() const', expected non-null object"
+  assertEq 0 n.getNumChildren
 
---   for kid in t1 do assertTrue kid.isIntegerValue
+  for kid in t1 do assertTrue kid.isIntegerValue
 
---   -- apply term `f(2)`
---   let intSort ← tm.getIntegerSort
---   let fSort ← tm.mkFunctionSort #[intSort] intSort
---   let f ← tm.mkConst fSort "f"
---   let t2 ← tm.mkTerm Kind.APPLY_UF #[f, two]
---   -- due to our higher-order view of terms, we treat f as a child of `APPLY_UF`
---   assertEq 2 t2.getNumChildrenD
---   assertEq f t2[0]!
---   assertEq two t2[1]!
---   -- original test checks that `n[0]` fails, but that call is invalid in the lean API
+  -- apply term `f(2)`
+  let intSort ← tm.getIntegerSort
+  let fSort ← tm.mkFunctionSort #[intSort] intSort
+  let f ← tm.mkConst fSort "f"
+  let t2 ← tm.mkTerm Kind.APPLY_UF #[f, two]
+  -- due to our higher-order view of terms, we treat f as a child of `APPLY_UF`
+  assertEq 2 t2.getNumChildren
+  assertEq f t2[0]!
+  assertEq two t2[1]!
+  -- original test checks that `n[0]` fails, but that call is invalid in the lean API
 
--- test![TestApiBlackTerm, getInteger] tm => do
---   let int1 ← tm.mkIntegerOfString "-18446744073709551616"
---   let int2 ← tm.mkIntegerOfString "-18446744073709551615"
---   let int3 ← tm.mkIntegerOfString "-4294967296"
---   let int4 ← tm.mkIntegerOfString "-4294967295"
---   let int5 ← tm.mkIntegerOfString "-10"
---   let int6 ← tm.mkIntegerOfString "0"
---   let int7 ← tm.mkIntegerOfString "10"
---   let int8 ← tm.mkIntegerOfString "4294967295"
---   let int9 ← tm.mkIntegerOfString "4294967296"
---   let int10 ← tm.mkIntegerOfString "18446744073709551615"
---   let int11 ← tm.mkIntegerOfString "18446744073709551616"
---   let int12 ← tm.mkIntegerOfString "-0"
+test![TestApiBlackTerm, getInteger] tm => do
+  let int1 ← tm.mkIntegerOfString "-18446744073709551616"
+  let int2 ← tm.mkIntegerOfString "-18446744073709551615"
+  let int3 ← tm.mkIntegerOfString "-4294967296"
+  let int4 ← tm.mkIntegerOfString "-4294967295"
+  let int5 ← tm.mkIntegerOfString "-10"
+  let int6 ← tm.mkIntegerOfString "0"
+  let int7 ← tm.mkIntegerOfString "10"
+  let int8 ← tm.mkIntegerOfString "4294967295"
+  let int9 ← tm.mkIntegerOfString "4294967296"
+  let int10 ← tm.mkIntegerOfString "18446744073709551615"
+  let int11 ← tm.mkIntegerOfString "18446744073709551616"
+  let int12 ← tm.mkIntegerOfString "-0"
 
---   tm.mkIntegerOfString "" |> assertError
---     "invalid argument '' for 's', expected an integer "
---   tm.mkIntegerOfString "-" |> assertError
---     "invalid argument '-' for 's', expected an integer "
---   tm.mkIntegerOfString "-1-" |> assertError
---     "invalid argument '-1-' for 's', expected an integer "
---   tm.mkIntegerOfString "0.0" |> assertError
---     "invalid argument '0.0' for 's', expected an integer "
---   tm.mkIntegerOfString "-0.1" |> assertError
---     "invalid argument '-0.1' for 's', expected an integer "
---   tm.mkIntegerOfString "012" |> assertError
---     "invalid argument '012' for 's', expected an integer "
---   tm.mkIntegerOfString "0000" |> assertError
---     "invalid argument '0000' for 's', expected an integer "
---   tm.mkIntegerOfString "-01" |> assertError
---     "invalid argument '-01' for 's', expected an integer "
---   tm.mkIntegerOfString "-00" |> assertError
---     "invalid argument '-00' for 's', expected an integer "
+  tm.mkIntegerOfString "" |> assertError
+    "invalid argument '' for 's', expected an integer "
+  tm.mkIntegerOfString "-" |> assertError
+    "invalid argument '-' for 's', expected an integer "
+  tm.mkIntegerOfString "-1-" |> assertError
+    "invalid argument '-1-' for 's', expected an integer "
+  tm.mkIntegerOfString "0.0" |> assertError
+    "invalid argument '0.0' for 's', expected an integer "
+  tm.mkIntegerOfString "-0.1" |> assertError
+    "invalid argument '-0.1' for 's', expected an integer "
+  tm.mkIntegerOfString "012" |> assertError
+    "invalid argument '012' for 's', expected an integer "
+  tm.mkIntegerOfString "0000" |> assertError
+    "invalid argument '0000' for 's', expected an integer "
+  tm.mkIntegerOfString "-01" |> assertError
+    "invalid argument '-01' for 's', expected an integer "
+  tm.mkIntegerOfString "-00" |> assertError
+    "invalid argument '-00' for 's', expected an integer "
 
---   assertTrue (
---     ¬ int1.isInt32Value ∧ ¬ int1.isUInt32Value ∧ ¬ int1.isInt64Value ∧ ¬ int1.isUInt64Value ∧
---     int1.isIntegerValue
---   )
---   assertEq (-18446744073709551616) (← int1.getIntegerValue)
---   assertEq (-1) (← int1.getRealOrIntegerValueSign)
---   assertTrue (
---     ¬ int2.isInt32Value ∧ ¬ int2.isUInt32Value ∧ ¬ int2.isInt64Value ∧ ¬ int2.isUInt64Value ∧
---     int2.isIntegerValue
---   )
---   assertEq (-18446744073709551615) (← int2.getIntegerValue)
---   assertTrue (
---     ¬ int3.isInt32Value ∧ ¬ int3.isUInt32Value ∧ int3.isInt64Value ∧ ¬ int3.isUInt64Value ∧
---     int3.isIntegerValue
---   )
---   assertEq (-4294967296) (← int3.getInt64Value)
---   assertEq (-4294967296) (← int3.getIntegerValue)
---   assertTrue (
---     ¬ int4.isInt32Value ∧ ¬ int4.isUInt32Value ∧ int4.isInt64Value ∧ ¬ int4.isUInt64Value ∧
---     int4.isIntegerValue
---   )
---   assertEq (-4294967295) (← int4.getInt64Value)
---   assertEq (-4294967295) (← int4.getIntegerValue)
---   assertTrue (
---     int5.isInt32Value ∧ ¬ int5.isUInt32Value ∧ int5.isInt64Value ∧ ¬ int5.isUInt64Value ∧
---     int5.isIntegerValue
---   )
---   assertEq (-10) (← int5.getInt32Value)
---   assertEq (-10) (← int5.getInt64Value)
---   assertEq (-10) (← int5.getIntegerValue)
---   assertTrue (
---     int6.isInt32Value ∧ int6.isUInt32Value ∧ int6.isInt64Value ∧ int6.isUInt64Value ∧
---     int6.isIntegerValue
---   )
---   assertEq 0 (← int6.getUInt32Value)
---   assertEq 0 (← int6.getUInt64Value)
---   assertEq 0 (← int6.getInt32Value)
---   assertEq 0 (← int6.getInt64Value)
---   assertEq 0 (← int6.getIntegerValue)
---   assertEq 0 (← int6.getRealOrIntegerValueSign)
---   assertTrue (
---     int7.isInt32Value ∧ int7.isUInt32Value ∧ int7.isInt64Value ∧ int7.isUInt64Value ∧
---     int7.isIntegerValue
---   )
---   assertEq 10 (← int7.getUInt32Value)
---   assertEq 10 (← int7.getUInt64Value)
---   assertEq 10 (← int7.getInt32Value)
---   assertEq 10 (← int7.getInt64Value)
---   assertEq 10 (← int7.getIntegerValue)
---   assertEq 1 (← int7.getRealOrIntegerValueSign)
---   assertTrue (
---     ¬ int8.isInt32Value ∧ int8.isUInt32Value ∧ int8.isInt64Value ∧ int8.isUInt64Value ∧
---     int8.isIntegerValue
---   )
---   assertEq 4294967295 (← int8.getUInt32Value)
---   assertEq 4294967295 (← int8.getUInt64Value)
---   assertEq 4294967295 (← int8.getInt64Value)
---   assertEq 4294967295 (← int8.getIntegerValue)
---   assertTrue (
---     ¬ int9.isInt32Value ∧ ¬ int9.isUInt32Value ∧ int9.isInt64Value ∧ int9.isUInt64Value ∧
---     int9.isIntegerValue
---   )
---   assertEq 4294967296 (← int9.getUInt64Value)
---   assertEq 4294967296 (← int9.getInt64Value)
---   assertEq 4294967296 (← int9.getIntegerValue)
---   assertTrue (
---     ¬ int10.isInt32Value ∧ ¬ int10.isUInt32Value ∧ ¬ int10.isInt64Value ∧ int10.isUInt64Value ∧
---     int10.isIntegerValue
---   )
---   assertEq 18446744073709551615 (← int10.getUInt64Value)
---   assertEq 18446744073709551615 (← int10.getIntegerValue)
---   assertTrue (
---     ¬ int11.isInt32Value ∧ ¬ int11.isUInt32Value ∧ ¬ int11.isInt64Value ∧ ¬ int11.isUInt64Value ∧
---     int11.isIntegerValue
---   )
---   assertEq 18446744073709551616 (← int11.getIntegerValue)
+  assertTrue (
+    ¬ int1.isInt32Value ∧ ¬ int1.isUInt32Value ∧ ¬ int1.isInt64Value ∧ ¬ int1.isUInt64Value ∧
+    int1.isIntegerValue
+  )
+  assertEq (-18446744073709551616) (← int1.getIntegerValue)
+  assertEq (-1) (← int1.getRealOrIntegerValueSign)
+  assertTrue (
+    ¬ int2.isInt32Value ∧ ¬ int2.isUInt32Value ∧ ¬ int2.isInt64Value ∧ ¬ int2.isUInt64Value ∧
+    int2.isIntegerValue
+  )
+  assertEq (-18446744073709551615) (← int2.getIntegerValue)
+  assertTrue (
+    ¬ int3.isInt32Value ∧ ¬ int3.isUInt32Value ∧ int3.isInt64Value ∧ ¬ int3.isUInt64Value ∧
+    int3.isIntegerValue
+  )
+  assertEq (-4294967296) (← int3.getInt64Value)
+  assertEq (-4294967296) (← int3.getIntegerValue)
+  assertTrue (
+    ¬ int4.isInt32Value ∧ ¬ int4.isUInt32Value ∧ int4.isInt64Value ∧ ¬ int4.isUInt64Value ∧
+    int4.isIntegerValue
+  )
+  assertEq (-4294967295) (← int4.getInt64Value)
+  assertEq (-4294967295) (← int4.getIntegerValue)
+  assertTrue (
+    int5.isInt32Value ∧ ¬ int5.isUInt32Value ∧ int5.isInt64Value ∧ ¬ int5.isUInt64Value ∧
+    int5.isIntegerValue
+  )
+  assertEq (-10) (← int5.getInt32Value)
+  assertEq (-10) (← int5.getInt64Value)
+  assertEq (-10) (← int5.getIntegerValue)
+  assertTrue (
+    int6.isInt32Value ∧ int6.isUInt32Value ∧ int6.isInt64Value ∧ int6.isUInt64Value ∧
+    int6.isIntegerValue
+  )
+  assertEq 0 (← int6.getUInt32Value)
+  assertEq 0 (← int6.getUInt64Value)
+  assertEq 0 (← int6.getInt32Value)
+  assertEq 0 (← int6.getInt64Value)
+  assertEq 0 (← int6.getIntegerValue)
+  assertEq 0 (← int6.getRealOrIntegerValueSign)
+  assertTrue (
+    int7.isInt32Value ∧ int7.isUInt32Value ∧ int7.isInt64Value ∧ int7.isUInt64Value ∧
+    int7.isIntegerValue
+  )
+  assertEq 10 (← int7.getUInt32Value)
+  assertEq 10 (← int7.getUInt64Value)
+  assertEq 10 (← int7.getInt32Value)
+  assertEq 10 (← int7.getInt64Value)
+  assertEq 10 (← int7.getIntegerValue)
+  assertEq 1 (← int7.getRealOrIntegerValueSign)
+  assertTrue (
+    ¬ int8.isInt32Value ∧ int8.isUInt32Value ∧ int8.isInt64Value ∧ int8.isUInt64Value ∧
+    int8.isIntegerValue
+  )
+  assertEq 4294967295 (← int8.getUInt32Value)
+  assertEq 4294967295 (← int8.getUInt64Value)
+  assertEq 4294967295 (← int8.getInt64Value)
+  assertEq 4294967295 (← int8.getIntegerValue)
+  assertTrue (
+    ¬ int9.isInt32Value ∧ ¬ int9.isUInt32Value ∧ int9.isInt64Value ∧ int9.isUInt64Value ∧
+    int9.isIntegerValue
+  )
+  assertEq 4294967296 (← int9.getUInt64Value)
+  assertEq 4294967296 (← int9.getInt64Value)
+  assertEq 4294967296 (← int9.getIntegerValue)
+  assertTrue (
+    ¬ int10.isInt32Value ∧ ¬ int10.isUInt32Value ∧ ¬ int10.isInt64Value ∧ int10.isUInt64Value ∧
+    int10.isIntegerValue
+  )
+  assertEq 18446744073709551615 (← int10.getUInt64Value)
+  assertEq 18446744073709551615 (← int10.getIntegerValue)
+  assertTrue (
+    ¬ int11.isInt32Value ∧ ¬ int11.isUInt32Value ∧ ¬ int11.isInt64Value ∧ ¬ int11.isUInt64Value ∧
+    int11.isIntegerValue
+  )
+  assertEq 18446744073709551616 (← int11.getIntegerValue)
 
---   -- `int12` not used in the original test
---   let _ := int12
+  -- `int12` not used in the original test
+  let _ := int12
 
 -- test![TestApiBlackTerm, getString] tm => do
 --   let s1 ← tm.mkString "abcde"
 --   assertTrue s1.isStringValue
 --   assertEq "abcde" (← s1.getStringValue)
 
--- test![TestApiBlackTerm, getReal] tm => do
---   let real1 ← tm.mkRealOfString "0"
---   let real2 ← tm.mkRealOfString ".0"
---   let real3 ← tm.mkRealOfString "-17"
---   let real4 ← tm.mkRealOfString "-3/5"
---   let real5 ← tm.mkRealOfString "12.7"
---   let real6 ← tm.mkRealOfString "1/4294967297"
---   let real7 ← tm.mkRealOfString "4294967297"
---   let real8 ← tm.mkRealOfString "1/18446744073709551617"
---   let real9 ← tm.mkRealOfString "18446744073709551617"
---   let real10 ← tm.mkRealOfString "2343.2343"
+test![TestApiBlackTerm, getReal] tm => do
+  let real1 ← tm.mkRealOfString "0"
+  let real2 ← tm.mkRealOfString ".0"
+  let real3 ← tm.mkRealOfString "-17"
+  let real4 ← tm.mkRealOfString "-3/5"
+  let real5 ← tm.mkRealOfString "12.7"
+  let real6 ← tm.mkRealOfString "1/4294967297"
+  let real7 ← tm.mkRealOfString "4294967297"
+  let real8 ← tm.mkRealOfString "1/18446744073709551617"
+  let real9 ← tm.mkRealOfString "18446744073709551617"
+  let real10 ← tm.mkRealOfString "2343.2343"
 
---   assertTrue (real1.isRealValue ∧ real1.isReal64Value ∧ real1.isReal32Value)
---   assertTrue (real2.isRealValue ∧ real2.isReal64Value ∧ real2.isReal32Value)
---   assertTrue (real3.isRealValue ∧ real3.isReal64Value ∧ real3.isReal32Value)
---   assertTrue (real4.isRealValue ∧ real4.isReal64Value ∧ real4.isReal32Value)
---   assertTrue (real5.isRealValue ∧ real5.isReal64Value ∧ real5.isReal32Value)
---   assertTrue (real6.isRealValue ∧ real6.isReal64Value)
---   assertTrue (real7.isRealValue ∧ real7.isReal64Value)
---   assertTrue real8.isRealValue
---   assertTrue real9.isRealValue
---   assertTrue real10.isRealValue
+  assertTrue (real1.isRealValue ∧ real1.isReal64Value ∧ real1.isReal32Value)
+  assertTrue (real2.isRealValue ∧ real2.isReal64Value ∧ real2.isReal32Value)
+  assertTrue (real3.isRealValue ∧ real3.isReal64Value ∧ real3.isReal32Value)
+  assertTrue (real4.isRealValue ∧ real4.isReal64Value ∧ real4.isReal32Value)
+  assertTrue (real5.isRealValue ∧ real5.isReal64Value ∧ real5.isReal32Value)
+  assertTrue (real6.isRealValue ∧ real6.isReal64Value)
+  assertTrue (real7.isRealValue ∧ real7.isReal64Value)
+  assertTrue real8.isRealValue
+  assertTrue real9.isRealValue
+  assertTrue real10.isRealValue
 
---   assertEq (0, 1) (← real1.getReal32Value)
---   assertEq (0, 1) (← real1.getReal64Value)
---   assertEq "0/1" (← real1.getRealValue)
+  assertEq (0, 1) (← real1.getReal32Value)
+  assertEq (0, 1) (← real1.getReal64Value)
+  assertEq "0/1" (← real1.getRealValue)
 
---   assertEq (0, 1) (← real2.getReal32Value)
---   assertEq (0, 1) (← real2.getReal64Value)
---   assertEq "0/1" (← real2.getRealValue)
+  assertEq (0, 1) (← real2.getReal32Value)
+  assertEq (0, 1) (← real2.getReal64Value)
+  assertEq "0/1" (← real2.getRealValue)
 
---   assertEq (-17, 1) (← real3.getReal32Value)
---   assertEq (-17, 1) (← real3.getReal64Value)
---   assertEq "-17/1" (← real3.getRealValue)
+  assertEq (-17, 1) (← real3.getReal32Value)
+  assertEq (-17, 1) (← real3.getReal64Value)
+  assertEq "-17/1" (← real3.getRealValue)
 
---   assertEq (-3, 5) (← real4.getReal32Value)
---   assertEq (-3, 5) (← real4.getReal64Value)
---   assertEq "-3/5" (← real4.getRealValue)
+  assertEq (-3, 5) (← real4.getReal32Value)
+  assertEq (-3, 5) (← real4.getReal64Value)
+  assertEq "-3/5" (← real4.getRealValue)
 
---   assertEq (127, 10) (← real5.getReal32Value)
---   assertEq (127, 10) (← real5.getReal64Value)
---   assertEq "127/10" (← real5.getRealValue)
+  assertEq (127, 10) (← real5.getReal32Value)
+  assertEq (127, 10) (← real5.getReal64Value)
+  assertEq "127/10" (← real5.getRealValue)
 
---   assertEq (1, 4294967297) (← real6.getReal64Value)
---   assertEq "1/4294967297" (← real6.getRealValue)
+  assertEq (1, 4294967297) (← real6.getReal64Value)
+  assertEq "1/4294967297" (← real6.getRealValue)
 
---   assertEq (4294967297, 1) (← real7.getReal64Value)
---   assertEq "4294967297/1" (← real7.getRealValue)
+  assertEq (4294967297, 1) (← real7.getReal64Value)
+  assertEq "4294967297/1" (← real7.getRealValue)
 
---   assertEq "1/18446744073709551617" (← real8.getRealValue)
+  assertEq "1/18446744073709551617" (← real8.getRealValue)
 
---   assertEq "18446744073709551617/1" (← real9.getRealValue)
+  assertEq "18446744073709551617/1" (← real9.getRealValue)
 
---   assertEq "23432343/10000" (← real10.getRealValue)
+  assertEq "23432343/10000" (← real10.getRealValue)
 
---   tm.mkRealOfString "1/0" |> assertError
---     "cannot construct Real or Int from string argument '1/0'"
---   tm.mkRealOfString "2/0000" |> assertError
---     "cannot construct Real or Int from string argument '2/0000'"
+  tm.mkRealOfString "1/0" |> assertError
+    "cannot construct Real or Int from string argument '1/0'"
+  tm.mkRealOfString "2/0000" |> assertError
+    "cannot construct Real or Int from string argument '2/0000'"
 
--- test![TestApiBlackTerm, getConstArrayBase] tm => do
---   let int ← tm.getIntegerSort
---   let arrSort ← tm.mkArraySort int int
---   let one ← tm.mkInteger 1
---   let constArr ← tm.mkConstArray arrSort one
+test![TestApiBlackTerm, getConstArrayBase] tm => do
+  let int ← tm.getIntegerSort
+  let arrSort ← tm.mkArraySort int int
+  let one ← tm.mkInteger 1
+  let constArr ← tm.mkConstArray arrSort one
 
---   assertTrue constArr.isConstArray
---   assertEq one (← constArr.getConstArrayBase)
+  assertTrue constArr.isConstArray
+  assertEq one (← constArr.getConstArrayBase)
 
---   let a ← tm.mkConst arrSort "a"
---   a.getConstArrayBase |> assertError
---     "invalid argument 'a' for '*d_node', \
---     expected Term to be a constant array when calling getConstArrayBase()"
---   one.getConstArrayBase |> assertError
---     "invalid argument '1' for '*d_node', \
---     expected Term to be a constant array when calling getConstArrayBase()"
+  let a ← tm.mkConst arrSort "a"
+  a.getConstArrayBase |> assertError
+    "invalid argument 'a' for '*d_node', \
+    expected Term to be a constant array when calling getConstArrayBase()"
+  one.getConstArrayBase |> assertError
+    "invalid argument '1' for '*d_node', \
+    expected Term to be a constant array when calling getConstArrayBase()"
 
--- test![TestApiBlackTerm, getBoolean] tm => do
---   let b1 ← tm.mkBoolean true
---   let b2 ← tm.mkBoolean false
+test![TestApiBlackTerm, getBoolean] tm => do
+  let b1 ← tm.mkBoolean true
+  let b2 ← tm.mkBoolean false
 
---   assertTrue b1.isBooleanValue
---   assertTrue b2.isBooleanValue
---   assertTrue (← b1.getBooleanValue)
---   assertFalse (← b2.getBooleanValue)
+  assertTrue b1.isBooleanValue
+  assertTrue b2.isBooleanValue
+  assertTrue (← b1.getBooleanValue)
+  assertFalse (← b2.getBooleanValue)
 
--- test![TestApiBlackTerm, getBitVector] tm => do
---   let b1 ← tm.mkBitVector 8 15
---   let b2 ← tm.mkBitVectorOfString 8 "00001111" 2
---   let b3 ← tm.mkBitVectorOfString 8 "15" 10
---   let b4 ← tm.mkBitVectorOfString 8 "0f" 16
---   let b5 ← tm.mkBitVectorOfString 9 "00001111" 2
---   let b6 ← tm.mkBitVectorOfString 9 "15" 10
---   let b7 ← tm.mkBitVectorOfString 9 "0f" 16
+test![TestApiBlackTerm, getBitVector] tm => do
+  let b1 ← tm.mkBitVector 8 15
+  let b2 ← tm.mkBitVectorOfString 8 "00001111" 2
+  let b3 ← tm.mkBitVectorOfString 8 "15" 10
+  let b4 ← tm.mkBitVectorOfString 8 "0f" 16
+  let b5 ← tm.mkBitVectorOfString 9 "00001111" 2
+  let b6 ← tm.mkBitVectorOfString 9 "15" 10
+  let b7 ← tm.mkBitVectorOfString 9 "0f" 16
 
---   assertTrue b1.isBitVectorValue
---   assertTrue b2.isBitVectorValue
---   assertTrue b3.isBitVectorValue
---   assertTrue b4.isBitVectorValue
---   assertTrue b5.isBitVectorValue
---   assertTrue b6.isBitVectorValue
---   assertTrue b7.isBitVectorValue
+  assertTrue b1.isBitVectorValue
+  assertTrue b2.isBitVectorValue
+  assertTrue b3.isBitVectorValue
+  assertTrue b4.isBitVectorValue
+  assertTrue b5.isBitVectorValue
+  assertTrue b6.isBitVectorValue
+  assertTrue b7.isBitVectorValue
 
---   assertEq "00001111" (← b1.getBitVectorValue 2)
---   assertEq "15" (← b1.getBitVectorValue 10)
---   assertEq "f" (← b1.getBitVectorValue 16)
---   assertEq "00001111" (← b2.getBitVectorValue 2)
---   assertEq "15" (← b2.getBitVectorValue 10)
---   assertEq "f" (← b2.getBitVectorValue 16)
---   assertEq "00001111" (← b3.getBitVectorValue 2)
---   assertEq "15" (← b3.getBitVectorValue 10)
---   assertEq "f" (← b3.getBitVectorValue 16)
---   assertEq "00001111" (← b4.getBitVectorValue 2)
---   assertEq "15" (← b4.getBitVectorValue 10)
---   assertEq "f" (← b4.getBitVectorValue 16)
---   assertEq "000001111" (← b5.getBitVectorValue 2)
---   assertEq "15" (← b5.getBitVectorValue 10)
---   assertEq "f" (← b5.getBitVectorValue 16)
---   assertEq "000001111" (← b6.getBitVectorValue 2)
---   assertEq "15" (← b6.getBitVectorValue 10)
---   assertEq "f" (← b6.getBitVectorValue 16)
---   assertEq "000001111" (← b7.getBitVectorValue 2)
---   assertEq "15" (← b7.getBitVectorValue 10)
---   assertEq "f" (← b7.getBitVectorValue 16)
+  assertEq "00001111" (← b1.getBitVectorValue 2)
+  assertEq "15" (← b1.getBitVectorValue 10)
+  assertEq "f" (← b1.getBitVectorValue 16)
+  assertEq "00001111" (← b2.getBitVectorValue 2)
+  assertEq "15" (← b2.getBitVectorValue 10)
+  assertEq "f" (← b2.getBitVectorValue 16)
+  assertEq "00001111" (← b3.getBitVectorValue 2)
+  assertEq "15" (← b3.getBitVectorValue 10)
+  assertEq "f" (← b3.getBitVectorValue 16)
+  assertEq "00001111" (← b4.getBitVectorValue 2)
+  assertEq "15" (← b4.getBitVectorValue 10)
+  assertEq "f" (← b4.getBitVectorValue 16)
+  assertEq "000001111" (← b5.getBitVectorValue 2)
+  assertEq "15" (← b5.getBitVectorValue 10)
+  assertEq "f" (← b5.getBitVectorValue 16)
+  assertEq "000001111" (← b6.getBitVectorValue 2)
+  assertEq "15" (← b6.getBitVectorValue 10)
+  assertEq "f" (← b6.getBitVectorValue 16)
+  assertEq "000001111" (← b7.getBitVectorValue 2)
+  assertEq "15" (← b7.getBitVectorValue 10)
+  assertEq "f" (← b7.getBitVectorValue 16)
 
--- test![TestApiBlackTerm, isFiniteFieldValue] tm => do
---   let fS ← tm.mkFiniteFieldSort 7
---   let fV ← tm.mkFiniteFieldElem 1 fS
---   assertTrue fV.isFiniteFieldValue
---   let b1 ← tm.mkBitVector 8 15
---   assertFalse b1.isFiniteFieldValue
+test![TestApiBlackTerm, isFiniteFieldValue] tm => do
+  let fS ← tm.mkFiniteFieldSort 7
+  let fV ← tm.mkFiniteFieldElem 1 fS
+  assertTrue fV.isFiniteFieldValue
+  let b1 ← tm.mkBitVector 8 15
+  assertFalse b1.isFiniteFieldValue
 
--- test![TestApiBlackTerm, getFiniteFieldValue] tm => do
---   let fS ← tm.mkFiniteFieldSort 7
---   let fV ← tm.mkFiniteFieldElem 1 fS
---   assertEq 1 (← fV.getFiniteFieldValue)
---   Term.null () |>.getFiniteFieldValue |> assertError
---     "invalid call to 'std::string cvc5::Term::getFiniteFieldValue() const', \
---     expected non-null object"
---   let b1 ← tm.mkBitVector 8 15
---   b1.getFiniteFieldValue |> assertError
---     "invalid argument '#b00001111' for '*d_node', \
---     expected Term to be a finite field value when calling getFiniteFieldValue()"
+test![TestApiBlackTerm, getFiniteFieldValue] tm => do
+  let fS ← tm.mkFiniteFieldSort 7
+  let fV ← tm.mkFiniteFieldElem 1 fS
+  assertEq 1 (← fV.getFiniteFieldValue)
+  Term.null () |>.getFiniteFieldValue |> assertError
+    "invalid call to 'std::string cvc5::Term::getFiniteFieldValue() const', \
+    expected non-null object"
+  let b1 ← tm.mkBitVector 8 15
+  b1.getFiniteFieldValue |> assertError
+    "invalid argument '#b00001111' for '*d_node', \
+    expected Term to be a finite field value when calling getFiniteFieldValue()"
 
--- test![TestApiBlackTerm, getUninterpretedSortValue] tm solver => do
---   solver.setOption "produce-models" "true"
---   let x ← tm.mkConst uninterpreted "x"
---   let y ← tm.mkConst uninterpreted "y"
---   tm.mkTerm Kind.EQUAL #[x, y] >>= solver.assertFormula
---   assertTrue (← solver.checkSat).isSat
---   let vx ← solver.getValue x
---   let vy ← solver.getValue y
---   assertTrue vx.isUninterpretedSortValue
---   assertTrue vy.isUninterpretedSortValue
---   assertEq (← vx.getUninterpretedSortValue) (← vy.getUninterpretedSortValue)
+test![TestApiBlackTerm, getUninterpretedSortValue] tm solver => do
+  solver.setOption "produce-models" "true"
+  let x ← tm.mkConst uninterpreted "x"
+  let y ← tm.mkConst uninterpreted "y"
+  tm.mkTerm Kind.EQUAL #[x, y] >>= solver.assertFormula
+  assertTrue (← solver.checkSat).isSat
+  let vx ← solver.getValue x
+  let vy ← solver.getValue y
+  assertTrue vx.isUninterpretedSortValue
+  assertTrue vy.isUninterpretedSortValue
+  assertEq (← vx.getUninterpretedSortValue) (← vy.getUninterpretedSortValue)
 
--- test![TestApiBlackTerm, getRoundingModeValue] tm => do
---   assertFalse (← tm.mkInteger 15).isRoundingModeValue
---   assertTrue (← tm.mkRoundingMode RoundingMode.ROUND_NEAREST_TIES_TO_EVEN).isRoundingModeValue
---   assertFalse (← tm.mkConst (← tm.getRoundingModeSort)).isRoundingModeValue
+test![TestApiBlackTerm, getRoundingModeValue] tm => do
+  assertFalse (← tm.mkInteger 15).isRoundingModeValue
+  assertTrue (← tm.mkRoundingMode RoundingMode.ROUND_NEAREST_TIES_TO_EVEN).isRoundingModeValue
+  assertFalse (← tm.mkConst (← tm.getRoundingModeSort)).isRoundingModeValue
 
--- test![TestApiBlackTerm, getRoundingModeValue] tm => do
---   (← tm.mkInteger 15).getRoundingModeValue |> assertError
---     "invalid argument '15' for '*d_node', \
---     expected Term to be a floating-point rounding mode value when calling getRoundingModeValue()"
---   assertEq RoundingMode.ROUND_NEAREST_TIES_TO_EVEN
---     (← (← tm.mkRoundingMode RoundingMode.ROUND_NEAREST_TIES_TO_EVEN).getRoundingModeValue)
---   assertEq RoundingMode.ROUND_TOWARD_POSITIVE
---     (← (← tm.mkRoundingMode RoundingMode.ROUND_TOWARD_POSITIVE).getRoundingModeValue)
---   assertEq RoundingMode.ROUND_TOWARD_NEGATIVE
---     (← (← tm.mkRoundingMode RoundingMode.ROUND_TOWARD_NEGATIVE).getRoundingModeValue)
---   assertEq RoundingMode.ROUND_TOWARD_ZERO
---     (← (← tm.mkRoundingMode RoundingMode.ROUND_TOWARD_ZERO).getRoundingModeValue)
---   assertEq RoundingMode.ROUND_NEAREST_TIES_TO_AWAY
---     (← (← tm.mkRoundingMode RoundingMode.ROUND_NEAREST_TIES_TO_AWAY).getRoundingModeValue)
+test![TestApiBlackTerm, getRoundingModeValue] tm => do
+  (← tm.mkInteger 15).getRoundingModeValue |> assertError
+    "invalid argument '15' for '*d_node', \
+    expected Term to be a floating-point rounding mode value when calling getRoundingModeValue()"
+  assertEq RoundingMode.ROUND_NEAREST_TIES_TO_EVEN
+    (← (← tm.mkRoundingMode RoundingMode.ROUND_NEAREST_TIES_TO_EVEN).getRoundingModeValue)
+  assertEq RoundingMode.ROUND_TOWARD_POSITIVE
+    (← (← tm.mkRoundingMode RoundingMode.ROUND_TOWARD_POSITIVE).getRoundingModeValue)
+  assertEq RoundingMode.ROUND_TOWARD_NEGATIVE
+    (← (← tm.mkRoundingMode RoundingMode.ROUND_TOWARD_NEGATIVE).getRoundingModeValue)
+  assertEq RoundingMode.ROUND_TOWARD_ZERO
+    (← (← tm.mkRoundingMode RoundingMode.ROUND_TOWARD_ZERO).getRoundingModeValue)
+  assertEq RoundingMode.ROUND_NEAREST_TIES_TO_AWAY
+    (← (← tm.mkRoundingMode RoundingMode.ROUND_NEAREST_TIES_TO_AWAY).getRoundingModeValue)
 
--- test![TestApiBlackTerm, getTuple] tm => do
---   let t1 ← tm.mkInteger 15
---   let t2 ← tm.mkReal 17 25
---   let t3 ← tm.mkString "abc"
+test![TestApiBlackTerm, getTuple] tm => do
+  let t1 ← tm.mkInteger 15
+  let t2 ← tm.mkReal 17 25
+  let t3 ← tm.mkString "abc"
 
---   let tup ← tm.mkTuple #[t1, t2, t3]
+  let tup ← tm.mkTuple #[t1, t2, t3]
 
---   assertTrue tup.isTupleValue
---   assertEq #[t1, t2, t3] (← tup.getTupleValue)
+  assertTrue tup.isTupleValue
+  assertEq #[t1, t2, t3] (← tup.getTupleValue)
 
--- test![TestApiBlackTerm, getFloatingPoint] tm => do
---   let bvVal ← tm.mkBitVectorOfString 16 "0000110000000011" 2
---   let fp ← tm.mkFloatingPoint 5 11 bvVal
+test![TestApiBlackTerm, getFloatingPoint] tm => do
+  let bvVal ← tm.mkBitVectorOfString 16 "0000110000000011" 2
+  let fp ← tm.mkFloatingPoint 5 11 bvVal
 
---   assertTrue fp.isFloatingPointValue
---   assertFalse fp.isFloatingPointPosZero
---   assertFalse fp.isFloatingPointNegZero
---   assertFalse fp.isFloatingPointPosInf
---   assertFalse fp.isFloatingPointNegInf
---   assertFalse fp.isFloatingPointNaN
---   assertEq (5, 11, bvVal) (← fp.getFloatingPointValue)
+  assertTrue fp.isFloatingPointValue
+  assertFalse fp.isFloatingPointPosZero
+  assertFalse fp.isFloatingPointNegZero
+  assertFalse fp.isFloatingPointPosInf
+  assertFalse fp.isFloatingPointNegInf
+  assertFalse fp.isFloatingPointNaN
+  assertEq (5, 11, bvVal) (← fp.getFloatingPointValue)
 
---   assertTrue (← tm.mkFloatingPointPosZero 5 11).isFloatingPointPosZero
---   assertTrue (← tm.mkFloatingPointNegZero 5 11).isFloatingPointNegZero
---   assertTrue (← tm.mkFloatingPointPosInf 5 11).isFloatingPointPosInf
---   assertTrue (← tm.mkFloatingPointNegInf 5 11).isFloatingPointNegInf
---   assertTrue (← tm.mkFloatingPointNaN 5 11).isFloatingPointNaN
+  assertTrue (← tm.mkFloatingPointPosZero 5 11).isFloatingPointPosZero
+  assertTrue (← tm.mkFloatingPointNegZero 5 11).isFloatingPointNegZero
+  assertTrue (← tm.mkFloatingPointPosInf 5 11).isFloatingPointPosInf
+  assertTrue (← tm.mkFloatingPointNegInf 5 11).isFloatingPointNegInf
+  assertTrue (← tm.mkFloatingPointNaN 5 11).isFloatingPointNaN
 
--- test![TestApiBlackTerm, getSet] tm solver => do
---   let s ← tm.mkSetSort int
+test![TestApiBlackTerm, getSet] tm solver => do
+  let s ← tm.mkSetSort int
 
---   let i1 ← tm.mkInteger 5
---   let i2 ← tm.mkInteger 7
+  let i1 ← tm.mkInteger 5
+  let i2 ← tm.mkInteger 7
 
---   let s1 ← tm.mkEmptySet s
---   let s2 ← tm.mkTerm Kind.SET_SINGLETON #[i1]
---   let s3 ← tm.mkTerm Kind.SET_SINGLETON #[i1]
---   let s4 ← tm.mkTerm Kind.SET_SINGLETON #[i2]
---   let mut s5 ← tm.mkTerm Kind.SET_UNION #[s2, ← tm.mkTerm Kind.SET_UNION #[s3, s4]]
+  let s1 ← tm.mkEmptySet s
+  let s2 ← tm.mkTerm Kind.SET_SINGLETON #[i1]
+  let s3 ← tm.mkTerm Kind.SET_SINGLETON #[i1]
+  let s4 ← tm.mkTerm Kind.SET_SINGLETON #[i2]
+  let mut s5 ← tm.mkTerm Kind.SET_UNION #[s2, ← tm.mkTerm Kind.SET_UNION #[s3, s4]]
 
---   assertTrue s1.isSetValue
---   assertTrue s2.isSetValue
---   assertTrue s3.isSetValue
---   assertTrue s4.isSetValue
---   assertFalse s5.isSetValue
---   s5 ← solver.simplify s5
---   assertTrue s5.isSetValue
+  assertTrue s1.isSetValue
+  assertTrue s2.isSetValue
+  assertTrue s3.isSetValue
+  assertTrue s4.isSetValue
+  assertFalse s5.isSetValue
+  s5 ← solver.simplify s5
+  assertTrue s5.isSetValue
 
---   assertEq #[] (← s1.getSetValue)
---   assertEq #[i1] (← s2.getSetValue)
---   assertEq #[i1] (← s3.getSetValue)
---   assertEq #[i2] (← s4.getSetValue)
---   assertEq #[i1, i2] (← s5.getSetValue)
+  assertEq #[] (← s1.getSetValue)
+  assertEq #[i1] (← s2.getSetValue)
+  assertEq #[i1] (← s3.getSetValue)
+  assertEq #[i2] (← s4.getSetValue)
+  assertEq #[i1, i2] (← s5.getSetValue)
 
--- test![TestApiBlackTerm, getSequence] tm solver => do
---   let s ← tm.mkSequenceSort int
+test![TestApiBlackTerm, getSequence] tm solver => do
+  let s ← tm.mkSequenceSort int
 
---   let i1 ← tm.mkInteger 5
---   let i2 ← tm.mkInteger 7
+  let i1 ← tm.mkInteger 5
+  let i2 ← tm.mkInteger 7
 
---   let s1 ← tm.mkEmptySequence s
---   let mut s2 ← tm.mkTerm Kind.SEQ_UNIT #[i1]
---   let mut s3 ← tm.mkTerm Kind.SEQ_UNIT #[i1]
---   let mut s4 ← tm.mkTerm Kind.SEQ_UNIT #[i2]
---   let mut s5 ← tm.mkTerm Kind.SEQ_CONCAT #[s2, ← tm.mkTerm Kind.SEQ_CONCAT #[s3, s4]]
+  let s1 ← tm.mkEmptySequence s
+  let mut s2 ← tm.mkTerm Kind.SEQ_UNIT #[i1]
+  let mut s3 ← tm.mkTerm Kind.SEQ_UNIT #[i1]
+  let mut s4 ← tm.mkTerm Kind.SEQ_UNIT #[i2]
+  let mut s5 ← tm.mkTerm Kind.SEQ_CONCAT #[s2, ← tm.mkTerm Kind.SEQ_CONCAT #[s3, s4]]
 
---   assertTrue s1.isSequenceValue
---   assertFalse s2.isSequenceValue
---   assertFalse s3.isSequenceValue
---   assertFalse s4.isSequenceValue
---   assertFalse s5.isSequenceValue
+  assertTrue s1.isSequenceValue
+  assertFalse s2.isSequenceValue
+  assertFalse s3.isSequenceValue
+  assertFalse s4.isSequenceValue
+  assertFalse s5.isSequenceValue
 
---   s2 ← solver.simplify s2
---   s3 ← solver.simplify s3
---   s4 ← solver.simplify s4
---   s5 ← solver.simplify s5
+  s2 ← solver.simplify s2
+  s3 ← solver.simplify s3
+  s4 ← solver.simplify s4
+  s5 ← solver.simplify s5
 
---   assertEq #[] (← s1.getSequenceValue)
---   assertEq #[i1] (← s2.getSequenceValue)
---   assertEq #[i1] (← s3.getSequenceValue)
---   assertEq #[i2] (← s4.getSequenceValue)
---   assertEq #[i1, i1, i2] (← s5.getSequenceValue)
+  assertEq #[] (← s1.getSequenceValue)
+  assertEq #[i1] (← s2.getSequenceValue)
+  assertEq #[i1] (← s3.getSequenceValue)
+  assertEq #[i2] (← s4.getSequenceValue)
+  assertEq #[i1, i1, i2] (← s5.getSequenceValue)
 
--- test![TestApiBlackTerm, substitute] tm => do
---   let int ← tm.getIntegerSort
---   let x ← tm.mkConst int "x"
---   let one ← tm.mkInteger 1
---   let tru ← tm.mkTrue
---   let xPx ← tm.mkTerm Kind.ADD #[x, x]
---   let onePone ← tm.mkTerm Kind.ADD #[one, one]
+test![TestApiBlackTerm, substitute] tm => do
+  let int ← tm.getIntegerSort
+  let x ← tm.mkConst int "x"
+  let one ← tm.mkInteger 1
+  let tru ← tm.mkTrue
+  let xPx ← tm.mkTerm Kind.ADD #[x, x]
+  let onePone ← tm.mkTerm Kind.ADD #[one, one]
 
---   assertEq onePone (← xPx.substitute #[x] #[one])
---   assertEq xPx (← onePone.substitute #[one] #[x])
---   -- incorrect due to type
---   xPx.substitute #[one] #[tru] |> assertError "expecting terms of the same sort at index 0"
+  assertEq onePone (← xPx.substitute #[x] #[one])
+  assertEq xPx (← onePone.substitute #[one] #[x])
+  -- incorrect due to type
+  xPx.substitute #[one] #[tru] |> assertError "expecting terms of the same sort at index 0"
 
---   -- simultaneous substitution
---   let y ← tm.mkConst int "y"
---   let xPy ← tm.mkTerm Kind.ADD #[x, y]
---   let yPone ← tm.mkTerm Kind.ADD #[y, one]
---   let es := #[x, y]
---   let rs := #[y, one]
---   assertEq yPone (← xPy.substitute es rs)
+  -- simultaneous substitution
+  let y ← tm.mkConst int "y"
+  let xPy ← tm.mkTerm Kind.ADD #[x, y]
+  let yPone ← tm.mkTerm Kind.ADD #[y, one]
+  let es := #[x, y]
+  let rs := #[y, one]
+  assertEq yPone (← xPy.substitute es rs)
 
---   -- incorrect substitution due to arity
---   let rs := rs.pop
---   xPy.substitute es rs |> assertError "expected vectors of the same arity in substitute"
+  -- incorrect substitution due to arity
+  let rs := rs.pop
+  xPy.substitute es rs |> assertError "expected vectors of the same arity in substitute"
 
---   -- incorrect substitution due to types
---   let rs := rs.push tru
---   xPy.substitute es rs |> assertError "expecting terms of the same sort at index 1"
+  -- incorrect substitution due to types
+  let rs := rs.push tru
+  xPy.substitute es rs |> assertError "expecting terms of the same sort at index 1"
 
---   -- null cannot substitute
---   let n := Term.null ()
---   n.substitute #[one] #[x] |> assertError
---     "invalid call to 'Term cvc5::Term::substitute(const std::vector<Term> &, \
---     const std::vector<Term> &) const', expected non-null object"
---   xPx.substitute #[n] #[x] |> assertError "invalid null term in 'terms' at index 0"
---   xPx.substitute #[x] #[n] |> assertError "invalid null term in 'replacements' at index 0"
---   let rs := rs.pop.push n
---   xPy.substitute es rs |> assertError "invalid null term in 'replacements' at index 1"
---   let es := #[x]
---   let rs := #[y]
---   n.substitute es rs |> assertError
---     "invalid call to 'Term cvc5::Term::substitute(const std::vector<Term> &, \
---     const std::vector<Term> &) const', expected non-null object"
---   let es := es.push n
---   let rs := rs.push one
---   xPx.substitute es rs |> assertError "invalid null term in 'terms' at index 1"
+  -- null cannot substitute
+  let n := Term.null ()
+  n.substitute #[one] #[x] |> assertError
+    "invalid call to 'Term cvc5::Term::substitute(const std::vector<Term> &, \
+    const std::vector<Term> &) const', expected non-null object"
+  xPx.substitute #[n] #[x] |> assertError "invalid null term in 'terms' at index 0"
+  xPx.substitute #[x] #[n] |> assertError "invalid null term in 'replacements' at index 0"
+  let rs := rs.pop.push n
+  xPy.substitute es rs |> assertError "invalid null term in 'replacements' at index 1"
+  let es := #[x]
+  let rs := #[y]
+  n.substitute es rs |> assertError
+    "invalid call to 'Term cvc5::Term::substitute(const std::vector<Term> &, \
+    const std::vector<Term> &) const', expected non-null object"
+  let es := es.push n
+  let rs := rs.push one
+  xPx.substitute es rs |> assertError "invalid null term in 'terms' at index 1"
 
--- test![TestApiBlackTerm, constArray] tm => do
---   let int ← tm.getIntegerSort
---   let arrSort ← tm.mkArraySort int int
---   let a ← tm.mkConst arrSort "a"
---   let one ← tm.mkInteger 1
---   let two ← tm.mkBitVector 2 2
---   let iConst ← tm.mkConst int
---   let constArr ← tm.mkConstArray arrSort one
+test![TestApiBlackTerm, constArray] tm => do
+  let int ← tm.getIntegerSort
+  let arrSort ← tm.mkArraySort int int
+  let a ← tm.mkConst arrSort "a"
+  let one ← tm.mkInteger 1
+  let two ← tm.mkBitVector 2 2
+  let iConst ← tm.mkConst int
+  let constArr ← tm.mkConstArray arrSort one
 
---   tm.mkConstArray arrSort two |> assertError "value does not match element sort"
---   tm.mkConstArray arrSort iConst |> assertError "invalid argument '||' for 'val', expected a value"
+  tm.mkConstArray arrSort two |> assertError "value does not match element sort"
+  tm.mkConstArray arrSort iConst |> assertError "invalid argument '||' for 'val', expected a value"
 
---   assertEq Kind.CONST_ARRAY (← constArr.getKind)
---   assertEq one (← constArr.getConstArrayBase)
---   a.getConstArrayBase |> assertError
---     "invalid argument 'a' for '*d_node', \
---     expected Term to be a constant array when calling getConstArrayBase()"
+  assertEq Kind.CONST_ARRAY (← constArr.getKind)
+  assertEq one (← constArr.getConstArrayBase)
+  a.getConstArrayBase |> assertError
+    "invalid argument 'a' for '*d_node', \
+    expected Term to be a constant array when calling getConstArrayBase()"
 
---   let real ← tm.getRealSort
---   let arrSort ← tm.mkArraySort real real
---   let zeroArray ← tm.mkReal 0 >>= tm.mkConstArray arrSort
---   let stores ← tm.mkTerm Kind.STORE #[zeroArray, ← tm.mkReal 1, ← tm.mkReal 2]
---   let stores ← tm.mkTerm Kind.STORE #[stores, ← tm.mkReal 2, ← tm.mkReal 3]
---   let _ ← tm.mkTerm Kind.STORE #[stores, ← tm.mkReal 4, ← tm.mkReal 5]
+  let real ← tm.getRealSort
+  let arrSort ← tm.mkArraySort real real
+  let zeroArray ← tm.mkReal 0 >>= tm.mkConstArray arrSort
+  let stores ← tm.mkTerm Kind.STORE #[zeroArray, ← tm.mkReal 1, ← tm.mkReal 2]
+  let stores ← tm.mkTerm Kind.STORE #[stores, ← tm.mkReal 2, ← tm.mkReal 3]
+  let _ ← tm.mkTerm Kind.STORE #[stores, ← tm.mkReal 4, ← tm.mkReal 5]
 
--- test![TestApiBlackTerm, getSequenceValue] tm => do
---   let real ← tm.getRealSort
---   let seq ← tm.mkSequenceSort real
---   let s ← tm.mkEmptySequence seq
+test![TestApiBlackTerm, getSequenceValue] tm => do
+  let real ← tm.getRealSort
+  let seq ← tm.mkSequenceSort real
+  let s ← tm.mkEmptySequence seq
 
---   assertEq Kind.CONST_SEQUENCE (← s.getKind)
---   -- empty sequence has zero elements
---   let cs ← s.getSequenceValue
---   assertTrue cs.isEmpty
+  assertEq Kind.CONST_SEQUENCE (← s.getKind)
+  -- empty sequence has zero elements
+  let cs ← s.getSequenceValue
+  assertTrue cs.isEmpty
 
---   -- a seq.unit app is not a constant sequence (regardless of whether it is applied to constant)
---   let su ← tm.mkTerm Kind.SEQ_UNIT #[← tm.mkReal 1]
---   su.getSequenceValue |> assertError
---     "invalid argument '(seq.unit 1.0)' for '*d_node', \
---     expected Term to be a sequence value when calling getSequenceValue()"
+  -- a seq.unit app is not a constant sequence (regardless of whether it is applied to constant)
+  let su ← tm.mkTerm Kind.SEQ_UNIT #[← tm.mkReal 1]
+  su.getSequenceValue |> assertError
+    "invalid argument '(seq.unit 1.0)' for '*d_node', \
+    expected Term to be a sequence value when calling getSequenceValue()"
 
--- test![TestApiBlackTerm, getCardinalityConstraint] tm => do
---   let su ← tm.mkUninterpretedSort "u"
---   let t ← tm.mkCardinalityConstraint su 3
---   assertTrue t.isCardinalityConstraint
---   let cc ← t.getCardinalityConstraint
---   assertEq su cc.fst
---   assertEq 3 cc.snd
---   let x ← tm.mkConst (← tm.getIntegerSort) "x"
---   assertFalse x.isCardinalityConstraint
---   x.getCardinalityConstraint |> assertError
---     "invalid argument 'x' for '*d_node', \
---     expected Term to be a cardinality constraint when calling getCardinalityConstraint()"
---   -- original test checks that the following produces an error, but the lean version does not
---   Term.null () |>.isCardinalityConstraint |> assertFalse
+test![TestApiBlackTerm, getCardinalityConstraint] tm => do
+  let su ← tm.mkUninterpretedSort "u"
+  let t ← tm.mkCardinalityConstraint su 3
+  assertTrue t.isCardinalityConstraint
+  let cc ← t.getCardinalityConstraint
+  assertEq su cc.fst
+  assertEq 3 cc.snd
+  let x ← tm.mkConst (← tm.getIntegerSort) "x"
+  assertFalse x.isCardinalityConstraint
+  x.getCardinalityConstraint |> assertError
+    "invalid argument 'x' for '*d_node', \
+    expected Term to be a cardinality constraint when calling getCardinalityConstraint()"
+  -- original test checks that the following produces an error, but the lean version does not
+  Term.null () |>.isCardinalityConstraint |> assertFalse
 
--- test![TestApiBlackTerm, getRealAlgebraicNumber] tm solver => do
---   solver.setOption "produce-models" "true"
---   solver.setLogic "QF_NRA"
---   let realSort ← tm.getRealSort
---   let x ← tm.mkConst realSort "x"
---   let x2 ← tm.mkTerm Kind.MULT #[x, x]
---   let two ← tm.mkReal 2 1
---   let eq ← tm.mkTerm Kind.EQUAL #[x2, two]
---   solver.assertFormula eq
---   -- note that check-sat should only return *sat* if libpoly is enabled.
---   -- otherwise, we do not test the following functionality
---   if (← solver.checkSat).isSat then
---     -- we find a model for `(x*x = 2)`, where x should be a real algebraic number
---     -- we assert that its defining polynomial is non-null and its lower and upper bounds are reals
---     let vx ← solver.getValue x
---     assertTrue vx.isRealAlgebraicNumber
---     let y ← tm.mkVar realSort "y"
---     let poly ← vx.getRealAlgebraicNumberDefiningPolynomial y
---     assertFalse poly.isNull
---     let lb ← vx.getRealAlgebraicNumberLowerBound
---     assertTrue lb.isRealValue
---     let ub ← vx.getRealAlgebraicNumberUpperBound
---     assertTrue ub.isRealValue
---     -- cannot call with non-variable
---     let yc ← tm.mkConst realSort "y"
---     vx.getRealAlgebraicNumberDefiningPolynomial yc |> assertError
---       "invalid argument 'y' for 'v', expected expected a variable as argument \
---       when calling getRealAlgebraicNumberDefiningPolynomial()"
+test![TestApiBlackTerm, getRealAlgebraicNumber] tm solver => do
+  solver.setOption "produce-models" "true"
+  solver.setLogic "QF_NRA"
+  let realSort ← tm.getRealSort
+  let x ← tm.mkConst realSort "x"
+  let x2 ← tm.mkTerm Kind.MULT #[x, x]
+  let two ← tm.mkReal 2 1
+  let eq ← tm.mkTerm Kind.EQUAL #[x2, two]
+  solver.assertFormula eq
+  -- note that check-sat should only return *sat* if libpoly is enabled.
+  -- otherwise, we do not test the following functionality
+  if (← solver.checkSat).isSat then
+    -- we find a model for `(x*x = 2)`, where x should be a real algebraic number
+    -- we assert that its defining polynomial is non-null and its lower and upper bounds are reals
+    let vx ← solver.getValue x
+    assertTrue vx.isRealAlgebraicNumber
+    let y ← tm.mkVar realSort "y"
+    let poly ← vx.getRealAlgebraicNumberDefiningPolynomial y
+    assertFalse poly.isNull
+    let lb ← vx.getRealAlgebraicNumberLowerBound
+    assertTrue lb.isRealValue
+    let ub ← vx.getRealAlgebraicNumberUpperBound
+    assertTrue ub.isRealValue
+    -- cannot call with non-variable
+    let yc ← tm.mkConst realSort "y"
+    vx.getRealAlgebraicNumberDefiningPolynomial yc |> assertError
+      "invalid argument 'y' for 'v', expected expected a variable as argument \
+      when calling getRealAlgebraicNumberDefiningPolynomial()"
 
 test![TestApiBlackTerm, getSkolem] tm => do
   -- ordinary variables are not skolems

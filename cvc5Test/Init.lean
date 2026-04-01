@@ -158,10 +158,6 @@ macro_rules
       else
         `(do
             let $tmIdent:ident ← TermManager.new
-            let $boolIdent ← $tmIdent:ident |>.getBooleanSort
-            let $intIdent ← $tmIdent:ident |>.getIntegerSort
-            let $realIdent ← $tmIdent:ident |>.getRealSort
-            let $uninterpretedIdent ← $tmIdent:ident |>.mkUninterpretedSort "u"
             $code:term
         )
     else `(do $code:term)
