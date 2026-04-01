@@ -1543,10 +1543,11 @@ extern_def mkFloatingPointSort : TermManager → (exp sig : UInt32) → Env cvc5
 
 - `size` The modulus of the field. Must be a prime.
 -/
-extern_def mkFiniteFieldSortOfString : TermManager → (size : String) → (base : UInt32) → Env cvc5.Sort
+extern_def mkFiniteFieldSortOfString :
+  TermManager → (size : String) → (base : UInt32 := 10) → Env cvc5.Sort
 with
-  mkFiniteFieldSort (tm : TermManager) (size : Nat) (base : UInt32 := 10) : Env cvc5.Sort :=
-    mkFiniteFieldSortOfString tm (toString size) base
+  mkFiniteFieldSort (tm : TermManager) (size : Nat) : Env cvc5.Sort :=
+    mkFiniteFieldSortOfString tm (toString size) (base := 10)
 
 /-- Create function sort.
 
