@@ -421,30 +421,30 @@ test![TestApiBlackTermManager, mkFiniteFieldElem] tm => do
   let f ← tm.mkFiniteFieldSort 7
   let bv ← tm.mkBitVectorSort 4
 
-  tm.mkFiniteFieldElem "0" f |> assertOkDiscard
-  tm.mkFiniteFieldElem "1" f |> assertOkDiscard
-  tm.mkFiniteFieldElem "6" f |> assertOkDiscard
-  tm.mkFiniteFieldElem "8" f |> assertOkDiscard
-  tm.mkFiniteFieldElem "-1" f |> assertOkDiscard
+  tm.mkFiniteFieldElem 0 f |> assertOkDiscard
+  tm.mkFiniteFieldElem 1 f |> assertOkDiscard
+  tm.mkFiniteFieldElem 6 f |> assertOkDiscard
+  tm.mkFiniteFieldElem 8 f |> assertOkDiscard
+  tm.mkFiniteFieldElem (-1) f |> assertOkDiscard
 
-  tm.mkFiniteFieldElem "a" f |> assertError "mpz_set_str"
+  tm.mkFiniteFieldElemOfString "a" f |> assertError "mpz_set_str"
 
-  tm.mkFiniteFieldElem "-1" bv |> assertError
+  tm.mkFiniteFieldElem (-1) bv |> assertError
     "invalid argument '(_ BitVec 4)' for 'sort', expected a finite field sort"
 
-  assertEq (← tm.mkFiniteFieldElem "-1" f) (← tm.mkFiniteFieldElem "6" f)
-  assertEq (← tm.mkFiniteFieldElem "1" f) (← tm.mkFiniteFieldElem "8" f)
+  assertEq (← tm.mkFiniteFieldElem (-1) f) (← tm.mkFiniteFieldElem 6 f)
+  assertEq (← tm.mkFiniteFieldElem (1) f) (← tm.mkFiniteFieldElem 8 f)
 
-  tm.mkFiniteFieldElem "0" f 2 |> assertOkDiscard
-  tm.mkFiniteFieldElem "101" f 3 |> assertOkDiscard
-  tm.mkFiniteFieldElem "-10" f 7 |> assertOkDiscard
-  tm.mkFiniteFieldElem "abcde" f 16 |> assertOkDiscard
+  tm.mkFiniteFieldElemOfString "0" f 2 |> assertOkDiscard
+  tm.mkFiniteFieldElemOfString "101" f 3 |> assertOkDiscard
+  tm.mkFiniteFieldElemOfString "-10" f 7 |> assertOkDiscard
+  tm.mkFiniteFieldElemOfString "abcde" f 16 |> assertOkDiscard
 
-  assertEq (← tm.mkFiniteFieldElem "0" f 2) (← tm.mkFiniteFieldElem "0" f 3)
-  assertEq (← tm.mkFiniteFieldElem "11" f 2) (← tm.mkFiniteFieldElem "10" f 3)
-  assertEq (← tm.mkFiniteFieldElem "1010" f 2) (← tm.mkFiniteFieldElem "A" f 16)
+  assertEq (← tm.mkFiniteFieldElemOfString "0" f 2) (← tm.mkFiniteFieldElemOfString "0" f 3)
+  assertEq (← tm.mkFiniteFieldElemOfString "11" f 2) (← tm.mkFiniteFieldElemOfString "10" f 3)
+  assertEq (← tm.mkFiniteFieldElemOfString "1010" f 2) (← tm.mkFiniteFieldElemOfString "A" f 16)
 
-  assertEq (← tm.mkFiniteFieldElem "-22" f 3) (← tm.mkFiniteFieldElem "10" f 6)
+  assertEq (← tm.mkFiniteFieldElemOfString "-22" f 3) (← tm.mkFiniteFieldElemOfString "10" f 6)
 
 test![TestApiBlackTermManager, mkConstArray] tm => do
   let intSort ← tm.getIntegerSort

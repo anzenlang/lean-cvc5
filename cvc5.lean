@@ -1782,8 +1782,11 @@ range, it will be reduced modulo size before being constructed.
 - `sort` The field sort.
 - `base` The base of the string representation of `value`, default `10`.
 -/
-extern_def mkFiniteFieldElem :
+extern_def mkFiniteFieldElemOfString :
   TermManager → (value : String) → (sort : cvc5.Sort) → (base : UInt32 := 10) → Env Term
+with
+  mkFiniteFieldElem (tm : TermManager) (value : Int) (sort : cvc5.Sort) : Env Term :=
+    tm.mkFiniteFieldElemOfString (base := 10) (toString value) sort
 
 /-- Create a constant array with the provided constant value stored at every index.
 
