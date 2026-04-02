@@ -48,19 +48,23 @@ test![TestApiBlackSort, operatorsComparison] tm => do
 
 test![TestApiBlackSort, getKind] tm => do
   let b ← tm.getBooleanSort
-  assertEq b.getKind SortKind.BOOLEAN_SORT
+  assertEq (← b.getKind) SortKind.BOOLEAN_SORT
   let dtSort ← createDatatypeSort tm
-  assertEq SortKind.DATATYPE_SORT dtSort.getKind
+  assertEq SortKind.DATATYPE_SORT (← dtSort.getKind)
   let r ← tm.getRealSort
   let i ← tm.getIntegerSort
   let arr ← tm.mkArraySort r i
-  assertEq SortKind.ARRAY_SORT arr.getKind
+  assertEq SortKind.ARRAY_SORT (← arr.getKind)
   let fp ← tm.mkFloatingPointSort 8 24
-  assertEq SortKind.FLOATINGPOINT_SORT fp.getKind
+  assertEq SortKind.FLOATINGPOINT_SORT (← fp.getKind)
   let bv ← tm.mkBitVectorSort 8
-  assertEq SortKind.BITVECTOR_SORT bv.getKind
+  assertEq SortKind.BITVECTOR_SORT (← bv.getKind)
   let abs ← tm.mkAbstractSort SortKind.BITVECTOR_SORT
-  assertEq SortKind.ABSTRACT_SORT abs.getKind
+  assertEq SortKind.ABSTRACT_SORT (← abs.getKind)
+  -- not part of the original test
+  let n := cvc5.Sort.null ()
+  n.getKind |> assertError
+    "invalid call to 'SortKind cvc5::Sort::getKind() const', expected non-null object"
 
 test![TestApiBlackSort, hasGetSymbol] tm => do
   let n := cvc5.Sort.null ()

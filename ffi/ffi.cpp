@@ -424,9 +424,11 @@ LEAN_EXPORT uint8_t sort_isNull(lean_obj_arg sort)
   return bool_box(sort_unbox(sort)->isNull());
 }
 
-LEAN_EXPORT uint8_t sort_getKind(lean_obj_arg s)
+LEAN_EXPORT lean_obj_res sort_getKind(lean_obj_arg s)
 {
-  return static_cast<int32_t>(sort_unbox(s)->getKind()) + 2;
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok_i32(static_cast<int32_t>(sort_unbox(s)->getKind()) + 2);
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
 LEAN_EXPORT uint8_t sort_isBoolean(lean_obj_arg sort)

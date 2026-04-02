@@ -1088,7 +1088,7 @@ protected extern_def hash : cvc5.Sort → UInt64
 instance : Hashable cvc5.Sort := ⟨Sort.hash⟩
 
 /-- Get the kind of this sort. -/
-extern_def getKind : cvc5.Sort → SortKind
+extern_def!? getKind : cvc5.Sort → Except Error SortKind
 
 /-- Determine if this is the null sort (`cvc5.Sort`). -/
 extern_def isNull : cvc5.Sort → Bool
@@ -1193,6 +1193,9 @@ extern_def isInstantiated : cvc5.Sort → Bool
 /-- A string representation of this sort. -/
 protected extern_def toString : cvc5.Sort → String
 
+instance : ToString cvc5.Sort := ⟨Sort.toString⟩
+instance : Repr cvc5.Sort := ⟨fun self _ => self.toString⟩
+
 /-- Determine if this term has a symbol (a name).
 
 For example, free constants and variables have symbols.
@@ -1292,9 +1295,6 @@ the vector takes priority.
 -/
 extern_def!? substitute :
   cvc5.Sort → (sorts : Array cvc5.Sort) → (replacements : Array cvc5.Sort) → Except Error cvc5.Sort
-
-instance : ToString cvc5.Sort := ⟨Sort.toString⟩
-instance : Repr cvc5.Sort := ⟨fun self _ => self.toString⟩
 
 /-- The arity of a datatype constructor sort. -/
 extern_def!? getDatatypeConstructorArity : cvc5.Sort → Except Error Nat
