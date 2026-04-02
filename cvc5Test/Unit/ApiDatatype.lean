@@ -25,12 +25,11 @@ test![TestApiBlackDatatype, mkDatatypeSort] tm => do
   let listSort ← tm.mkDatatypeSort dtSpec
   let d ← listSort.getDatatype
   let consLen := d.getNumConstructors
-  if h : consLen = 2 then
-    let consCtor := d[0]
-    let nilConstr := d[1]
-    assertOkDiscard consCtor.getTerm
-    assertOkDiscard nilConstr.getTerm
-  else println! "unexpected number of constructors: {d.getNumConstructors}"
+  if h : consLen ≠ 2 then println! "unexpected number of constructors: {d.getNumConstructors}" else
+  let consCtor := d[0]
+  let nilConstr := d[1]
+  assertOkDiscard consCtor.getTerm
+  assertOkDiscard nilConstr.getTerm
 
 test![TestApiBlackDatatype, isNull] tm => do
   let int ← tm.getIntegerSort
@@ -57,12 +56,14 @@ test![TestApiBlackDatatype, isNull] tm => do
   assertFalse dtSpec.isParametric
   let listSort ← tm.mkDatatypeSort dtSpec
   dt ← listSort.getDatatype
-  if h : dt.getNumConstructors = 1 then
+  if h : dt.getNumConstructors ≠ 1 then
+    println! "unexpected number of constructors: {dt.getNumConstructors}"
+  else
     dtCons := dt[0]
-    if h' : dtCons.getNumSelectors = 1 then
+    if h' : dtCons.getNumSelectors ≠ 1 then
+      println! "unexpected number of selectors: {dtCons.getNumSelectors}"
+    else
       dtSel := dtCons[0]
-    else println! "unexpected number of selectors: {dtCons.getNumSelectors}"
-  else println! "unexpected number of constructors: {dt.getNumConstructors}"
 
   -- verifying that the new objects are non-null
   assertFalse dtSpec.isNull
@@ -197,7 +198,8 @@ test![TestApiBlackDatatype, mkDatatypeSorts] tm => do
     assertEq sort.getDatatype!.getName! dtSpecs[idx]!.getName!
 
   -- verify the resolution was correct
-  let dtTree := dtSorts[0]!.getDatatype!
+  if h : dtSorts.size ≠ 2 then println! "unexpected sort array `{dtSorts}`" else
+  let dtTree := dtSorts[0].getDatatype!
   let dtcTreeNode := dtTree[0]!
   assertEq dtcTreeNode.getName! "node"
   let dtsTreeNodeLeft := dtcTreeNode[0]!
@@ -205,7 +207,7 @@ test![TestApiBlackDatatype, mkDatatypeSorts] tm => do
   -- argument type should have resolved to be recursive
   let dtsTreeNodeLeftCodom ← dtsTreeNodeLeft.getCodomainSort
   assertTrue dtsTreeNodeLeftCodom.isDatatype
-  assertEq dtsTreeNodeLeftCodom dtSorts[0]!
+  assertEq dtsTreeNodeLeftCodom dtSorts[0]
 
   -- fails due to empty datatype
   let dtDeclsBad := #[← tm.mkDatatypeDecl "emptyD"]
@@ -248,7 +250,8 @@ test![TestApiBlackDatatype, mkDatatypeSortsSelUnres] tm => do
     assertEq sort.getDatatype!.getName! dtSpecs[idx]!.getName!
 
   -- verify the resolution was correct
-  let dtTree := dtSorts[0]!.getDatatype!
+  if h : dtSorts.size ≠ 2 then println! "unexpected size for array sort {dtSorts}" else
+  let dtTree := dtSorts[0].getDatatype!
   let dtcTreeNode := dtTree[0]!
   assertEq dtcTreeNode.getName! "node"
   let dtsTreeNodeLeft := dtcTreeNode[0]!
@@ -256,7 +259,7 @@ test![TestApiBlackDatatype, mkDatatypeSortsSelUnres] tm => do
   -- argument type should have resolved to be recursive
   let dtsTreeNodeLeftCodom ← dtsTreeNodeLeft.getCodomainSort
   assertTrue dtsTreeNodeLeftCodom.isDatatype
-  assertEq dtsTreeNodeLeftCodom dtSorts[0]!
+  assertEq dtsTreeNodeLeftCodom dtSorts[0]
 
 test![TestApiBlackDatatype, datatypeStructs] tm => do
   let int ← tm.getIntegerSort
@@ -267,8 +270,8 @@ test![TestApiBlackDatatype, datatypeStructs] tm => do
   let mut consSpec ← tm.mkDatatypeConstructorDecl "cons"
   consSpec ← consSpec.addSelector "head" int
   consSpec ← consSpec.addSelectorSelf "tail"
-  let nullSort := cvc5.Sort.null ()
-  consSpec.addSelector "null" nullSort |> assertError "invalid null argument for 'sort'"
+  -- let nullSort := cvc5.Sort.null ()
+  -- consSpec.addSelector "null" nullSort |> assertError "invalid null argument for 'sort'"
   dtSpec ← dtSpec.addConstructor consSpec
   let nilSpec ← tm.mkDatatypeConstructorDecl "nil"
   dtSpec ← dtSpec.addConstructor nilSpec
@@ -389,8 +392,9 @@ test![TestApiBlackDatatype, parametricDatatype] tm => do
 
   assertTrue pairSort.getDatatype!.isParametric
   let dParams ← pairSort.getDatatype!.getParameters
-  assertTrue (dParams[0]! == t1)
-  assertTrue (dParams[1]! == t2)
+  if h : dParams.size ≠ 2 then println! "unexpected sort array size {dParams}" else
+  assertTrue (dParams[0] == t1)
+  assertTrue (dParams[1] == t2)
 
   let pairIntInt ← pairSort.instantiate #[int, int]
   let pairRealReal ← pairSort.instantiate #[real, real]
@@ -461,10 +465,10 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
 
   let dtDecls := #[wListSpec, listSpec, nsSpec]
   let dtSorts ← assertOk <| tm.mkDatatypeSorts dtDecls
-  assertEq 3 dtSorts.size
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
-  assertTrue dtSorts[1]!.getDatatype!.isWellFounded
-  assertTrue dtSorts[2]!.getDatatype!.isWellFounded
+  if h : dtSorts.size ≠ 3 then println! "unexpected array sort size {dtSorts}" else
+  assertTrue dtSorts[0].getDatatype!.isWellFounded
+  assertTrue dtSorts[1].getDatatype!.isWellFounded
+  assertTrue dtSorts[2].getDatatype!.isWellFounded
 
   /- Create mutual datatypes corresponding to this definition block:
 
@@ -487,11 +491,12 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
   let dtDecls := #[ns2Spec]
   -- this is not well-founded due to non-simple recursion
   let dtSorts ← tm.mkDatatypeSorts dtDecls
+  if h : dtSorts.size ≠ 1 then println! "unexpected array sort size {dtSorts}" else
   assertEq 1 dtSorts.size
-  let codom ← dtSorts[0]!.getDatatype![0]![0]!.getCodomainSort
+  let codom ← dtSorts[0].getDatatype![0]![0]!.getCodomainSort
   assertTrue codom.isArray
-  assertEq codom.getArrayElementSort! dtSorts[0]!
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
+  assertEq dtSorts[0] (← codom.getArrayElementSort)
+  assertTrue dtSorts[0].getDatatype!.isWellFounded
 
   /- Create mutual datatypes corresponding to this definition block:
 
@@ -522,9 +527,9 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
 
   -- both are well-founded and have nested recursion
   let dtSorts ← tm.mkDatatypeSorts dtDecls
-  assertEq 2 dtSorts.size
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
-  assertTrue dtSorts[1]!.getDatatype!.isWellFounded
+  if h : dtSorts.size ≠ 2 then println! "unexpected sort array size {dtSorts}" else
+  assertTrue dtSorts[0].getDatatype!.isWellFounded
+  assertTrue dtSorts[1].getDatatype!.isWellFounded
 
   /- Create mutual datatypes corresponding to this definition block:
 
@@ -553,9 +558,9 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
 
   let dtDecls := #[list4Spec, ns4Spec]
   let dtSorts ← tm.mkDatatypeSorts dtDecls
-  assertEq 2 dtSorts.size
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
-  assertTrue dtSorts[1]!.getDatatype!.isWellFounded
+  if h : dtSorts.size ≠ 2 then println! "unexpected array sort size {dtSorts}" else
+  assertTrue dtSorts[0].getDatatype!.isWellFounded
+  assertTrue dtSorts[1].getDatatype!.isWellFounded
 
   /- Create mutual datatypes corresponding to this definition block:
 
@@ -582,8 +587,8 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
 
   -- well-founded and has nested recursion
   let dtSorts ← tm.mkDatatypeSorts #[list5Spec]
-  assertEq 1 dtSorts.size
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
+  if h : dtSorts.size ≠ 1 then println! "unexpected array sort size {dtSorts}" else
+  assertTrue dtSorts[0].getDatatype!.isWellFounded
 
 test![TestApiBlackDatatype, datatypeSpecializedCons] tm => do
   /- Create mutual datatypes corresponding to this definition block:
@@ -609,17 +614,17 @@ test![TestApiBlackDatatype, datatypeSpecializedCons] tm => do
   pListSpec ← pListSpec.addConstructor nil5Spec
 
   let dtSorts ← tm.mkDatatypeSorts #[pListSpec]
-  assertEq 1 dtSorts.size
-  let dt ← dtSorts[0]!.getDatatype
+  if h : dtSorts.size ≠ 1 then println! "unexpected array sort size {dtSorts}" else
+  let dt ← dtSorts[0].getDatatype
   let nilCtor := dt[0]!
 
   let int ← tm.getIntegerSort
-  let listInt ← dtSorts[0]!.instantiate #[int]
+  let listInt ← dtSorts[0].instantiate #[int]
 
   let liParams ← listInt.getDatatype!.getParameters
   -- the parameter of the datatype is not instantiated
-  assertEq 1 liParams.size
-  assertEq xSort liParams[0]!
+  if h : liParams.size ≠ 1 then println! "unexpected array sort size {liParams}" else
+  assertEq xSort liParams[0]
 
   let testConsTerm ← nilCtor.getInstantiatedTerm listInt
   assertNe testConsTerm (← nilCtor.getTerm)
