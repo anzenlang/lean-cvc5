@@ -65,7 +65,19 @@ lean_obj_res except_ok_u64(uint64_t val);
 
 lean_obj_res except_ok_i64(uint64_t val);
 
-lean_obj_res except_err(lean_obj_arg alpha, lean_obj_arg msg);
+lean_obj_res generic_except_err(lean_obj_arg alpha, lean_obj_arg err);
+
+lean_obj_res except_err(lean_obj_arg err)
+{
+  return generic_except_err(lean_box(0), err);
+}
+
+lean_obj_res generic_except_err_of_string(lean_obj_arg alpha, lean_obj_arg msg);
+
+lean_obj_res except_err_of_string(lean_obj_arg msg)
+{
+  return generic_except_err_of_string(lean_box(0), msg);
+}
 
 // # Exception-catching macro for `Except`
 //
@@ -78,13 +90,23 @@ lean_obj_res except_err(lean_obj_arg alpha, lean_obj_arg msg);
   }                                                                            \
   catch (CVC5ApiException & e)                                                 \
   {                                                                            \
-    return except_err(lean_box(0), lean_mk_string(e.what()));                  \
+    return except_err_of_string(lean_mk_string(e.what()));                     \
   }                                                                            \
-  catch (char const* e) { return except_err(lean_box(0), lean_mk_string(e)); } \
+  catch (char const* e) { return except_err_of_string(lean_mk_string(e)); }    \
+  catch (lean_object * e) { return except_err(e); }                            \
+  catch (const std::exception& ex)                                             \
+  {                                                                            \
+    return except_err_of_string(lean_string_append(                            \
+        lean_mk_string("std::exception "), lean_mk_string(ex.what())));        \
+  }                                                                            \
+  catch (const std::string& ex)                                                \
+  {                                                                            \
+    return except_err_of_string(lean_string_append(                            \
+        lean_mk_string("std::string "), lean_mk_string(ex.c_str())));          \
+  }                                                                            \
   catch (...)                                                                  \
   {                                                                            \
-    return except_err(                                                         \
-        lean_box(0),                                                           \
+    return except_err_of_string(                                               \
         lean_mk_string("cvc5's term manager raised an unexpected exception")); \
   }
 
@@ -424,9 +446,11 @@ LEAN_EXPORT uint8_t sort_isNull(lean_obj_arg sort)
   return bool_box(sort_unbox(sort)->isNull());
 }
 
-LEAN_EXPORT uint8_t sort_getKind(lean_obj_arg s)
+LEAN_EXPORT lean_obj_res sort_getKind(lean_obj_arg s)
 {
-  return static_cast<int32_t>(sort_unbox(s)->getKind()) + 2;
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok_i32(static_cast<int32_t>(sort_unbox(s)->getKind()) + 2);
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
 LEAN_EXPORT uint8_t sort_isBoolean(lean_obj_arg sort)
@@ -799,6 +823,75 @@ LEAN_EXPORT lean_obj_arg sort_substitute(lean_obj_arg s,
   }
   return except_ok(sort_box(
       new Sort(sort_unbox(s)->substitute(cvc5Sorts, cvc5Replacements))));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeConstructorArity(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      lean_usize_to_nat(sort_unbox(s)->getDatatypeConstructorArity()));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeConstructorDomainSorts(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  std::vector<Sort> domains =
+      sort_unbox(s)->getDatatypeConstructorDomainSorts();
+  lean_object* ds = lean_mk_empty_array();
+  for (const Sort& domain : domains)
+  {
+    ds = lean_array_push(ds, sort_box(new Sort(domain)));
+  }
+  return except_ok(ds);
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeConstructorCodomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeConstructorCodomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeSelectorDomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeSelectorDomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeSelectorCodomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeSelectorCodomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeTesterDomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeTesterDomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeTesterCodomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeTesterCodomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeArity(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(lean_usize_to_nat(sort_unbox(s)->getDatatypeArity()));
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 

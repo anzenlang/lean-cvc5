@@ -692,9 +692,12 @@ private def mkExceptOkU16 : UInt16 → Except Error UInt16 := .ok
 private def mkExceptOkU8 : UInt8 → Except Error UInt8 := .ok
 
 /-- Only used by FFI to inject errors. -/
-@[export except_err]
-private def mkExceptErr {α : Type} : String → Except Error α :=
-  .error ∘ Error.error
+@[export generic_except_err]
+private def mkExceptErr {α : Type} : Error → Except Error α := .error
+
+/-- Only used by FFI to inject errors. -/
+@[export generic_except_err_of_string]
+private def mkExceptErrOfString {α : Type} : String → Except Error α := .error ∘ Error.error
 
 end ffi_except_constructors
 
@@ -1088,7 +1091,7 @@ protected extern_def hash : cvc5.Sort → UInt64
 instance : Hashable cvc5.Sort := ⟨Sort.hash⟩
 
 /-- Get the kind of this sort. -/
-extern_def getKind : cvc5.Sort → SortKind
+extern_def!? getKind : cvc5.Sort → Except Error SortKind
 
 /-- Determine if this is the null sort (`cvc5.Sort`). -/
 extern_def isNull : cvc5.Sort → Bool
@@ -1193,6 +1196,9 @@ extern_def isInstantiated : cvc5.Sort → Bool
 /-- A string representation of this sort. -/
 protected extern_def toString : cvc5.Sort → String
 
+instance : ToString cvc5.Sort := ⟨Sort.toString⟩
+instance : Repr cvc5.Sort := ⟨fun self _ => self.toString⟩
+
 /-- Determine if this term has a symbol (a name).
 
 For example, free constants and variables have symbols.
@@ -1290,11 +1296,35 @@ the vector takes priority.
 - `sorts` The sub-sorts to be substituted within this sort.
 - `replacements` The sort replacing the substituted sub-sorts.
 -/
-extern_def!? substitute
-: cvc5.Sort → (sorts : Array cvc5.Sort) → (replacements : Array cvc5.Sort) → Except Error cvc5.Sort
+extern_def!? substitute :
+  cvc5.Sort → (sorts : Array cvc5.Sort) → (replacements : Array cvc5.Sort) → Except Error cvc5.Sort
 
-instance : ToString cvc5.Sort := ⟨Sort.toString⟩
-instance : Repr cvc5.Sort := ⟨fun self _ => self.toString⟩
+/-- The arity of a datatype constructor sort. -/
+extern_def!? getDatatypeConstructorArity : cvc5.Sort → Except Error Nat
+
+/-- The domain sorts of a datatype constructor sort. -/
+extern_def!? getDatatypeConstructorDomainSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
+
+/-- The codomain sort of a constructor sort. -/
+extern_def!? getDatatypeConstructorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-- The domain sort of a datatype selector sort. -/
+extern_def!? getDatatypeSelectorDomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-- The codomain sort of a datatype selector sort. -/
+extern_def!? getDatatypeSelectorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-- The domain sort of a datatype tester sort. -/
+extern_def!? getDatatypeTesterDomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-- The codomain sort of a datatype tester sort. -/
+extern_def!? getDatatypeTesterCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+
+/-- Get the arity of a datatype sort.
+
+Number of type parameters if the datatype is parametric, `0` otherwise.
+-/
+extern_def!? getDatatypeArity : cvc5.Sort → Except Error Nat
 
 end cvc5.Sort
 
