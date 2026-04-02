@@ -65,7 +65,19 @@ lean_obj_res except_ok_u64(uint64_t val);
 
 lean_obj_res except_ok_i64(uint64_t val);
 
-lean_obj_res except_err(lean_obj_arg alpha, lean_obj_arg msg);
+lean_obj_res generic_except_err(lean_obj_arg alpha, lean_obj_arg err);
+
+lean_obj_res except_err(lean_obj_arg err)
+{
+  return generic_except_err(lean_box(0), err);
+}
+
+lean_obj_res generic_except_err_of_string(lean_obj_arg alpha, lean_obj_arg msg);
+
+lean_obj_res except_err_of_string(lean_obj_arg msg)
+{
+  return generic_except_err_of_string(lean_box(0), msg);
+}
 
 // # Exception-catching macro for `Except`
 //
@@ -78,13 +90,23 @@ lean_obj_res except_err(lean_obj_arg alpha, lean_obj_arg msg);
   }                                                                            \
   catch (CVC5ApiException & e)                                                 \
   {                                                                            \
-    return except_err(lean_box(0), lean_mk_string(e.what()));                  \
+    return except_err_of_string(lean_mk_string(e.what()));                     \
   }                                                                            \
-  catch (char const* e) { return except_err(lean_box(0), lean_mk_string(e)); } \
+  catch (char const* e) { return except_err_of_string(lean_mk_string(e)); }    \
+  catch (lean_object * e) { return except_err(e); }                            \
+  catch (const std::exception& ex)                                             \
+  {                                                                            \
+    return except_err_of_string(lean_string_append(                            \
+        lean_mk_string("std::exception "), lean_mk_string(ex.what())));        \
+  }                                                                            \
+  catch (const std::string& ex)                                                \
+  {                                                                            \
+    return except_err_of_string(lean_string_append(                            \
+        lean_mk_string("std::string "), lean_mk_string(ex.c_str())));          \
+  }                                                                            \
   catch (...)                                                                  \
   {                                                                            \
-    return except_err(                                                         \
-        lean_box(0),                                                           \
+    return except_err_of_string(                                               \
         lean_mk_string("cvc5's term manager raised an unexpected exception")); \
   }
 

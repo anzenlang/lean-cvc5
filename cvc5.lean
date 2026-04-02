@@ -692,9 +692,12 @@ private def mkExceptOkU16 : UInt16 → Except Error UInt16 := .ok
 private def mkExceptOkU8 : UInt8 → Except Error UInt8 := .ok
 
 /-- Only used by FFI to inject errors. -/
-@[export except_err]
-private def mkExceptErr {α : Type} : String → Except Error α :=
-  .error ∘ Error.error
+@[export generic_except_err]
+private def mkExceptErr {α : Type} : Error → Except Error α := .error
+
+/-- Only used by FFI to inject errors. -/
+@[export generic_except_err_of_string]
+private def mkExceptErrOfString {α : Type} : String → Except Error α := .error ∘ Error.error
 
 end ffi_except_constructors
 
