@@ -802,6 +802,75 @@ LEAN_EXPORT lean_obj_arg sort_substitute(lean_obj_arg s,
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
+LEAN_EXPORT lean_obj_res sort_getDatatypeConstructorArity(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      lean_usize_to_nat(sort_unbox(s)->getDatatypeConstructorArity()));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeConstructorDomainSorts(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  std::vector<Sort> domains =
+      sort_unbox(s)->getDatatypeConstructorDomainSorts();
+  lean_object* ds = lean_mk_empty_array();
+  for (const Sort& domain : domains)
+  {
+    ds = lean_array_push(ds, sort_box(new Sort(domain)));
+  }
+  return except_ok(ds);
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeConstructorCodomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeConstructorCodomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeSelectorDomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeSelectorDomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeSelectorCodomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeSelectorCodomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeTesterDomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeTesterDomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeTesterCodomainSort(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(
+      sort_box(new Sort(sort_unbox(s)->getDatatypeTesterCodomainSort())));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
+LEAN_EXPORT lean_obj_res sort_getDatatypeArity(lean_obj_arg s)
+{
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
+  return except_ok(lean_usize_to_nat(sort_unbox(s)->getDatatypeArity()));
+  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+}
+
 LEAN_EXPORT lean_obj_res sort_toString(lean_obj_arg s)
 {
   return lean_mk_string(sort_unbox(s)->toString().c_str());
