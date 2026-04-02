@@ -11,7 +11,7 @@ import cvc5.ProofRule
 import cvc5.SkolemId
 import cvc5.Types
 
-@[export prod_mk]
+@[export prod_mk_generic]
 private def mkProd := @Prod.mk
 
 namespace cvc5
@@ -661,28 +661,35 @@ section ffi_except_constructors
 
 /-- Only used by FFI to inject values. -/
 @[export generic_except_ok]
-private def mkExceptOk {α : Type} : α → Except Error α :=
-  .ok
+private def mkExceptOk {α : Type} : α → Except Error α := .ok
 
 /-- Only used by FFI to inject values. -/
 @[export except_ok_bool]
-private def mkExceptOkBool : Bool → Except Error Bool :=
-  .ok
+private def mkExceptOkBool : Bool → Except Error Bool := .ok
+
+/-- Only used by FFI to inject values. -/
+@[export except_ok_i64]
+private def mkExceptOkI64 : Int64 → Except Error Int64 := .ok
+
+/-- Only used by FFI to inject values. -/
+@[export except_ok_u64]
+private def mkExceptOkU64 : Int64 → Except Error Int64 := .ok
 
 /-- Only used by FFI to inject values. -/
 @[export except_ok_u32]
-private def mkExceptOkU32 : UInt32 → Except Error UInt32 :=
-  .ok
+private def mkExceptOkU32 : UInt32 → Except Error UInt32 := .ok
+
+/-- Only used by FFI to inject values. -/
+@[export except_ok_i32]
+private def mkExceptOkI32 : Int32 → Except Error Int32 := .ok
 
 /-- Only used by FFI to inject values. -/
 @[export except_ok_u16]
-private def mkExceptOkU16 : UInt16 → Except Error UInt16 :=
-  .ok
+private def mkExceptOkU16 : UInt16 → Except Error UInt16 := .ok
 
 /-- Only used by FFI to inject values. -/
 @[export except_ok_u8]
-private def mkExceptOkU8 : UInt8 → Except Error UInt8 :=
-  .ok
+private def mkExceptOkU8 : UInt8 → Except Error UInt8 := .ok
 
 /-- Only used by FFI to inject errors. -/
 @[export except_err]
@@ -1342,6 +1349,34 @@ protected extern_def beq : Term → Term → Bool
 
 instance : BEq Term := ⟨Term.beq⟩
 
+/-- Less than comparison. -/
+protected extern_def blt : Term → Term → Bool
+
+/-- Greater than comparison. -/
+protected extern_def bgt : Term → Term → Bool
+
+/-- Less than or equal comparison. -/
+protected extern_def ble : Term → Term → Bool
+
+/-- Greater than or equal comparison. -/
+protected extern_def bge : Term → Term → Bool
+
+/-- Comparison of two terms. -/
+protected def compare (t1 t2 : cvc5.Term) : Ordering :=
+  if t1.beq t2 then .eq else if t1.bgt t2 then .gt else .lt
+
+instance : Ord Term := ⟨Term.compare⟩
+
+instance : LT Term := ⟨(Term.blt · ·)⟩
+
+instance : DecidableLT Term :=
+  fun t1 t2 => if h : t1.blt t2 then .isTrue h else .isFalse h
+
+instance : LE Term := ⟨(Term.ble · ·)⟩
+
+instance : DecidableLE Term :=
+  fun t1 t2 => if h : t1.ble t2 then .isTrue h else .isFalse h
+
 protected extern_def hash : Term → UInt64
 
 instance : Hashable Term := ⟨Term.hash⟩
@@ -1350,10 +1385,30 @@ instance : Hashable Term := ⟨Term.hash⟩
 extern_def isNull : Term → Bool
 
 /-- Get the kind of this term. -/
-extern_def getKind : Term → Kind
+extern_def!? getKind : Term → Except Error Kind
 
 /-- Get the sort of this term. -/
-extern_def getSort : Term → cvc5.Sort
+extern_def!? getSort : Term → Except Error cvc5.Sort
+
+/-- Simultaneously replace `terms` with `replacements` in `term`.
+
+- `terms`: The terms to replace.
+- `replacements`: The replacement terms.
+
+In the case that `terms` contains duplicates, the replacement earliest in the array takes priority.
+For example, calling `substitute` on `f(x, y)` with
+- `terms := #[x, z]`
+- `replacements := #[g(z), w]`
+results in the term `f(g(z), y)`.
+
+**NB:** requires that `terms` and `replacements` are of equal size (they are interpreted as a 1:1
+mapping).
+
+**NB:** this replacement is applied during a pre-order traversal and only once (it is not run until
+fixed point).
+-/
+extern_def substitute :
+  (term : Term) → (terms : Array Term) → (replacements : Array Term) → Env Term
 
 /-- Determine if this term has an operator. -/
 extern_def hasOp : Term → Bool
@@ -1362,13 +1417,15 @@ extern_def hasOp : Term → Bool
 
 For example, free constants and variables have symbols.
 -/
-extern_def hasSymbol : Term → Bool
+extern_def!? hasSymbol : Term → Except Error Bool
 
 /-- Get the id of this term. -/
-extern_def getId : Term → Nat
+extern_def!? getId : Term → Except Error Nat
 
 /-- Get the number of children of this term. -/
-extern_def getNumChildren : Term → Nat
+private extern_def getNumChildrenInternal : Term → Nat
+with getNumChildren (t : Term) : Nat :=
+  if t.isNull then 0 else t.getNumChildrenInternal
 
 /-- Is this term a skolem? -/
 extern_def isSkolem : Term → Bool
@@ -1382,11 +1439,182 @@ Requires that this term has an operator (see `hasOp`).
 -/
 extern_def!? getOp : Term → Except Error Op
 
+/-- Get the symbol of this term.
+
+Requires that this term has a symbol (see `hasSymbol`).
+
+The symbol of the term is the string that was provided when constructing it *via* `mkConst` or
+`mkVar`.
+-/
+extern_def!? getSymbol : Term → Except Error String
+
+/-- Boolean negation. -/
+extern_def notTerm : Term → Env Term
+
+/-- Boolean and.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def andTerm : (t1 t2 : Term) → Env Term
+
+/-- Boolean or.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def orTerm : (t1 t2 : Term) → Env Term
+
+/-- Boolean exclusive or.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def xorTerm : (t1 t2 : Term) → Env Term
+
+/-- Equality. -/
+extern_def eqTerm : (t1 t2 : Term) → Env Term
+
+/-- Boolean implication.
+
+- `t1`: A Boolean term.
+- `t2`: A Boolean term.
+-/
+extern_def impTerm : (t1 t2 : Term) → Env Term
+
+/-- If-then-else.
+
+- `cnd`: The condition, a Boolean term.
+- `thn`: The *then* term.
+- `els`: The *else* term.
+-/
+extern_def iteTerm : (cnd thn els : Term) → Env Term
+
+/-- Get the sign of an integer or real value.
+
+Returns `0` this term is zero, `-1` if this term is a negative real or integer value, `1` if this
+term is a positive real or integer value.
+
+**NB:** requires that this term is an integer or real value.
+-/
+extern_def!? getRealOrIntegerValueSign : Term → Except Error Int
+
+/-- Determine if this term is an `Int32 value`.
+
+**NB:** this will return true for integer constants and real constants that have integer value.
+-/
+extern_def isInt32Value : Term → Bool
+
+/-- Get the `Int32` representation of this integral value.
+
+**NB:** requires that this term is an `Int32` value (see `isInt32Value`).
+-/
+extern_def!? getInt32Value : Term → Except Error Int32
+
+/-- Determine if this term is an `UInt32 value`.
+
+**NB:** this will return true for integer constants and real constants that have integer value.
+-/
+extern_def isUInt32Value : Term → Bool
+
+/-- Get the `UInt32` representation of this integral value.
+
+**NB:** requires that this term is an `UInt32` value (see `isUInt32Value`).
+-/
+extern_def!? getUInt32Value : Term → Except Error UInt32
+
+/-- Determine if this term is an `Int64 value`.
+
+**NB:** this will return true for integer constants and real constants that have integer value.
+-/
+extern_def isInt64Value : Term → Bool
+
+/-- Get the `Int64` representation of this integral value.
+
+**NB:** requires that this term is an `Int64` value (see `isInt64Value`).
+-/
+extern_def!? getInt64Value : Term → Except Error Int64
+
+/-- Determine if this term is an `UInt64 value`.
+
+**NB:** this will return true for integer constants and real constants that have integer value.
+-/
+extern_def isUInt64Value : Term → Bool
+
+/-- Get the `UInt64` representation of this integral value.
+
+**NB:** requires that this term is an `UInt64` value (see `isUInt64Value`).
+-/
+extern_def!? getUInt64Value : Term → Except Error UInt64
+
+/-- Determine if this real/integer constant term is an integral value. -/
+extern_def isIntegerValue : Term → Bool
+
+/-- Get the native integral value of an integral value. -/
+extern_def!? getIntegerValue : Term → Except Error Int
+
+/-- Get the native integral value of an integral value. -/
+extern_def isStringValue : Term → Bool
+
+/-- Determine if this term is a rational value whose numerator fits into an `Int32` value and its
+denominator fits into a `UInt32` value.
+-/
+extern_def isReal32Value : Term → Bool
+
+/-- Get the 32 bit integer representations of the numerator and denominator of a rational value.
+
+**NB:** Requires that this term is a rational value and its numerator and denominator fit into 32
+bit integer values (see `Term.isReal32Value`).
+-/
+extern_def getReal32Value : Term → Except Error (Int32 × UInt32)
+
+/-- Determine if this term is a rational value whose numerator fits into an `Int64` value and its
+denominator fits into a `UInt64` value.
+-/
+extern_def isReal64Value : Term → Bool
+
+/-- Get the 64 bit integer representations of the numerator and denominator of a rational value.
+
+**NB:** Requires that this term is a rational value and its numerator and denominator fit into 64
+bit integer values (see `Term.isReal64Value`).
+-/
+extern_def getReal64Value : Term → Except Error (Int64 × UInt64)
+
+/-- Determine if this term is a rational value.
+
+**NB:** A term of kind `Kind.PI` is not considered to be a real value.
+-/
+extern_def isRealValue : Term → Bool
+
+/-- Get a string representation of this rational value.
+
+**NB:** Requires that this term is a rational value (see `Term.isRealValue`).
+-/
+extern_def!? getRealValue : Term → Except Error String
+
+/-- Get the native rational value of a real, rational-compatible value. -/
+extern_def!? getRationalValue : Term → Except Error Rat
+
+/-- Determine if this term is a constant array. -/
+extern_def isConstArray : Term → Bool
+
+/-- Determine the base (element stored at all indices) of a constant array.
+
+**NB:** requires that this term is a constant array (see `isConstArray`).
+-/
+extern_def!? getConstArrayBase : Term → Except Error Term
+
+/-- Determine if this term is a Boolean value. -/
+extern_def isBooleanValue : Term → Bool
+
 /-- Get the value of a Boolean term as a native Boolean value.
 
 Requires `term` to have sort Bool.
 -/
 extern_def!? getBooleanValue : Term → Except Error Bool
+
+/-- Determine if this term is a bit-vector value. -/
+extern_def isBitVectorValue : Term → Bool
 
 /-- Get the string representation of a bit-vector value.
 
@@ -1396,20 +1624,164 @@ Requires `term` to have a bit-vector sort.
 -/
 extern_def!? getBitVectorValue : Term → UInt32 → Except Error String
 
-/-- Get the native integral value of an integral value. -/
-extern_def!? getIntegerValue : Term → Except Error Int
+/-- Determine if this term is a finite field value. -/
+extern_def isFiniteFieldValue : Term → Bool
 
-/-- Get the native rational value of a real, rational-compatible value. -/
-extern_def!? getRationalValue : Term → Except Error Rat
+/-- Get the integer representation of a finite field value (base 10).
 
-/-- Get the symbol of this term.
+**NB:** asserts `isFiniteFieldValue`.
 
-Requires that this term has a symbol (see `hasSymbol`).
-
-The symbol of the term is the string that was provided when constructing it *via* `mkConst` or
-`mkVar`.
+**NB:** uses the integer representative of smallest absolute value.
 -/
-extern_def!? getSymbol : Term → Except Error String
+extern_def!? getFiniteFieldValue : Term → Except Error Int
+
+/-- Determine if this term is an uninterpreted sort value. -/
+extern_def isUninterpretedSortValue : Term → Bool
+
+/-- Get a string representation of an uninterpreted sort value.
+
+**NB:**  asserts `isUninterpretedSortValue`.
+-/
+extern_def!? getUninterpretedSortValue : Term → Except Error String
+
+/-- Determine if this term is a tuple value. -/
+extern_def isTupleValue : Term → Bool
+
+/-- Get a tuple value as a vector of terms.
+
+**NB:** asserts `isTupleValue`.
+-/
+extern_def!? getTupleValue : Term → Except Error (Array Term)
+
+/-- Determine if this term is a floating-point rounding mode value. -/
+extern_def isRoundingModeValue : Term → Bool
+
+/-- Get the `RoundingMode` value of a given rounding-mode value term.
+
+**NB:** asserts `isRoundingModeValue`.
+-/
+extern_def!? getRoundingModeValue : Term → Except Error RoundingMode
+
+/-- Determine if this term is a floating-point positive zero value (`+zero`). -/
+extern_def isFloatingPointPosZero : Term → Bool
+
+/-- Determine if this term is a floating-point negative zero value (`-zero`). -/
+extern_def isFloatingPointNegZero : Term → Bool
+
+/-- Determine if this term is a floating-point positive infinity value (`+oo`). -/
+extern_def isFloatingPointPosInf : Term → Bool
+
+/-- Determine if this term is a floating-point negative infinity value (`-oo`). -/
+extern_def isFloatingPointNegInf : Term → Bool
+
+/-- Determine if this term is a floating-point NaN. -/
+extern_def isFloatingPointNaN : Term → Bool
+
+/-- Determine if this term is a floating-point value. -/
+extern_def isFloatingPointValue : Term → Bool
+
+/-- Get the representation of a floating-point value.
+
+Returns a tuple of the floating-point value's exponent width, significand width, and a bit-vector
+value term.
+
+**NB:** asserts `isFloatingPointValue`.
+-/
+extern_def!? getFloatingPointValue : Term → Except Error (UInt32 × UInt32 × Term)
+
+/-- Determine if this term is a set value.
+
+A term is a set value if it is considered to be a (canonical) constant set value. A canonical set
+value is one whole AST is:
+
+```smtlib
+(union (singleton c_1) ... (union (singleton c_{n-1}) (singleton c_n))))
+```
+
+where `c_1 ... c_n` are values ordered by id such that `c_1 > ... > c_n`.
+
+**NB:** a universe set term (`Kind.SET_UNIVERSE`) is not considered to be a set value.
+-/
+extern_def isSetValue : Term → Bool
+
+/-- Get a set value as an array of terms.
+
+**NB:** asserts `isSetValue`.
+-/
+extern_def!? getSetValue : Term → Except Error (Array Term)
+
+/-- Determine if this term is a sequence value.
+
+A term is a sequence value if it has kind `Kind.CONST_SEQUENCE`. In contrast to values for the set
+sort (as described in `isSetValue`), a sequence value is represented as a term with no children.
+
+Semantically, a sequence value is a concatenation of unit sequences whose elements are themselves
+values. For example:
+
+```smtlib
+(seq.++ (seq.unit 0) (seq.unit 1))
+```
+
+The above term has two representations in `Term`. One is as the sequence concatenation term:
+
+```lisp
+(SEQ_CONCAT (SEQ_UNIT 0) (SEQ_UNIT 1))
+```
+
+where `0` and `1` are the terms corresponding to the integer constants `0` and `1`.
+
+Alternatively, the above term is represented as the constant sequence value:
+
+```lisp
+CONST_SEQUENCE_{0, 1}
+```
+
+where calling `getSequenceValue` on the latter returns the array `#[0, 1]`.
+
+The former term is not a sequence value, but the latter term is.
+
+Constant sequences cannot be constructed directly *via* the API. They are returned in response to
+API calls such as `Solver.getValue` and `Solver.simplify`.
+-/
+extern_def isSequenceValue : Term → Bool
+
+/-- Get a sequence value as a vector of terms. -/
+extern_def!? getSequenceValue : Term → Except Error (Array Term)
+
+/-- Determine if this term is a cardinality constraint. -/
+private extern_def isCardinalityConstraintInternal : Term → Bool
+with isCardinalityConstraint (t : Term) :=
+  if t.isNull then false else t.isCardinalityConstraintInternal
+
+/-- Get a cardinality constraint as a pair of its sort and upper bound.
+
+**NB:** asserts `isCardinalityConstraint`.
+-/
+extern_def!? getCardinalityConstraint : Term → Except Error (cvc5.Sort × UInt32)
+
+/-- Determine if this term is a real algebraic number. -/
+extern_def isRealAlgebraicNumber : Term → Bool
+
+/-- Get the defining polynomial for a real algebraic number term, expressed in terms of the given
+variable.
+
+**NB:** asserts `isRealAlgebraicNumber`.
+
+- `v` The variable over which to express the polynomial.
+-/
+extern_def!? getRealAlgebraicNumberDefiningPolynomial : Term → (v : Term) → Except Error Term
+
+/-- Get the lower bound for a real algebraic number value.
+
+**NB:** asserts `isRealAlgebraicNumber`.
+-/
+extern_def!? getRealAlgebraicNumberLowerBound : Term → Except Error Term
+
+/-- Get the upper bound for a real algebraic number value.
+
+**NB:** asserts `isRealAlgebraicNumber`.
+-/
+extern_def!? getRealAlgebraicNumberUpperBound : Term → Except Error Term
 
 /-- Get skolem identifier of this term.
 
@@ -1670,21 +2042,21 @@ extern_def mkFalse : TermManager → Env Term
 
 - `s`: the string representation of the constant, may represent an integer such as (`"123"`).
 -/
-private extern_def mkIntegerFromString : TermManager → (s : String) → Env Term
+extern_def mkIntegerOfString : TermManager → (s : String) → Env Term
 with
   /-- Create an integer-value term. -/
-  mkInteger (tm : TermManager) : Int → Env Term := mkIntegerFromString tm ∘ toString
+  mkInteger (tm : TermManager) : Int → Env Term := mkIntegerOfString tm ∘ toString
 
 /-- Create a real-value term.
 
 - `s`: the string representation of the constant, may represent an integer (`"123"`) or a real
   constant (`"12.34"`, `"12/34"`).
 -/
-private extern_def mkRealFromString : TermManager → (s : String) → Env Term
+extern_def mkRealOfString : TermManager → (s : String) → Env Term
 with
   /-- Create a real-value term from a `Rat`. -/
   mkRealOfRat (tm : TermManager) (rat : Rat) : Env Term :=
-    mkRealFromString tm s!"{rat.num}/{rat.den}"
+    mkRealOfString tm s!"{rat.num}/{rat.den}"
   /-- Create a real-value term from numerator/denominator `Int`-s. -/
   mkReal (tm : TermManager)
     (num : Int) (den : Int := 1) (den_ne_0 : den ≠ 0 := by simp <;> omega)
@@ -1781,8 +2153,11 @@ range, it will be reduced modulo size before being constructed.
 - `sort` The field sort.
 - `base` The base of the string representation of `value`, default `10`.
 -/
-extern_def mkFiniteFieldElem :
+extern_def mkFiniteFieldElemOfString :
   TermManager → (value : String) → (sort : cvc5.Sort) → (base : UInt32 := 10) → Env Term
+with
+  mkFiniteFieldElem (tm : TermManager) (value : Int) (sort : cvc5.Sort) : Env Term :=
+    tm.mkFiniteFieldElemOfString (base := 10) (toString value) sort
 
 /-- Create a constant array with the provided constant value stored at every index.
 

@@ -129,7 +129,9 @@ scoped syntax
 macro_rules
 | `(command|
   $[ $outputComment:docComment ]?
-  test! $[ [ $fileId:ident , $testId:ident ] ]? $[$tmIdent?:ident =>]? $code:term
+  test! $[ [ $fileId:ident , $testId:ident ] ]?
+    $[$tmIdent?:ident $[$solverIdent?:ident]? =>]?
+    $code:term
 ) => do
   let errPrefStrLit :=
     match (fileId, testId) with
@@ -139,10 +141,25 @@ macro_rules
   let runFun ← `(term| cvc5.Env.run)
   let toRun ←
     if let some tmIdent := tmIdent? then
-      `(do
-          let $tmIdent:ident ← TermManager.new
-          $code:term
-      )
+      let boolIdent := `bool |> Lean.mkIdent
+      let intIdent := `int |> Lean.mkIdent
+      let realIdent := `real |> Lean.mkIdent
+      let uninterpretedIdent := `uninterpreted |> Lean.mkIdent
+      if let some (some solverIdent) := solverIdent? then
+        `(do
+            let $tmIdent:ident ← TermManager.new
+            let $solverIdent:ident ← Solver.new $tmIdent
+            let $boolIdent ← $tmIdent:ident |>.getBooleanSort
+            let $intIdent ← $tmIdent:ident |>.getIntegerSort
+            let $realIdent ← $tmIdent:ident |>.getRealSort
+            let $uninterpretedIdent ← $tmIdent:ident |>.mkUninterpretedSort "u"
+            $code:term
+        )
+      else
+        `(do
+            let $tmIdent:ident ← TermManager.new
+            $code:term
+        )
     else `(do $code:term)
 
   `(

@@ -18,8 +18,7 @@ def parseCommand (parser : InputParser) (s : String) : Env Command := do
   parser.appendIncrementalStringInput s
   parser.nextCommand
 
-test![TestApiBlackCommand, invoke] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackCommand, invoke] tm solver => do
   let parser ← InputParser.new solver
   let sm ← parser.getSymbolManager
   parser.setIncrementalStringInput
@@ -34,16 +33,14 @@ test![TestApiBlackCommand, invoke] tm => do
   assertError "Only one set-logic is allowed." do
     parseCommand parser "(set-logic QF_LRA)"
 
-test![TestApiBlackCommand, toString] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackCommand, toString] tm solver => do
   let parser ← InputParser.new solver
   parser.setIncrementalStringInput
   let cmd ← parseCommand parser "(set-logic QF_LIA)"
   assertFalse cmd.isNull
   assertEq cmd.toString "(set-logic QF_LIA)"
 
-test![TestApiBlackCommand, getCommandName] tm => do
-  let solver ← Solver.new tm
+test![TestApiBlackCommand, getCommandName] tm solver => do
   -- not in original test, silences the stderr warnings since the logic is not set otherwise
   solver.setLogic "ALL"
   let parser ← InputParser.new solver
