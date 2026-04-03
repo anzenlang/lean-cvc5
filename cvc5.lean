@@ -1337,6 +1337,11 @@ extern_def null : Unit → Op
 
 instance : Inhabited Op := ⟨null ()⟩
 
+/-- Hash function. -/
+protected extern_def hash : Op → UInt64
+
+instance : Hashable Op := ⟨Op.hash⟩
+
 /-- Syntactic equality operator. -/
 protected extern_def beq : Op → Op → Bool
 

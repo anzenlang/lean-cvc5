@@ -950,6 +950,11 @@ LEAN_EXPORT lean_obj_res op_getNumIndices(lean_obj_arg op)
   return lean_usize_to_nat(op_unbox(op)->getNumIndices());
 }
 
+LEAN_EXPORT uint64_t op_hash(lean_obj_arg op)
+{
+  return std::hash<Op>()(*op_unbox(op));
+}
+
 LEAN_EXPORT uint8_t op_beq(lean_obj_arg l, lean_obj_arg r)
 {
   return bool_box(*op_unbox(l) == *op_unbox(r));
