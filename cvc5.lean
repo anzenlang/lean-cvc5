@@ -1949,18 +1949,38 @@ extern_def mkFloatingPointSort : TermManager → (exp sig : UInt32) → Env cvc5
 /-- Create a finite-field sort from a given string of base n.
 
 - `size` The modulus of the field. Must be a prime.
+- `base` The base of the string representation of `size`.
 -/
-extern_def mkFiniteFieldSortOfString : TermManager → (size : String) → (base : UInt32) → Env cvc5.Sort
+extern_def mkFiniteFieldSortOfString :
+  TermManager → (size : String) → (base : UInt32 := 10) → Env cvc5.Sort
 with
-  mkFiniteFieldSort (tm : TermManager) (size : Nat) (base : UInt32 := 10) : Env cvc5.Sort :=
-    mkFiniteFieldSortOfString tm (toString size) base
+  /-- Create a finite-field sort.
+
+  - `size` The modulus of the field in base 10. Must be a prime.
+  -/
+  mkFiniteFieldSort (tm : TermManager) (size : Nat) : Env cvc5.Sort :=
+    mkFiniteFieldSortOfString tm (toString size) (base := 10)
 
 /-- Create function sort.
 
 - `sorts` The sort of the function arguments.
 - `codomain` The sort of the function return value.
 -/
-extern_def mkFunctionSort : TermManager → (sorts : Array cvc5.Sort) → (cod : cvc5.Sort) → Env cvc5.Sort
+extern_def mkFunctionSort :
+  TermManager → (sorts : Array cvc5.Sort) → (cod : cvc5.Sort) → Env cvc5.Sort
+
+/-- Create a skolem.
+
+- `id`: The skolem identifier.
+- `indices`: The indices of the skolem.
+-/
+extern_def mkSkolem : TermManager →  (id : SkolemId) → (indices : Array Term) → Env Term
+
+/-- Get the number of indices for a skolem id.
+
+- `id`: The skolem id.
+-/
+extern_def!? getNumIndicesForSkolemId : TermManager → (id : SkolemId) → Except Error Nat
 
 /-- Create a predicate sort.
 
@@ -2072,6 +2092,9 @@ extern_def mkTrue : TermManager → Env Term
 
 /-- Create a Boolean false constant. -/
 extern_def mkFalse : TermManager → Env Term
+
+/-- Create a constant representing the number Pi. -/
+extern_def mkPi : TermManager → Env Term
 
 /-- Create an integer-value term.
 
@@ -2381,6 +2404,15 @@ If `args` is empty, the `Op` simply wraps the `cvc5.Kind`. The `Kind` can be use
 -/
 extern_def mkOpOfIndices : TermManager → (kind : Kind) → (args : Array Nat := #[]) → Env Op
 with mkOp := @mkOpOfIndices
+
+/--Create operator of kind `Kind.DIVISIBLE` to support arbitrary precision integers.
+
+See `cvc5.Kind` for a description of the parameters.
+
+- `kind` The kind of the operator.
+- `arg` The string argument to this operator.
+-/
+extern_def mkOpOfString : TermManager → (kind : Kind) → (arg : String) → Env Op
 
 /-- Create a datatype constructor declaration.
 
