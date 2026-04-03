@@ -257,6 +257,12 @@ protected extern_def beq : SortRaw → SortRaw → Bool
 
 instance : BEq SortRaw := ⟨SortRaw.beq⟩
 
+/-- Internal default value: this function just crashes, not meant to be used. -/
+private extern_def getFakeDefault : Unit → SortRaw
+
+/-- Hack to let us construct a `cvc5.Sort` value from `fake_default`. -/
+private axiom getFakeDefault_ne_null : getFakeDefault () != null
+
 /-- String representation. -/
 protected extern_def toString : SortRaw → String
 
@@ -1079,6 +1085,13 @@ end cvc5
 
 namespace cvc5.Sort
 
+/-- Private fake default value (crashes if accessed) for `Nonempty` instance. -/
+private def fakeDefault : cvc5.Sort := ⟨SortRaw.getFakeDefault (), SortRaw.getFakeDefault_ne_null⟩
+
+instance : Nonempty cvc5.Sort := .intro fakeDefault
+
+private instance : Inhabited cvc5.Sort := ⟨fakeDefault⟩
+
 @[export sort_of_sortRaw]
 private def ofSortRaw (raw : SortRaw) : Except Error cvc5.Sort :=
   if legit : raw != SortRaw.null then .ok ⟨raw, legit⟩
@@ -1247,7 +1260,7 @@ arguments --- see also `cvc5.Sort.instantiate`.
 extern_def isInstantiated : cvc5.Sort → Bool
 
 /-- Get the associated uninterpreted sort constructor of an instantiated uninterpreted sort. -/
-extern_def? getUninterpretedSortConstructor : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getUninterpretedSortConstructor : cvc5.Sort → Except Error cvc5.Sort
 
 /-- Get the underlying datatype of a datatype sort. -/
 extern_def!? getDatatype : cvc5.Sort → Except Error Datatype
@@ -1258,7 +1271,7 @@ Create sort parameters with `mkParamSort symbol`.
 
 - `params` The list of sort parameters to instantiate with.
 -/
-extern_def? instantiate : cvc5.Sort → (params : Array cvc5.Sort) → Except Error cvc5.Sort
+extern_def!? instantiate : cvc5.Sort → (params : Array cvc5.Sort) → Except Error cvc5.Sort
 
 /-- Get the sorts used to instantiate the sort parameters of a parametric sort.
 
@@ -1294,23 +1307,23 @@ extern_def!? getDatatypeConstructorArity : cvc5.Sort → Except Error Nat
 extern_def!? getDatatypeConstructorDomainSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
 
 /-- The codomain sort of a constructor sort. -/
-extern_def? getDatatypeConstructorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getDatatypeConstructorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-! ### Selector sort -/
 
 /-- The domain sort of a datatype selector sort. -/
-extern_def? getDatatypeSelectorDomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getDatatypeSelectorDomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The codomain sort of a datatype selector sort. -/
-extern_def? getDatatypeSelectorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getDatatypeSelectorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-! ### Tester sort -/
 
 /-- The domain sort of a datatype tester sort. -/
-extern_def? getDatatypeTesterDomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getDatatypeTesterDomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The codomain sort of a datatype tester sort. -/
-extern_def? getDatatypeTesterCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getDatatypeTesterCodomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-! ### Function sort -/
 
@@ -1321,30 +1334,30 @@ extern_def!? getFunctionArity : cvc5.Sort → Except Error Nat
 extern_def!? getFunctionDomainSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
 
 /-- The codomain sort of a function sort. -/
-extern_def? getFunctionCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getFunctionCodomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-! ### Array sort -/
 
 /-- The array index sort of an array index. -/
-extern_def? getArrayIndexSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getArrayIndexSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The array element sort of an array index. -/
-extern_def? getArrayElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getArrayElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-! ### Set sort -/
 
 /-- The element sort of a set sort. -/
-extern_def? getSetElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getSetElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-! ### Bag sort -/
 
 /-- The element sort of a bag sort. -/
-extern_def? getBagElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getBagElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-! ### Sequence sort -/
 
 /-- The element sort of a sequence sort. -/
-extern_def? getSequenceElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getSequenceElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-! ### Abstract sort -/
 
@@ -1393,7 +1406,7 @@ extern_def!? getTupleLength : cvc5.Sort → Except Error UInt32
 extern_def!? getTupleSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
 
 /-- The element sort of a nullable sort. -/
-extern_def? getNullableElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def!? getNullableElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 end cvc5.Sort
 
@@ -1511,7 +1524,7 @@ extern_def!? getId : Term → Except Error Nat
 extern_def!? getKind : Term → Except Error Kind
 
 /-- Get the sort of this term. -/
-extern_def? getSort : Term → Except Error cvc5.Sort
+extern_def!? getSort : Term → Except Error cvc5.Sort
 
 /-- Simultaneously replace `terms` with `replacements` in `term`.
 
@@ -1869,7 +1882,7 @@ with isCardinalityConstraint (t : Term) :=
 
 **NB:** asserts `isCardinalityConstraint`.
 -/
-extern_def? getCardinalityConstraint : Term → Except Error (cvc5.Sort × UInt32)
+extern_def!? getCardinalityConstraint : Term → Except Error (cvc5.Sort × UInt32)
 
 /-- Determine if this term is a real algebraic number. -/
 extern_def isRealAlgebraicNumber : Term → Bool

@@ -256,7 +256,7 @@ test![TestApiBlackInputParser, getDeclaredTermsAndSorts] tm => do
     cmd.invoke solver symbols |> assertOkDiscard
   let sorts ← symbols.getDeclaredSorts
   let terms ← symbols.getDeclaredTerms
-  if h : sorts.size ≠ 1 then println! "unexpected array sort size {sorts}" else
+  assertEq 1 sorts.size
   assertEq sorts.size 1
   assertEq terms.size 1
-  assertEq (← terms[0]!.getSort) sorts[0]
+  assertEq (← terms[0]!.getSort) sorts[0]!

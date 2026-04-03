@@ -190,13 +190,13 @@ test![TestApiBlackTermManager, mkDatatypeSorts] tm => do
   dt1Spec ← dt1Spec.addConstructor ctor1Spec
   dt1Spec ← tm.mkDatatypeConstructorDecl "nil" >>= dt1Spec.addConstructor
   let dtSorts ← tm.mkDatatypeSorts #[dt0Spec, dt1Spec]
-  if h : dtSorts.size ≠ 2 then println! "unexpected array sort size {dtSorts}" else
-  let isort1 ← dtSorts[1].instantiate #[bool]
+  assertEq 2 dtSorts.size
+  let isort1 ← dtSorts[1]!.instantiate #[bool]
   let t1 ← tm.mkConst isort1 "t"
   let t0 ← do
     let selector ← (← t1.getSort).getDatatype!.getSelector "s1" >>= DatatypeSelector.getTerm
     tm.mkTerm Kind.APPLY_SELECTOR #[selector, t1]
-  assertEq (← t0.getSort) (← dtSorts[0].instantiate #[bool])
+  assertEq (← t0.getSort) (← dtSorts[0]!.instantiate #[bool])
 
   let _scope ← do
     let tm' ← TermManager.new

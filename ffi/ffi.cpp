@@ -580,6 +580,12 @@ LEAN_EXPORT lean_obj_res sortRaw_getNull(lean_obj_arg unit)
   return sortRaw_box(new Sort());
 }
 
+LEAN_EXPORT lean_obj_res sortRaw_getFakeDefault(lean_obj_arg unit)
+{
+  TermManager *tm = new TermManager();
+  return sortRaw_box(new Sort(tm->getBooleanSort()));
+}
+
 lean_obj_res sort_of_sortRaw(lean_obj_arg raw);
 
 lean_obj_res sort_get_sortRaw(lean_obj_arg srt);
