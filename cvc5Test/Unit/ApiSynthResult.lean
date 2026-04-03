@@ -42,9 +42,16 @@ test![TestApiBlackSynthResult, hasNoSolution] tm solver => do
   assertFalse res.isUnknown
   assertEq res.toString "(NO_SOLUTION)"
 
-test![TestApiBlackSynthResult, isUnknown] do
-  -- no test for `SynthResult.isUnknown`
-  return ()
+test![TestApiBlackSynthResult, isUnknown] tm solver => do
+  solver.setOption "sygus" "true"
+  let _f ← solver.synthFun "f" #[] bool
+  let boolTerm ← tm.mkFalse
+  solver.addSygusConstraint boolTerm
+  let res ← solver.checkSynth
+  assertFalse res.isNull
+  assertFalse res.hasSolution
+  assertTrue res.hasNoSolution
+  assertFalse res.isUnknown
 
 test![TestApiBlackSynthResult, equalHash] tm solver => do
   solver.setOption "sygus" "true"
