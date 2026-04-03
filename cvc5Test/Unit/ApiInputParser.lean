@@ -22,6 +22,12 @@ def parseLogicCommand (parser : InputParser) (logic : String) : Env Command := d
 test![TestApiBlackInputParser, constructSymbolManager] tm => do
   let _ ← SymbolManager.new tm
 
+-- -- skipped as the lean API does not allow retrieving the solver
+-- test![TestApiBlackInputParser, getSolver]
+
+-- -- skipped as the lean API does not allow retrieving the symbol manager
+-- test![TestApiBlackInputParser, getSymbolManager]
+
 test![TestApiBlackInputParser, setFileInput] tm solver => do
   let parser ← InputParser.new solver
   assertError "Couldn't open file: nonexistent.smt2" do
@@ -115,6 +121,9 @@ test![TestApiBlackInputParser, setStringInput] tm solver => do
   let cmd ← parser.nextCommand
   assertTrue cmd.isNull
 
+-- -- tests `InputParser.setStreamInput`, which the lean API does not have
+-- test![TestApiBlackInputParser, nextCommand]
+
 test![TestApiBlackInputParser, nextCommandNoInput] tm solver => do
   let parser ← InputParser.new solver
   parser.setStringInput "" (name := "input_parser_black")
@@ -204,6 +213,9 @@ test![TestApiBlackInputParser, setAndAppendIncrementalStringInput] tm => do
     "Logic mismatch when initializing InputParser.\n\
     The solver's logic: QF_LRA\nThe symbol manager's logic: QF_LIA"
 
+-- -- no dedicated parser error
+-- test![TestApiBlackInputParser, parserErrors]
+
 test![TestApiBlackInputParser, incrementalSetString] tm solver => do
   let parser ← InputParser.new solver
   let symbols ← parser.getSymbolManager
@@ -231,6 +243,6 @@ test![TestApiBlackInputParser, getDeclaredTermsAndSorts] tm solver => do
     cmd.invoke solver symbols |> assertOkDiscard
   let sorts ← symbols.getDeclaredSorts
   let terms ← symbols.getDeclaredTerms
-  assertEq sorts.size 1
-  assertEq terms.size 1
+  assertEq 1 sorts.size
+  assertEq 1 terms.size
   assertEq (← terms[0]!.getSort) sorts[0]!
