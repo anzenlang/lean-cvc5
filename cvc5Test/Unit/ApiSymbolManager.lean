@@ -38,3 +38,14 @@ test![TestApiBlackSymbolManager, getDeclaredTermsAndSorts] tm solver => do
   let sm ← parser.getSymbolManager
   assertEq (← sm.getDeclaredSorts) #[]
   assertEq (← sm.getDeclaredTerms) #[]
+
+test![TestApiBlackSymbolManager, getNamedTerms] tm solver => do
+  let parser ← InputParser.new solver
+  let sm ← parser.getSymbolManager
+  parseAndSetLogic solver parser "QF_LIA"
+  assertEq 0 (← sm.getNamedTerms).size
+  parseCommand solver parser "(assert (! false :named a0))"
+  assertEq 1 (← sm.getNamedTerms).size
+  -- not part of the original test
+  let fls ← tm.mkFalse
+  assertEq #[(fls, "a0")] (← sm.getNamedTerms)

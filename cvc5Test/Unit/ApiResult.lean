@@ -12,7 +12,8 @@ test![TestApiBlackResult, isNull] do
   assertTrue true
 
 test![TestApiBlackResult, equalHash] tm solver => do
-  let x ← solver.declareFun "x" #[] uninterpreted
+  let u ← tm.mkUninterpretedSort "u"
+  let x ← solver.declareFun "x" #[] u
   let x_eq_x ← tm.mkTerm .EQUAL #[x, x]
   solver.assertFormula x_eq_x
   -- skipping null-result-related checks
@@ -31,7 +32,8 @@ test![TestApiBlackResult, equalHash] tm solver => do
   assertNe res2.hash res3.hash
 
 test![TestApiBlackResult, isSat] tm solver => do
-  let x ← solver.declareFun "x" #[] uninterpreted
+  let u ← tm.mkUninterpretedSort "u"
+  let x ← solver.declareFun "x" #[] u
   solver.assertFormula (← tm.mkTerm .EQUAL #[x, x])
   let res ← solver.checkSat
   assertTrue res.isSat
@@ -44,7 +46,8 @@ test![TestApiBlackResult, isSat] tm solver => do
   assertEq res.getUnknownExplanation? none
 
 test![TestApiBlackResult, isUnsat] tm solver => do
-  let x ← solver.declareFun "x" #[] uninterpreted
+  let u ← tm.mkUninterpretedSort "u"
+  let x ← solver.declareFun "x" #[] u
   solver.assertFormula (← tm.mkTerm .NOT #[← tm.mkTerm .EQUAL #[x, x]])
   let res ← solver.checkSat
   assertFalse res.isSat
