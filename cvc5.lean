@@ -3021,6 +3021,56 @@ Requires to enable option `produce-models`.
 extern_def getModel :
   (solver : Solver) → (sorts : Array cvc5.Sort) → (consts : Array Term) → Env String
 
+/-- Do quantifier elimination.
+
+```smtlib
+(get-qe <q>)
+```
+
+**NB:** Quantifier elimination is only complete for logics such as LRA, LIA, and BV.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `q`: A quantified formula of the form `QX_1 ... QX_n, P(x_1...x_i, y_1...y_j)` where `QX` is a set
+  of quantified variables of the form `Q x_1...x_k` and `P(x_1...x_i, y_1...y_j)` is a
+  quantifier-free formula.
+
+Returns a formula `Φ` such that, given the current set of formulas `A` asserted to this solver:
+- `(a ∧ Q)` and (A ∧ Φ) are equivalent, and
+- `Φ` is a quantifier-free formula containing only free variables in `y_1...y_n`.
+-/
+extern_def getQuantifierElimination : (solver : Solver) → (q : Term) → Env Term
+
+/-- Do partial quantifier elimination, which can be used for incrementally computing the result of a
+  quantifier elimination.
+
+```smtlib
+(get-qe-disjunct <q>)
+```
+
+
+**NB:** Quantifier elimination is only complete for logics such as LRA, LIA, and BV.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `q`: A quantified formula of the form `QX_1 ... QX_n, P(x_1...x_i, y_1...y_j)` where `QX` is a set
+  of quantified variables of the form `Q x_1...x_k` and `P(x_1...x_i, y_1...y_j)` is a
+  quantifier-free formula.
+
+Returns a formula `Φ` such that, given the current set of formulas `A` asserted to this solver:
+- `A ∧ q → A ∧ Φ` if `Q` is `∀`, and `A ∧ Φ → A ∧ q` if `Q` is `∃`;
+- `Φ` is a quantifier-free formula containing only free variables in `y_1...y_n`;
+- if `Q` is `∃`, let `A ∧ Q_n` be the formula `A ∧ ¬ (Φ ∧ Q_1) ∧ ... ∧ ¬ (Φ ∧ Q_n)` where for each
+  `i ∈ [1, n]`, formula `Φ ∧ Q_i` is the result of calling `getQuantifierEliminationDisjunct` for
+  `q` with the set of assertions `A ∧ Q_{i-1}`.
+
+  Similarly, if `Q` is `∀`, then let `A ∧ Q_n` be `A ∧ (Φ ∧ Q_1) ∧ ... ∧ (Φ ∧ Q_n)` where `Φ ∧ Q_i`
+  is the same as above.
+
+  In either case, we have that `Φ ∧ Q_j` will eventually be true or false, for some finite `j`.
+-/
+extern_def getQuantifierEliminationDisjunct : (solver : Solver) → (q : Term) → Env Term
+
 /-- Declare a symbolic pool of terms with the given initial value.
 
 For details on how pools are used to specify instructions for quantifier instantiation, see

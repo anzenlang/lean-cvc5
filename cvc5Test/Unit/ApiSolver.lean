@@ -1163,40 +1163,40 @@ test![TestApiBlackSolver, getModel3] tm solver => do
   solver.getModel #[int] #[] |> assertError
     "expected an uninterpreted sort as argument to getModel."
 
--- test![TestApiBlackSolver, getQuantifierElimitation] tm solver => do
---   let x ← tm.mkVar bool "x"
---   let term ← tm.mkTerm Kind.FORALL #[
---     ← tm.mkTerm Kind.VARIABLE_LIST #[ x ],
---     ← tm.mkTerm Kind.OR #[x, ← tm.mkTerm Kind.NOT #[ x ]]
---   ]
---   solver.getQuantifierElimination (Term.null ()) |> assertError "invalid null argument for 'q'"
---   solver.getQuantifierElimination (← tm.mkBoolean false) |> assertError
---     "Expecting a quantified formula as argument to get-qe."
---   solver.getQuantifierElimination term |> assertOkDiscard
+test![TestApiBlackSolver, getQuantifierElimitation] tm solver => do
+  let x ← tm.mkVar bool "x"
+  let term ← tm.mkTerm Kind.FORALL #[
+    ← tm.mkTerm Kind.VARIABLE_LIST #[ x ],
+    ← tm.mkTerm Kind.OR #[x, ← tm.mkTerm Kind.NOT #[ x ]]
+  ]
+  solver.getQuantifierElimination (Term.null ()) |> assertError "invalid null argument for 'q'"
+  solver.getQuantifierElimination (← tm.mkBoolean false) |> assertError
+    "Expecting a quantified formula as argument to get-qe."
+  solver.getQuantifierElimination term |> assertOkDiscard
 
---   let tm' ← TermManager.new
---   let solver' ← Solver.new tm'
---   solver'.checkSat |> assertOkDiscard
---   solver'.getQuantifierElimination term |> assertError
---     "Given term is not associated with the term manager of this solver"
+  let tm' ← TermManager.new
+  let solver' ← Solver.new tm'
+  solver'.checkSat |> assertOkDiscard
+  solver'.getQuantifierElimination term |> assertError
+    "Given term is not associated with the term manager of this solver"
 
--- test![TestApiBlackSolver, getQuantifierElimitationDisjunct] tm solver => do
---   let x ← tm.mkVar bool "x"
---   let term ← tm.mkTerm Kind.FORALL #[
---     ← tm.mkTerm Kind.VARIABLE_LIST #[ x ],
---     ← tm.mkTerm Kind.OR #[x, ← tm.mkTerm Kind.NOT #[ x ]]
---   ]
---   solver.getQuantifierEliminationDisjunct (Term.null ()) |> assertError
---     "invalid null argument for 'q'"
---   solver.getQuantifierEliminationDisjunct (← tm.mkBoolean false) |> assertError
---     "Expecting a quantified formula as argument to get-qe."
---   solver.getQuantifierEliminationDisjunct term |> assertOkDiscard
+test![TestApiBlackSolver, getQuantifierElimitationDisjunct] tm solver => do
+  let x ← tm.mkVar bool "x"
+  let term ← tm.mkTerm Kind.FORALL #[
+    ← tm.mkTerm Kind.VARIABLE_LIST #[ x ],
+    ← tm.mkTerm Kind.OR #[x, ← tm.mkTerm Kind.NOT #[ x ]]
+  ]
+  solver.getQuantifierEliminationDisjunct (Term.null ()) |> assertError
+    "invalid null argument for 'q'"
+  solver.getQuantifierEliminationDisjunct (← tm.mkBoolean false) |> assertError
+    "Expecting a quantified formula as argument to get-qe."
+  solver.getQuantifierEliminationDisjunct term |> assertOkDiscard
 
---   let tm' ← TermManager.new
---   let solver' ← Solver.new tm'
---   solver'.checkSat |> assertOkDiscard
---   solver'.getQuantifierEliminationDisjunct term |> assertError
---     "Given term is not associated with the term manager of this solver"
+  let tm' ← TermManager.new
+  let solver' ← Solver.new tm'
+  solver'.checkSat |> assertOkDiscard
+  solver'.getQuantifierEliminationDisjunct term |> assertError
+    "Given term is not associated with the term manager of this solver"
 
 -- test![TestApiBlackSolver, declareSepHeap] tm solver => do
 --   solver.setLogic "ALL"

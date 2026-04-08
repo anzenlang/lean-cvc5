@@ -3907,6 +3907,25 @@ LEAN_EXPORT lean_obj_res solver_getModel(lean_obj_arg solver,
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_getQuantifierElimination(lean_obj_arg solver,
+                                                         lean_obj_arg term)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(
+      solver_unbox(solver)->getQuantifierElimination(*term_unbox(term)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res
+solver_getQuantifierEliminationDisjunct(lean_obj_arg solver, lean_obj_arg term)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      term_box(new Term(solver_unbox(solver)->getQuantifierEliminationDisjunct(
+          *term_unbox(term)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_push(lean_obj_arg solver, uint32_t nscopes)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
