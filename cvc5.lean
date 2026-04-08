@@ -2894,6 +2894,49 @@ Requires the SAT proof unsat core mode, so to enable option `unsat-cores-mode=sa
 -/
 extern_def getUnsatCoreLemmas : (solver : Solver) → Env (Array Term)
 
+/-- Get a timeout core.
+
+This function computes a subset of the current assertions that couse a timeout. It may make multiple
+checks for satisfiability internally, each limited by the timeout value given by
+`timeout-core-timeout`.
+
+If the result is unknown and the reason is timeout, then returned the set of assertions corresponds
+to a subset of the current assertions that cause a timeout in the specified time
+`timeout-core-timeout`. If the result is unsat, then the list of formulas correspond to an unsat
+core for the current assertions. Otherwise, the result is sat, indicating that the current
+assertions are satisfiable, and the returned set of assertions is empty.
+
+```smtlib
+(get-timeout-core)
+```
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getTimeoutCore : (solver : Solver) → Env (Result × Array Term)
+
+/-- Get a timeout core of the given assumptions.
+
+This function computes a subset of the current assertions that couse a timeout when added to the
+current assertions `timeout-core-timeout`.
+
+If the result is unknown and the reason is timeout, then returned the set of assertions corresponds
+to a subset of the given assertions that cause a timeout when added to the current assertions in the
+specified time `timeout-core-timeout`. If the result is unsat, then the set of assumptions together
+with the current assertions correspond to an unsat core for the current assertions. Otherwise, the
+result is sat, indicating that the given assumptions plus the current assertions are satisfiable,
+and the returned set of assertions is empty.
+
+**NB:** this command does not require being preceeded by a call to `checkSat`.
+
+```smtlib
+(get-timeout-core (<assert>*))
+```
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getTimeoutCoreAssuming :
+  (solver : Solver) → (assumptions : Array Term) → Env (Result × Array Term)
+
 /-- Get a proof associated with the most recent call to `checkSat`.
 
 Requires to enable option `produce-proofs`.
@@ -3161,6 +3204,15 @@ Other aspects of printing are taken from the solver options.
 -/
 extern_def proofToString :
   (solver : Solver) → (proof : Proof) → (format : ProofFormat := ProofFormat.DEFAULT) → Env String
+
+/-- Get a list of learned literals that are entailed by the current set of assertions.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `t`: The type of learned literals to return.
+-/
+extern_def getLearnedLiterals :
+  (solver : Solver) → (t : LearnedLitType := LearnedLitType.INPUT) → Env (Array Term)
 
 /-- Create a Sygus grammar.
 

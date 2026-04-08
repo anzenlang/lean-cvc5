@@ -952,68 +952,68 @@ test![TestApiBlackSolver, getProofAndProofToString] tm solver => do
 -- test![TestApiBlackSolver, getDifficulty2] tm solver => do
 -- test![TestApiBlackSolver, getDifficulty3] tm solver => do
 
--- test![TestApiBlackSolver, getLearnedLiterals] tm solver => do
---   solver.setOption "produce-learned-literals" "true"
---   -- cannot ask before a check sat
---   solver.getLearnedLiterals |> assertError
---     "cannot get learned literals unless after a UNSAT, SAT or UNKNOWN response."
---   solver.checkSat |> assertOkDiscard
---   solver.getLearnedLiterals |> assertOkDiscard
---   solver.getLearnedLiterals LearnedLitType.PREPROCESS |> assertOkDiscard
+test![TestApiBlackSolver, getLearnedLiterals] tm solver => do
+  solver.setOption "produce-learned-literals" "true"
+  -- cannot ask before a check sat
+  solver.getLearnedLiterals |> assertError
+    "cannot get learned literals unless after a UNSAT, SAT or UNKNOWN response."
+  solver.checkSat |> assertOkDiscard
+  solver.getLearnedLiterals |> assertOkDiscard
+  solver.getLearnedLiterals LearnedLitType.PREPROCESS |> assertOkDiscard
 
--- test![TestApiBlackSolver, getLearnedLiterals2] tm solver => do
---   solver.setOption "produce-learned-literals" "true"
---   let x ← tm.mkConst int "x"
---   let y ← tm.mkConst int "y"
---   let zero ← tm.mkInteger 0
---   let ten ← tm.mkInteger 10
---   let f0 ← tm.mkTerm Kind.GEQ #[x, ten]
---   let f1 ← tm.mkTerm Kind.OR #[← tm.mkTerm Kind.GEQ #[zero, x], ← tm.mkTerm Kind.GEQ #[y, zero]]
---   solver.assertFormula f0
---   solver.assertFormula f1
---   solver.checkSat |> assertOkDiscard
---   solver.getLearnedLiterals |> assertOkDiscard
+test![TestApiBlackSolver, getLearnedLiterals2] tm solver => do
+  solver.setOption "produce-learned-literals" "true"
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+  let zero ← tm.mkInteger 0
+  let ten ← tm.mkInteger 10
+  let f0 ← tm.mkTerm Kind.GEQ #[x, ten]
+  let f1 ← tm.mkTerm Kind.OR #[← tm.mkTerm Kind.GEQ #[zero, x], ← tm.mkTerm Kind.GEQ #[y, zero]]
+  solver.assertFormula f0
+  solver.assertFormula f1
+  solver.checkSat |> assertOkDiscard
+  solver.getLearnedLiterals |> assertOkDiscard
 
--- test![TestApiBlackSolver, getTimeoutCore] tm solver => do
---   solver.setOption "timeout-core-timeout" "100"
---   solver.setOption "produce-unsat-cores" "true"
---   let x ← tm.mkConst int "x"
---   let tt ← tm.mkBoolean true
---   let hard ← tm.mkTerm Kind.EQUAL
---     #[← tm.mkTerm Kind.MULT #[x, x], ← tm.mkIntegerOfString "501240912901901249014210220059591"]
---   solver.assertFormula tt
---   solver.assertFormula hard
---   let (res, terms) ← solver.getTimeoutCore
---   assertTrue res.isUnknown
---   assertEq 1 terms.size
---   assertEq hard terms[0]!
+test![TestApiBlackSolver, getTimeoutCore] tm solver => do
+  solver.setOption "timeout-core-timeout" "100"
+  solver.setOption "produce-unsat-cores" "true"
+  let x ← tm.mkConst int "x"
+  let tt ← tm.mkBoolean true
+  let hard ← tm.mkTerm Kind.EQUAL
+    #[← tm.mkTerm Kind.MULT #[x, x], ← tm.mkIntegerOfString "501240912901901249014210220059591"]
+  solver.assertFormula tt
+  solver.assertFormula hard
+  let (res, terms) ← solver.getTimeoutCore
+  assertTrue res.isUnknown
+  assertEq 1 terms.size
+  assertEq hard terms[0]!
 
--- test![TestApiBlackSolver, getTimeoutCoreUnsat] tm solver => do
---   solver.setOption "produce-unsat-cores" "true"
---   let ff ← tm.mkBoolean false
---   let tt ← tm.mkBoolean true
---   solver.assertFormula tt
---   solver.assertFormula ff
---   solver.assertFormula tt
---   let (res, terms) ← solver.getTimeoutCore
---   assertTrue res.isUnsat
---   assertEq 1 terms.size
---   assertEq ff terms[0]!
+test![TestApiBlackSolver, getTimeoutCoreUnsat] tm solver => do
+  solver.setOption "produce-unsat-cores" "true"
+  let ff ← tm.mkBoolean false
+  let tt ← tm.mkBoolean true
+  solver.assertFormula tt
+  solver.assertFormula ff
+  solver.assertFormula tt
+  let (res, terms) ← solver.getTimeoutCore
+  assertTrue res.isUnsat
+  assertEq 1 terms.size
+  assertEq ff terms[0]!
 
--- test![TestApiBlackSolver, getTimeoutCoreAssuming] tm solver => do
---   solver.setOption "produce-unsat-cores" "true"
---   let ff ← tm.mkBoolean false
---   let tt ← tm.mkBoolean true
---   solver.assertFormula tt
---   let (res, terms) ← solver.getTimeoutCoreAssuming #[ff, tt]
---   assertTrue res.isUnsat
---   assertEq 1 terms.size
---   assertEq ff terms[0]!
+test![TestApiBlackSolver, getTimeoutCoreAssuming] tm solver => do
+  solver.setOption "produce-unsat-cores" "true"
+  let ff ← tm.mkBoolean false
+  let tt ← tm.mkBoolean true
+  solver.assertFormula tt
+  let (res, terms) ← solver.getTimeoutCoreAssuming #[ff, tt]
+  assertTrue res.isUnsat
+  assertEq 1 terms.size
+  assertEq ff terms[0]!
 
--- test![TestApiBlackSolver, getTimeoutCoreAssumingEmpty] tm solver => do
---   solver.setOption "produce-unsat-cores" "true"
---   solver.getTimeoutCoreAssuming #[] |> assertError
---     "cannot get timeout core assuming an empty set of assumptions"
+test![TestApiBlackSolver, getTimeoutCoreAssumingEmpty] tm solver => do
+  solver.setOption "produce-unsat-cores" "true"
+  solver.getTimeoutCoreAssuming #[] |> assertError
+    "cannot get timeout core assuming an empty set of assumptions"
 
 test![TestApiBlackSolver, getValue1] tm solver => do
   solver.setOption "produce-models" "false"

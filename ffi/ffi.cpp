@@ -3781,6 +3781,45 @@ LEAN_EXPORT lean_obj_res solver_getUnsatCoreLemmas(lean_obj_arg solver)
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_getTimeoutCore(lean_obj_arg solver)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::pair<Result, std::vector<Term>> pair =
+      solver_unbox(solver)->getTimeoutCore();
+  std::vector<Term> termVec = std::get<1>(pair);
+  lean_object* terms = lean_mk_empty_array();
+  for (const Term& term : termVec)
+  {
+    terms = lean_array_push(terms, term_box(new Term(term)));
+  }
+  return env_val(prod_mk(result_box(new Result(std::get<0>(pair))),
+                         terms));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_getTimeoutCoreAssuming(lean_obj_arg solver,
+                                                       lean_obj_arg assumptions)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> formulas;
+  for (size_t i = 0, n = lean_array_size(assumptions); i < n; ++i)
+  {
+    formulas.push_back(*term_unbox(lean_array_get(
+        term_box(new Term()), assumptions, lean_usize_to_nat(i))));
+  }
+  std::pair<Result, std::vector<Term>> pair =
+      solver_unbox(solver)->getTimeoutCoreAssuming(formulas);
+  std::vector<Term> termVec = std::get<1>(pair);
+  lean_object* terms = lean_mk_empty_array();
+  for (const Term& term : termVec)
+  {
+    terms = lean_array_push(terms, term_box(new Term(term)));
+  }
+  return env_val(prod_mk(result_box(new Result(std::get<0>(pair))),
+                         terms));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_getProof(lean_obj_arg solver, uint8_t pc)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
@@ -3934,6 +3973,21 @@ LEAN_EXPORT lean_obj_res solver_proofToString(lean_obj_arg solver,
           ->proofToString(*proof_unbox(proof),
                           static_cast<cvc5::modes::ProofFormat>(pf))
           .c_str()));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_getLearnedLiterals(lean_obj_arg solver,
+                                                   uint8_t llt)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> termVec = solver_unbox(solver)->getLearnedLiterals(
+      static_cast<cvc5::modes::LearnedLitType>(llt));
+  lean_object* terms = lean_mk_empty_array();
+  for (const Term& term : termVec)
+  {
+    terms = lean_array_push(terms, term_box(new Term(term)));
+  }
+  return env_val(terms);
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
