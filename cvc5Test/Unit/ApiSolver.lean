@@ -1113,55 +1113,55 @@ test![TestApiBlackSolver, getModelDomainElements2] tm solver => do
   -- a module for the above must interpret `u` as size 1
   assertEq 1 elems.size
 
--- test![TestApiBlackSolver, isModuleCoreSymbol] tm solver => do
---   solver.setOption "produce-models" "true"
---   solver.setOption "model-cores" "simple"
---   let x ← tm.mkConst uninterpreted "x"
---   let y ← tm.mkConst uninterpreted "y"
---   let z ← tm.mkConst uninterpreted "z"
---   let zero ← tm.mkInteger 0
---   let f ← tm.mkTerm Kind.NOT #[← tm.mkTerm Kind.EQUAL #[x, y]]
---   solver.assertFormula f
---   solver.checkSat |> assertOkDiscard
---   assertTrue (← solver.isModelCoreSymbol x)
---   assertTrue (← solver.isModelCoreSymbol y)
---   assertFalse (← solver.isModelCoreSymbol z)
---   solver.isModelCoreSymbol zero |> assertError
---     "expected a free constant as argument to isModelCoreSymbol."
+test![TestApiBlackSolver, isModelCoreSymbol] tm solver => do
+  solver.setOption "produce-models" "true"
+  solver.setOption "model-cores" "simple"
+  let x ← tm.mkConst uninterpreted "x"
+  let y ← tm.mkConst uninterpreted "y"
+  let z ← tm.mkConst uninterpreted "z"
+  let zero ← tm.mkInteger 0
+  let f ← tm.mkTerm Kind.NOT #[← tm.mkTerm Kind.EQUAL #[x, y]]
+  solver.assertFormula f
+  solver.checkSat |> assertOkDiscard
+  assertTrue (← solver.isModelCoreSymbol x)
+  assertTrue (← solver.isModelCoreSymbol y)
+  assertFalse (← solver.isModelCoreSymbol z)
+  solver.isModelCoreSymbol zero |> assertError
+    "expected a free constant as argument to isModelCoreSymbol."
 
---   let tm' ← TermManager.new
---   let solver' ← Solver.new tm'
---   solver'.setOption "produce-models" "true"
---   solver'.checkSat |> assertOkDiscard
---   solver'.isModelCoreSymbol (← tm.mkConst uninterpreted "x") |> assertError
---     "Given term is not associated with the term manager of this solver"
+  let tm' ← TermManager.new
+  let solver' ← Solver.new tm'
+  solver'.setOption "produce-models" "true"
+  solver'.checkSat |> assertOkDiscard
+  solver'.isModelCoreSymbol (← tm.mkConst uninterpreted "x") |> assertError
+    "Given term is not associated with the term manager of this solver"
 
--- test![TestApiBlackSolver, getModel] tm solver => do
---   solver.setOption "produce-models" "true"
---   let x ← tm.mkConst uninterpreted "x"
---   let y ← tm.mkConst uninterpreted "y"
---   -- -- not used in original test
---   -- let z ← tm.mkConst uninterpreted "z"
---   let f ← tm.mkTerm Kind.NOT #[← tm.mkTerm Kind.EQUAL #[x, y]]
---   solver.assertFormula f
---   solver.checkSat |> assertOkDiscard
---   let sorts := #[uninterpreted]
---   let terms := #[x, y]
---   solver.getModel sorts terms |> assertOkDiscard
---   solver.getModel sorts (terms.push <| Term.null ()) |> assertError
---     "invalid null term in 'vars' at index 2"
+test![TestApiBlackSolver, getModel] tm solver => do
+  solver.setOption "produce-models" "true"
+  let x ← tm.mkConst uninterpreted "x"
+  let y ← tm.mkConst uninterpreted "y"
+  -- -- not used in original test
+  -- let z ← tm.mkConst uninterpreted "z"
+  let f ← tm.mkTerm Kind.NOT #[← tm.mkTerm Kind.EQUAL #[x, y]]
+  solver.assertFormula f
+  solver.checkSat |> assertOkDiscard
+  let sorts := #[uninterpreted]
+  let terms := #[x, y]
+  solver.getModel sorts terms |> assertOkDiscard
+  solver.getModel sorts (terms.push <| Term.null ()) |> assertError
+    "invalid null term in 'vars' at index 2"
 
--- test![TestApiBlackSolver, getModel2] tm solver => do
---   solver.setOption "produce-models" "true"
---   solver.getModel #[] #[] |> assertError
---     "cannot get model unless after a SAT or UNKNOWN response."
+test![TestApiBlackSolver, getModel2] tm solver => do
+  solver.setOption "produce-models" "true"
+  solver.getModel #[] #[] |> assertError
+    "cannot get model unless after a SAT or UNKNOWN response."
 
--- test![TestApiBlackSolver, getModel3] tm solver => do
---   solver.setOption "produce-models" "true"
---   solver.checkSat |> assertOkDiscard
---   solver.getModel #[] #[] |> assertOkDiscard
---   solver.getModel #[int] #[] |> assertError
---     "expected an uninterpreted sort as argument to getModel."
+test![TestApiBlackSolver, getModel3] tm solver => do
+  solver.setOption "produce-models" "true"
+  solver.checkSat |> assertOkDiscard
+  solver.getModel #[] #[] |> assertOkDiscard
+  solver.getModel #[int] #[] |> assertError
+    "expected an uninterpreted sort as argument to getModel."
 
 -- test![TestApiBlackSolver, getQuantifierElimitation] tm solver => do
 --   let x ← tm.mkVar bool "x"

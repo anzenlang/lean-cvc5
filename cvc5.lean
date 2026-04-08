@@ -2993,6 +2993,34 @@ The current model interprets the uninterpreted sort `s` as a finite sort whose d
 -/
 extern_def getModelDomainElements (solver : Solver) (s : cvc5.Sort) : Env (Array Term)
 
+/-- Determine if the model value of the given free constant was essential for showing
+satisfiability of the last `checkSat` query based on the current model.
+
+For any free constant `v`, this will only return false if `model-cores` has been set to true.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `v`: The term in question.
+-/
+extern_def isModelCoreSymbol : (solver : Solver) → (v: Term) → Env Bool
+
+/-- Get the model.
+
+```smtlib
+(get-model)
+```
+
+Requires to enable option `produce-models`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `sorts`: The list of uninterpreted sorts that should be printed in the model.
+- `consts`: The list of free constants that should be printed in the model. A subset of these may be
+  printed based on `isModelCoreSymbol`.
+-/
+extern_def getModel :
+  (solver : Solver) → (sorts : Array cvc5.Sort) → (consts : Array Term) → Env String
+
 /-- Declare a symbolic pool of terms with the given initial value.
 
 For details on how pools are used to specify instructions for quantifier instantiation, see

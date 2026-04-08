@@ -3877,6 +3877,36 @@ LEAN_EXPORT lean_obj_res solver_getModelDomainElements(lean_obj_arg solver,
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_isModelCoreSymbol(lean_obj_arg solver,
+                                                  lean_obj_arg v)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_bool(solver_unbox(solver)->isModelCoreSymbol(*term_unbox(v)));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_getModel(lean_obj_arg solver,
+                                         lean_obj_arg sorts,
+                                         lean_obj_arg consts)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Sort> sortVec;
+  for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
+  {
+    sortVec.push_back(*sort_unbox(
+        lean_array_fget(sorts, lean_usize_to_nat(i))));
+  }
+  std::vector<Term> constVec;
+  for (size_t i = 0, n = lean_array_size(consts); i < n; ++i)
+  {
+    constVec.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), consts, lean_usize_to_nat(i))));
+  }
+  return env_val(lean_mk_string(
+      solver_unbox(solver)->getModel(sortVec, constVec).c_str()));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_push(lean_obj_arg solver, uint32_t nscopes)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
