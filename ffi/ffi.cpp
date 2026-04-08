@@ -3854,6 +3854,33 @@ LEAN_EXPORT lean_obj_res solver_pop(lean_obj_arg solver, uint32_t nscopes)
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_getInterpolantSimple(lean_obj_arg solver,
+                                                     lean_obj_arg conj)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(
+      new Term(solver_unbox(solver)->getInterpolant(*term_unbox(conj)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_getInterpolantOfGrammar(lean_obj_arg solver,
+                                                        lean_obj_arg conj,
+                                                        lean_obj_arg grammar)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(solver_unbox(solver)->getInterpolant(
+      *term_unbox(conj), *mut_grammar_unbox(grammar)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_getInterpolantNext(lean_obj_arg solver)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      term_box(new Term(solver_unbox(solver)->getInterpolantNext())));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_getAbductSimple(lean_obj_arg solver,
                                                 lean_obj_arg conj)
 {

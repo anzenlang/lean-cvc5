@@ -2960,6 +2960,94 @@ extern_def getModelDomainElements (solver : Solver) (s : cvc5.Sort) : Env (Array
 -/
 extern_def pop : (solver : Solver) → (nscopes : UInt32 := 1) → Env Unit
 
+/-- Get an interpolant if one exists, the null term otherwise.
+
+Given that `A → B` is valid, this function determines a term `I` over the shared variables of `A` and `B`, such that `A → I` and `I → B` are valid. `A` is the current set of assertions and `B` is the conjecture, given as `conj`.
+
+```smtlib
+(get-interpolant <symbol> <conj>)
+```
+
+**NB:** in SMT-LIB, `<symbol>` assigns a symbol to the interpolant.
+
+**NB:** Requires option `produce-interpolants` to be set to a mode different from `none`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+-/
+extern_def getInterpolantSimple : (solver : Solver) → (conj : Term) → Env Term
+
+/-- Get an interpolant if one exists, the null term otherwise.
+
+Given that `A → B` is valid, this function determines a term `I` over the shared variables of `A`
+and `B`, such that `A → I` and `I → B` are valid. `I` is constructed from the given grammar. `A` is
+the current set of assertions and `B` is the conjecture, given as `conj`.
+
+```smtlib
+(get-interpolant <symbol> <conj> <grammar>)
+```
+
+**NB:** in SMT-LIB, `<symbol>` assigns a symbol to the interpolant.
+
+**NB:** Requires option `produce-interpolants` to be set to a mode different from `none`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+- `grammar`: The grammar for the interpolant `I`.
+-/
+extern_def getInterpolantOfGrammar :
+  (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env Term
+
+/-- Get an interpolant if one exists, the null term otherwise.
+
+Given that `A → B` is valid, this function determines a term `I` over the shared variables of `A`
+and `B`, such that `A → I` and `I → B` are valid. If a grammar `G` is provided, `I` is constructed
+from `G`. `A` is the current set of assertions and `B` is the conjecture, given as `conj`.
+
+```smtlib
+(get-interpolant <symbol> <conj>)
+(get-interpolant <symbol> <conj> <grammar>)
+```
+
+**NB:** in SMT-LIB, `<symbol>` assigns a symbol to the interpolant.
+
+**NB:** Requires option `produce-interpolants` to be set to a mode different from `none`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+- `grammar`: The optional grammar for the interpolant `I`.
+-/
+def getInterpolant
+  (solver : Solver) (conj : Term) (grammar : Option Grammar := none)
+: Env Term :=
+  if let some grammar := grammar
+  then solver.getInterpolantOfGrammar conj grammar
+  else solver.getInterpolantSimple conj
+
+/-- Get the next interpolant if any, the null term otherwise.
+
+Can only be called immediately after a successful call to `getInterpolant`,
+`getInterpolantOfGrammar`, `getInterpolant?`, `getInterpolantNext`, or `getInterpolantNext`. It is
+guaranteed to produce a syntactically different interpolant *w.r.t.* the last returned interpolant
+if successful.
+
+```smtlib
+(get-interpolant-next)
+```
+
+Requires to enable incremental mode, and option `produce-interpolants` to be set to a mode different
+from `none`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+Returns a term `I` such that `A → I` and `I → B` and valid, where `A` is the current set of
+assertions and `B` is given in the input by `conj`, or the null term if such a term cannot be found.
+-/
+extern_def getInterpolantNext : (solver : Solver) → Env Term
+
 /-- Get an abduct if one exists, the null term otherwise.
 
 ```smtlib

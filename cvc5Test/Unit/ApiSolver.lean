@@ -801,80 +801,80 @@ test![TestApiBlackSolver, getAbductNext] tm solver => do
   -- should produce a different output
   assertNe output output2
 
--- test![TestApiBlackSolver, getInterpolant] tm solver => do
---   solver.setLogic "QF_LIA"
---   solver.setOption "produce-interpolants" "true"
---   solver.setOption "incremental" "false"
+test![TestApiBlackSolver, getInterpolant] tm solver => do
+  solver.setLogic "QF_LIA"
+  solver.setOption "produce-interpolants" "true"
+  solver.setOption "incremental" "false"
 
---   let zero ← tm.mkInteger 0
---   let x ← tm.mkConst int "x"
---   let y ← tm.mkConst int "y"
---   let z ← tm.mkConst int "z"
+  let zero ← tm.mkInteger 0
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+  let z ← tm.mkConst int "z"
 
---   -- assumptions for interpolation: `x + y > 0 ∧ x < 0`
---   tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[x, y], zero] >>= solver.assertFormula
---   tm.mkTerm Kind.LT #[x, zero] >>= solver.assertFormula
---   -- conjecture for interpolation: `y + z > 0 ∨ z < 0`
---   let conj ← tm.mkTerm Kind.OR #[
---     ← tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[y, z], zero],
---     ← tm.mkTerm Kind.LT #[z, zero],
---   ]
---   -- call the interpolation api, while the resulting interpolant is the output
---   let output ← solver.getInterpolant conj
---   -- we expect the resulting output to be a boolean formula
---   assertTrue (← output.getSort).isBoolean
+  -- assumptions for interpolation: `x + y > 0 ∧ x < 0`
+  tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[x, y], zero] >>= solver.assertFormula
+  tm.mkTerm Kind.LT #[x, zero] >>= solver.assertFormula
+  -- conjecture for interpolation: `y + z > 0 ∨ z < 0`
+  let conj ← tm.mkTerm Kind.OR #[
+    ← tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[y, z], zero],
+    ← tm.mkTerm Kind.LT #[z, zero],
+  ]
+  -- call the interpolation api, while the resulting interpolant is the output
+  let output ← solver.getInterpolant conj
+  -- we expect the resulting output to be a boolean formula
+  assertTrue (← output.getSort).isBoolean
 
---   -- try with a grammar, a simple grammar admitting true
---   let truen ← tm.mkBoolean true
---   let start ← tm.mkVar bool
---   let mut g ← solver.mkGrammar #[] #[start]
---   let conj2 ← tm.mkTerm Kind.EQUAL #[zero, zero]
---   solver.getInterpolant conj2 g |> assertError
---     "invalid grammar, must have at least one rule for each non-terminal symbol"
---   g ← g.addRule start truen |> assertOk
---   -- call the interpolation api, while the resulting interpolant is the output
---   let output2 ← solver.getInterpolant conj2 g
---   -- interpolant must be true
---   assertEq truen output2
+  -- try with a grammar, a simple grammar admitting true
+  let truen ← tm.mkBoolean true
+  let start ← tm.mkVar bool
+  let mut g ← solver.mkGrammar #[] #[start]
+  let conj2 ← tm.mkTerm Kind.EQUAL #[zero, zero]
+  solver.getInterpolant conj2 g |> assertError
+    "invalid grammar, must have at least one rule for each non-terminal symbol"
+  g ← g.addRule start truen |> assertOk
+  -- call the interpolation api, while the resulting interpolant is the output
+  let output2 ← solver.getInterpolant conj2 g
+  -- interpolant must be true
+  assertEq truen output2
 
---   let tm' ← TermManager.new
---   let solver' ← Solver.new tm'
---   solver'.setOption "produce-interpolants" "true"
---   let zzero ← tm'.mkInteger 0
---   let sstart ← tm'.getBooleanSort >>= tm'.mkVar
---   let mut gg ← solver'.mkGrammar #[] #[sstart]
---   gg ← tm'.mkTrue >>= gg.addRule sstart
---   let cconj2 ← tm'.mkTerm Kind.EQUAL #[zzero, zzero]
---   solver'.getInterpolant cconj2 gg |> assertOkDiscard
---   solver'.getInterpolant conj2 |> assertError
---     "Given term is not associated with the term manager of this solver"
---   solver'.getInterpolant conj2 gg |> assertError
---     "Given term is not associated with the term manager of this solver"
---   solver'.getInterpolant cconj2 g |> assertError
---     "Given grammar is not associated with the term manager of this solver"
+  let tm' ← TermManager.new
+  let solver' ← Solver.new tm'
+  solver'.setOption "produce-interpolants" "true"
+  let zzero ← tm'.mkInteger 0
+  let sstart ← tm'.getBooleanSort >>= tm'.mkVar
+  let mut gg ← solver'.mkGrammar #[] #[sstart]
+  gg ← tm'.mkTrue >>= gg.addRule sstart
+  let cconj2 ← tm'.mkTerm Kind.EQUAL #[zzero, zzero]
+  solver'.getInterpolant cconj2 gg |> assertOkDiscard
+  solver'.getInterpolant conj2 |> assertError
+    "Given term is not associated with the term manager of this solver"
+  solver'.getInterpolant conj2 gg |> assertError
+    "Given term is not associated with the term manager of this solver"
+  solver'.getInterpolant cconj2 g |> assertError
+    "Given grammar is not associated with the term manager of this solver"
 
--- test![TestApiBlackSolver, getInterpolantNext] tm solver => do
---   solver.setLogic "QF_LIA"
---   solver.setOption "produce-interpolants" "true"
---   solver.setOption "incremental" "true"
+test![TestApiBlackSolver, getInterpolantNext] tm solver => do
+  solver.setLogic "QF_LIA"
+  solver.setOption "produce-interpolants" "true"
+  solver.setOption "incremental" "true"
 
---   let zero ← tm.mkInteger 0
---   let x ← tm.mkConst int "x"
---   let y ← tm.mkConst int "y"
---   let z ← tm.mkConst int "z"
---   -- assumptions for interpolation: `x + y > 0 ∧ x < 0`
---   tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[x, y], zero] >>= solver.assertFormula
---   tm.mkTerm Kind.LT #[x, zero] >>= solver.assertFormula
---   -- conjecture for interpolation: `y + z > 0 ∨ z < 0`
---   let conj ← tm.mkTerm Kind.OR #[
---     ← tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[y, z], zero],
---     ← tm.mkTerm Kind.LT #[z, zero],
---   ]
---   let output ← solver.getInterpolant conj
---   let output2 ← solver.getInterpolantNext
+  let zero ← tm.mkInteger 0
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+  let z ← tm.mkConst int "z"
+  -- assumptions for interpolation: `x + y > 0 ∧ x < 0`
+  tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[x, y], zero] >>= solver.assertFormula
+  tm.mkTerm Kind.LT #[x, zero] >>= solver.assertFormula
+  -- conjecture for interpolation: `y + z > 0 ∨ z < 0`
+  let conj ← tm.mkTerm Kind.OR #[
+    ← tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[y, z], zero],
+    ← tm.mkTerm Kind.LT #[z, zero],
+  ]
+  let output ← solver.getInterpolant conj
+  let output2 ← solver.getInterpolantNext
 
---   -- we expect the next output to be distinct
---   assertNe output output2
+  -- we expect the next output to be distinct
+  assertNe output output2
 
 -- test![TestApiBlackSolver, declarePool] tm solver => do
 --   let setSort ← tm.mkSetSort int
