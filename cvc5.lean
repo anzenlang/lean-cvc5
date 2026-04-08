@@ -3071,6 +3071,30 @@ Returns a formula `Φ` such that, given the current set of formulas `A` asserted
 -/
 extern_def getQuantifierEliminationDisjunct : (solver : Solver) → (q : Term) → Env Term
 
+/-- When using separation logic, sets the location sort and the datatype sort to the given ones.
+
+This function should be invoked exactly once, before any separation logic constraints are provided.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `locSort`: The location sort of the heap.
+- `dataSort`: The data sort of the heap.
+-/
+extern_def declareSepHeap :
+  (solver : Solver) → (locSort : cvc5.Sort) → (dataSort : cvc5.Sort) → Env Unit
+
+/-- When using separation logic, obtain the term for the heap.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getValueSepHeap : (solver : Solver) → Env Term
+
+/-- When using separation logic, obtain the term for nil.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getValueSepNil : (solver : Solver) → Env Term
+
 /-- Declare a symbolic pool of terms with the given initial value.
 
 For details on how pools are used to specify instructions for quantifier instantiation, see

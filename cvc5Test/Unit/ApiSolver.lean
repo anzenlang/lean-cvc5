@@ -1198,136 +1198,136 @@ test![TestApiBlackSolver, getQuantifierElimitationDisjunct] tm solver => do
   solver'.getQuantifierEliminationDisjunct term |> assertError
     "Given term is not associated with the term manager of this solver"
 
--- test![TestApiBlackSolver, declareSepHeap] tm solver => do
---   solver.setLogic "ALL"
---   solver.setOption "incremental" "false"
---   solver.declareSepHeap int int |> assertOk
---   -- cannot declare separation logic heap more than once
---   solver.declareSepHeap int int |> assertError
---     "ERROR: cannot declare heap types for separation logic more than once.  \
---     We are declaring heap of type Int -> Int, but we already have Int -> Int"
+test![TestApiBlackSolver, declareSepHeap] tm solver => do
+  solver.setLogic "ALL"
+  solver.setOption "incremental" "false"
+  solver.declareSepHeap int int |> assertOk
+  -- cannot declare separation logic heap more than once
+  solver.declareSepHeap int int |> assertError
+    "ERROR: cannot declare heap types for separation logic more than once.  \
+    We are declaring heap of type Int -> Int, but we already have Int -> Int"
 
---   let tm' ← TermManager.new
---   let _ ← do
---     let int' ← tm'.getIntegerSort
---     let solver' ← Solver.new tm'
---     -- no logic set yet
---     solver'.declareSepHeap int' int' |> assertError
---       "cannot call 'declareSepHeap()' if logic is not set"
---   let _ ← do
---     let real' ← tm'.getRealSort
---     let solver' ← Solver.new tm'
---     solver'.setLogic "ALL"
---     solver'.declareSepHeap int real' |> assertError
---       "Given sort is not associated with the term manager of this solver"
---   let _ ← do
---     let bool' ← tm'.getBooleanSort
---     let solver' ← Solver.new tm'
---     solver'.setLogic "ALL"
---     solver'.declareSepHeap bool' int |> assertError
---       "Given sort is not associated with the term manager of this solver"
+  let tm' ← TermManager.new
+  let _ ← do
+    let int' ← tm'.getIntegerSort
+    let solver' ← Solver.new tm'
+    -- no logic set yet
+    solver'.declareSepHeap int' int' |> assertError
+      "cannot call 'declareSepHeap()' if logic is not set"
+  let _ ← do
+    let real' ← tm'.getRealSort
+    let solver' ← Solver.new tm'
+    solver'.setLogic "ALL"
+    solver'.declareSepHeap int real' |> assertError
+      "Given sort is not associated with the term manager of this solver"
+  let _ ← do
+    let bool' ← tm'.getBooleanSort
+    let solver' ← Solver.new tm'
+    solver'.setLogic "ALL"
+    solver'.declareSepHeap bool' int |> assertError
+      "Given sort is not associated with the term manager of this solver"
 
--- /-- Helper function for `testGetSeparatior{Heap,Nil}TermX`.
+/-- Helper function for `testGetSeparatior{Heap,Nil}TermX`.
 
--- Asserts and checks some simple separation logic constraints.
--- -/
--- def checkSimpleSeparationConstraints (tm : TermManager) (solver : Solver) : Env Unit := do
---   let int ← tm.getIntegerSort
---   -- declare the separation heap
---   solver.declareSepHeap int int
---   let x ← tm.mkConst int "x"
---   let p ← tm.mkConst int "p"
---   let heap ← tm.mkTerm Kind.SEP_PTO #[p, x]
---   solver.assertFormula heap
---   let nil ← tm.mkSepNil int
---   tm.mkInteger 5 >>= nil.eqTerm >>= solver.assertFormula
---   solver.checkSat |> assertOkDiscard
+Asserts and checks some simple separation logic constraints.
+-/
+def checkSimpleSeparationConstraints (tm : TermManager) (solver : Solver) : Env Unit := do
+  let int ← tm.getIntegerSort
+  -- declare the separation heap
+  solver.declareSepHeap int int
+  let x ← tm.mkConst int "x"
+  let p ← tm.mkConst int "p"
+  let heap ← tm.mkTerm Kind.SEP_PTO #[p, x]
+  solver.assertFormula heap
+  let nil ← tm.mkSepNil int
+  tm.mkInteger 5 >>= nil.eqTerm >>= solver.assertFormula
+  solver.checkSat |> assertOkDiscard
 
--- test![TestApiBlackSolver, getValueSepHeap1] tm solver => do
---   solver.setLogic "QF_BV"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "true"
---   let t ← tm.mkTrue
---   solver.assertFormula t
---   solver.getValueSepHeap |> assertError
---     "cannot obtain separation logic expressions if not using the separation logic theory."
+test![TestApiBlackSolver, getValueSepHeap1] tm solver => do
+  solver.setLogic "QF_BV"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "true"
+  let t ← tm.mkTrue
+  solver.assertFormula t
+  solver.getValueSepHeap |> assertError
+    "cannot obtain separation logic expressions if not using the separation logic theory."
 
--- test![TestApiBlackSolver, getValueSepHeap2] tm solver => do
---   solver.setLogic "ALL"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "false"
---   checkSimpleSeparationConstraints tm solver
---   solver.getValueSepHeap |> assertError
---     "cannot get separation heap term unless model generation is enabled (try --produce-models)"
+test![TestApiBlackSolver, getValueSepHeap2] tm solver => do
+  solver.setLogic "ALL"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "false"
+  checkSimpleSeparationConstraints tm solver
+  solver.getValueSepHeap |> assertError
+    "cannot get separation heap term unless model generation is enabled (try --produce-models)"
 
--- test![TestApiBlackSolver, getValueSepHeap3] tm solver => do
---   solver.setLogic "ALL"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "true"
---   let t ← tm.mkFalse
---   solver.assertFormula t
---   solver.checkSat |> assertOkDiscard
---   solver.getValueSepHeap |> assertError
---     "can only get separtion heap term after SAT or UNKNOWN response."
+test![TestApiBlackSolver, getValueSepHeap3] tm solver => do
+  solver.setLogic "ALL"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "true"
+  let t ← tm.mkFalse
+  solver.assertFormula t
+  solver.checkSat |> assertOkDiscard
+  solver.getValueSepHeap |> assertError
+    "can only get separtion heap term after SAT or UNKNOWN response."
 
--- test![TestApiBlackSolver, getValueSepHeap4] tm solver => do
---   solver.setLogic "ALL"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "true"
---   let t ← tm.mkTrue
---   solver.assertFormula t
---   solver.checkSat |> assertOkDiscard
---   solver.getValueSepHeap |> assertError "Failed to obtain heap/nil expressions from theory model."
+test![TestApiBlackSolver, getValueSepHeap4] tm solver => do
+  solver.setLogic "ALL"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "true"
+  let t ← tm.mkTrue
+  solver.assertFormula t
+  solver.checkSat |> assertOkDiscard
+  solver.getValueSepHeap |> assertError "Failed to obtain heap/nil expressions from theory model."
 
--- test![TestApiBlackSolver, getValueSepHeap5] tm solver => do
---   solver.setLogic "ALL"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "true"
---   checkSimpleSeparationConstraints tm solver
---   solver.getValueSepHeap |> assertOkDiscard
+test![TestApiBlackSolver, getValueSepHeap5] tm solver => do
+  solver.setLogic "ALL"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "true"
+  checkSimpleSeparationConstraints tm solver
+  solver.getValueSepHeap |> assertOkDiscard
 
--- test![TestApiBlackSolver, getValueSepNil1] tm solver => do
---   solver.setLogic "QF_BV"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "true"
---   let t ← tm.mkTrue
---   solver.assertFormula t
---   solver.getValueSepNil |> assertError
---     "cannot obtain separation logic expressions if not using the separation logic theory."
+test![TestApiBlackSolver, getValueSepNil1] tm solver => do
+  solver.setLogic "QF_BV"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "true"
+  let t ← tm.mkTrue
+  solver.assertFormula t
+  solver.getValueSepNil |> assertError
+    "cannot obtain separation logic expressions if not using the separation logic theory."
 
--- test![TestApiBlackSolver, getValueSepNil2] tm solver => do
---   solver.setLogic "ALL"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "false"
---   checkSimpleSeparationConstraints tm solver
---   solver.getValueSepNil |> assertError
---     "cannot get separation nil term unless model generation is enabled (try --produce-models)"
+test![TestApiBlackSolver, getValueSepNil2] tm solver => do
+  solver.setLogic "ALL"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "false"
+  checkSimpleSeparationConstraints tm solver
+  solver.getValueSepNil |> assertError
+    "cannot get separation nil term unless model generation is enabled (try --produce-models)"
 
--- test![TestApiBlackSolver, getValueSepNil3] tm solver => do
---   solver.setLogic "ALL"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "true"
---   let t ← tm.mkFalse
---   solver.assertFormula t
---   solver.checkSat |> assertOkDiscard
---   solver.getValueSepNil |> assertError
---     "can only get separtion nil term after SAT or UNKNOWN response."
+test![TestApiBlackSolver, getValueSepNil3] tm solver => do
+  solver.setLogic "ALL"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "true"
+  let t ← tm.mkFalse
+  solver.assertFormula t
+  solver.checkSat |> assertOkDiscard
+  solver.getValueSepNil |> assertError
+    "can only get separtion nil term after SAT or UNKNOWN response."
 
--- test![TestApiBlackSolver, getValueSepNil4] tm solver => do
---   solver.setLogic "ALL"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "true"
---   let t ← tm.mkTrue
---   solver.assertFormula t
---   solver.checkSat |> assertOkDiscard
---   solver.getValueSepNil |> assertError "Failed to obtain heap/nil expressions from theory model."
+test![TestApiBlackSolver, getValueSepNil4] tm solver => do
+  solver.setLogic "ALL"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "true"
+  let t ← tm.mkTrue
+  solver.assertFormula t
+  solver.checkSat |> assertOkDiscard
+  solver.getValueSepNil |> assertError "Failed to obtain heap/nil expressions from theory model."
 
--- test![TestApiBlackSolver, getValueSepNil5] tm solver => do
---   solver.setLogic "ALL"
---   solver.setOption "incremental" "false"
---   solver.setOption "produce-models" "true"
---   checkSimpleSeparationConstraints tm solver
---   solver.getValueSepNil |> assertOkDiscard
+test![TestApiBlackSolver, getValueSepNil5] tm solver => do
+  solver.setLogic "ALL"
+  solver.setOption "incremental" "false"
+  solver.setOption "produce-models" "true"
+  checkSimpleSeparationConstraints tm solver
+  solver.getValueSepNil |> assertOkDiscard
 
 test![TestApiBlackSolver, push1] tm solver => do
   solver.setOption "incremental" "true"
