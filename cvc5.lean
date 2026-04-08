@@ -2656,6 +2656,17 @@ extern_def push : (solver : Solver) → (nscopes : UInt32 := 1) → Env Unit
 /-- Remove all assertions. -/
 extern_def resetAssertions : (solver : Solver) → Env Unit
 
+/-- Set info.
+
+```smtlib
+(set-info <attribute>)
+```
+
+- `keyword`: The info flag.
+- `value`: The value of the info flag.
+-/
+extern_def setInfo : (solver : Solver) → (keyword value : String) → Env Unit
+
 /-- Set logic.
 
 - `logic`: The logic to set.
@@ -3323,6 +3334,12 @@ Can be called only if immediately preceded by a SAT query.
 - `terms`: The model values to block.
 -/
 extern_def blockModelValues : (solver : Solver) → (terms : Array Term) → Env Unit
+
+/-- Produce a string containing information about all instantiations made by the quantifier module.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getInstantiations : (solver : Solver) → Env String
 
 /-- Prints a proof as a string in a selected proof format mode.
 

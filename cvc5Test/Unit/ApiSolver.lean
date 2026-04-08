@@ -1422,54 +1422,54 @@ test![TestApiBlackSolver, blockModelValues5] tm solver => do
   solver.checkSat |> assertOkDiscard
   solver.blockModelValues #[ x ] |> assertOkDiscard
 
--- test![TestApiBlackSolver, getInstantiations] tm solver => do
---   let p ← solver.declareFun "p" #[int] bool
---   let x ← tm.mkVar int "x"
---   let bvl ← tm.mkTerm Kind.VARIABLE_LIST #[ x ]
---   let app ← tm.mkTerm Kind.APPLY_UF #[p, x]
---   let q ← tm.mkTerm Kind.FORALL #[bvl, app]
---   solver.assertFormula q
---   let five ← tm.mkInteger 5
---   let app2 ← tm.mkTerm Kind.NOT #[← tm.mkTerm Kind.APPLY_UF #[p, five]]
---   solver.assertFormula app2
---   solver.getInstantiations |> assertError
---     "cannot get instantiations unless after a UNSAT, SAT or UNKNOWN response."
---   solver.checkSat |> assertOkDiscard
---   solver.getInstantiations |> assertOkDiscard
+test![TestApiBlackSolver, getInstantiations] tm solver => do
+  let p ← solver.declareFun "p" #[int] bool
+  let x ← tm.mkVar int "x"
+  let bvl ← tm.mkTerm Kind.VARIABLE_LIST #[ x ]
+  let app ← tm.mkTerm Kind.APPLY_UF #[p, x]
+  let q ← tm.mkTerm Kind.FORALL #[bvl, app]
+  solver.assertFormula q
+  let five ← tm.mkInteger 5
+  let app2 ← tm.mkTerm Kind.NOT #[← tm.mkTerm Kind.APPLY_UF #[p, five]]
+  solver.assertFormula app2
+  solver.getInstantiations |> assertError
+    "cannot get instantiations unless after a UNSAT, SAT or UNKNOWN response."
+  solver.checkSat |> assertOkDiscard
+  solver.getInstantiations |> assertOkDiscard
 
--- test![TestApiBlackSolver, setInfo] tm solver => do
---   let err s := s!"\
---     unrecognized keyword: {s}, expected 'source', 'category', \
---     'difficulty', 'filename', 'license', 'name', 'notes', 'smt-lib-version' or 'status'\
---   "
---   solver.setInfo "cvc5-lagic" "QF_BV" |> assertError (err "cvc5-lagic")
---   solver.setInfo "cvc2-logic" "QF_BV" |> assertError (err "cvc2-logic")
---   solver.setInfo "cvc5-logic" "asdf" |> assertError (err "cvc5-logic")
+test![TestApiBlackSolver, setInfo] tm solver => do
+  let err s := s!"\
+    unrecognized keyword: {s}, expected 'source', 'category', \
+    'difficulty', 'filename', 'license', 'name', 'notes', 'smt-lib-version' or 'status'\
+  "
+  solver.setInfo "cvc5-lagic" "QF_BV" |> assertError (err "cvc5-lagic")
+  solver.setInfo "cvc2-logic" "QF_BV" |> assertError (err "cvc2-logic")
+  solver.setInfo "cvc5-logic" "asdf" |> assertError (err "cvc5-logic")
 
---   let test (key val : String) : Env Unit := solver.setInfo key val |> assertOk
+  let test (key val : String) : Env Unit := solver.setInfo key val |> assertOk
 
---   let v := "asdf"
---   test "source" v
---   test "category" v
---   test "difficulty" v
---   test "filename" v
---   test "license" v
---   test "name" v
---   test "notes" v
+  let v := "asdf"
+  test "source" v
+  test "category" v
+  test "difficulty" v
+  test "filename" v
+  test "license" v
+  test "name" v
+  test "notes" v
 
---   test "smt-lib-version" "2"
---   -- -- following two tests output garbage to `stderr`
---   -- test "smt-lib-version" "2.0"
---   -- test "smt-lib-version" "2.5"
---   test "smt-lib-version" "2.6"
---   solver.setInfo "smt-lib-version" ".0" |> assertError
---     "invalid argument '.0' for 'value', expected '2.0', '2.5', '2.6', '2.7'"
+  test "smt-lib-version" "2"
+  -- -- following two tests output garbage to `stderr`
+  -- test "smt-lib-version" "2.0"
+  -- test "smt-lib-version" "2.5"
+  test "smt-lib-version" "2.6"
+  solver.setInfo "smt-lib-version" ".0" |> assertError
+    "invalid argument '.0' for 'value', expected '2.0', '2.5', '2.6', '2.7'"
 
---   test "status" "sat"
---   test "status" "unsat"
---   test "status" "unknown"
---   solver.setInfo "status" "asdf" |> assertError
---     "invalid argument 'asdf' for 'value', expected 'sat', 'unsat' or 'unknown'"
+  test "status" "sat"
+  test "status" "unsat"
+  test "status" "unknown"
+  solver.setInfo "status" "asdf" |> assertError
+    "invalid argument 'asdf' for 'value', expected 'sat', 'unsat' or 'unknown'"
 
 test![TestApiBlackSolver, setLogic] tm solver => do
   solver.setLogic "AUFLIRA"

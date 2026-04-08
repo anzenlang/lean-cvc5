@@ -3481,6 +3481,17 @@ LEAN_EXPORT lean_obj_res solver_resetAssertions(lean_obj_arg solver)
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_setInfo(lean_obj_arg solver,
+                                        lean_obj_arg keyword,
+                                        lean_obj_arg value)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  solver_unbox(solver)->setInfo(lean_string_cstr(keyword),
+                                lean_string_cstr(value));
+  return env_val(mk_unit_unit());
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_setLogic(lean_obj_arg solver,
                                          lean_object* logic)
 {
@@ -4058,6 +4069,14 @@ LEAN_EXPORT lean_obj_res solver_blockModelValues(lean_obj_arg solver,
   }
   solver_unbox(solver)->blockModelValues(termVec);
   return env_val(mk_unit_unit());
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_getInstantiations(lean_obj_arg solver)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      lean_mk_string(solver_unbox(solver)->getInstantiations().c_str()));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
