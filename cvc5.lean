@@ -2711,6 +2711,145 @@ extern_def checkSat : (solver : Solver) → Env Result
 -/
 extern_def checkSatAssuming : (solver : Solver) → (assumptions : Array Term) → Env Result
 
+/-- Declare uninterpreted sort.
+
+```smtlib
+(declare-sort <symbol> <numeral>)
+```
+
+- `symbol`: The name of the sort.
+- `arity`: The arity of the sort.
+- `fresh`: If true, then this function always returns a new sort. Otherwise, it will always return
+  the same sort for each call with the given arity and symbol where `fresh` is `false`.
+-/
+extern_def declareSort :
+  (solver : Solver) → (symbol : String) → (arity : UInt32) → (fresh : Bool := true)
+  → Env cvc5.Sort
+
+/-- Define n-ary function.
+
+```smtlib
+(define-fun <function_def>)
+```
+
+- `symbol`: The name of the function.
+- `boundVars`: The parameters to this function.
+- `sort`: The sort of the return value of this function.
+- `body`: The function body.
+- `global`: Determines whether this definition is global (*i.e.* persists when popping the context).
+-/
+extern_def defineFun : (solver : Solver)
+  → (symbol : String) → (boundVars : Array Term) → (sort : cvc5.Sort) → (body : Term)
+  → (global : Bool := false)
+  → Env Term
+
+/-- Define recursive function.
+
+```smtlib
+(define-fun-rec <function_def>)
+```
+
+- `symbol`: The name of the function.
+- `boundVars`: The parameters to this function.
+- `sort`: The sort of the return value of this function.
+- `body`: The function body.
+- `global`: Determines whether this definition is global (*i.e.* persists when popping the context).
+-/
+extern_def defineFunRec : (solver : Solver)
+  → (symbol : String) → (boundVars : Array Term) → (sort : cvc5.Sort) → (body : Term)
+  → (global : Bool := false)
+  → Env Term
+
+/-- Define recursive function.
+
+```smtlib
+(define-fun-rec <function_def>)
+```
+
+Create parameter `fn` with `TermManager.mkConst`.
+
+- `fn`: The sorted function.
+- `bound_vars`: The parameters to this function.
+- `term` The function body.
+- `global` Determines whether this definition is global (*i.e.* persists when popping the context).
+-/
+extern_def defineFunRecTerm : (solver : Solver)
+  → (fn : Term) → (boundVars : Array Term) → (body : Term)
+  → (global : Bool := false)
+  → Env Term
+
+/-- Define recursive functions.
+
+```smtlib
+(define-funs-rec
+  ( <function_decl>_1 ... <function_decl>_n )
+  (     <body>_1      ...     <body>_n      )
+)
+```
+
+- `funs`: The sorted functions, each created with `TermManager.mkConst`.
+- `boundVars`: The list of parameters to the functions.
+- `bodies`: The list of function bodies of the functions.
+- `global`: Determines whether this definition is global (*i.e.* persists when popping the context).
+-/
+extern_def defineFunsRec : (solver : Solver)
+  → (funs : Array Term) → (boundVars : Array (Array Term)) → (bodies : Array Term)
+  → (global : Bool := false)
+  → Env Unit
+
+/-- Get the list of asserted formulas.
+
+```smtlib
+(get-assertions)
+```
+-/
+extern_def getAssertions : (solver : Solver) → Env (Array Term)
+
+/-- Get info from the solver.
+
+```smtlib
+(get-info <info_flag>)
+```
+
+- `flag`: The info flag.
+-/
+extern_def getInfo : (solver : Solver) → (flag : String) → Env String
+
+/-- Get the value of a given option.
+
+```smtlib
+(get-option <keyword>)
+```
+
+- `option`: The option for which the value is queried.
+-/
+extern_def getOption : (solver : Solver) → (option : String) → Env String
+
+/-- Get all option names that can be used with `setOption`, `getOption`, and `getOptionInfo`. -/
+extern_def getOptionNames : (solver : Solver) → Env (Array String)
+
+/-- Get the set of unsat (*failed*) assumptions.
+
+```smtlib
+(get-unsat-assumptions)
+```
+
+Requires to enable option `produce-unsat-assumption`.
+-/
+extern_def getUnsatAssumptions : (solver : Solver) → Env (Array Term)
+
+/-- Create datatype sort.
+
+```smtlib
+(declare-datatype <symbol> <datatype_decl>)
+```
+
+- `symbol`: The name of the datatype sort.
+- `ctors`: The constructor declarations of the datatype sort.
+-/
+extern_def declareDatatype :
+  (solver : Solver) → (symbol : String) → (ctors : Array DatatypeConstructorDecl) → Env cvc5.Sort
+
 /--
 Get the unsatisfiable core.
 
