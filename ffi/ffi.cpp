@@ -3803,8 +3803,7 @@ LEAN_EXPORT lean_obj_res solver_getTimeoutCore(lean_obj_arg solver)
   {
     terms = lean_array_push(terms, term_box(new Term(term)));
   }
-  return env_val(prod_mk(result_box(new Result(std::get<0>(pair))),
-                         terms));
+  return env_val(prod_mk(result_box(new Result(std::get<0>(pair))), terms));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
@@ -3826,8 +3825,7 @@ LEAN_EXPORT lean_obj_res solver_getTimeoutCoreAssuming(lean_obj_arg solver,
   {
     terms = lean_array_push(terms, term_box(new Term(term)));
   }
-  return env_val(prod_mk(result_box(new Result(std::get<0>(pair))),
-                         terms));
+  return env_val(prod_mk(result_box(new Result(std::get<0>(pair))), terms));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
@@ -3904,8 +3902,8 @@ LEAN_EXPORT lean_obj_res solver_getModel(lean_obj_arg solver,
   std::vector<Sort> sortVec;
   for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
   {
-    sortVec.push_back(*sort_unbox(
-        lean_array_fget(sorts, lean_usize_to_nat(i))));
+    sortVec.push_back(
+        *sort_unbox(lean_array_fget(sorts, lean_usize_to_nat(i))));
   }
   std::vector<Term> constVec;
   for (size_t i = 0, n = lean_array_size(consts); i < n; ++i)
@@ -3997,8 +3995,8 @@ LEAN_EXPORT lean_obj_res solver_declareOracleFun(lean_obj_arg solver,
   std::vector<Sort> sortVec;
   for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
   {
-    sortVec.push_back(*sort_unbox(
-        lean_array_fget(sorts, lean_usize_to_nat(i))));
+    sortVec.push_back(
+        *sort_unbox(lean_array_fget(sorts, lean_usize_to_nat(i))));
   }
   std::function<Term(const std::vector<Term>&)> fun =
       [fn](const std::vector<Term>& termVec) {
@@ -4023,8 +4021,11 @@ LEAN_EXPORT lean_obj_res solver_declareOracleFun(lean_obj_arg solver,
           lean_inc(error);
           lean_dec_ref(except);
           throw error;
-        } else {
-          throw std::string("unexpected lean-obj-tag in 'Solver.declareOracleFun'");
+        }
+        else
+        {
+          throw std::string(
+              "unexpected lean-obj-tag in 'Solver.declareOracleFun'");
         }
       };
   Term t = solver_unbox(solver)->declareOracleFun(
