@@ -876,35 +876,35 @@ test![TestApiBlackSolver, getInterpolantNext] tm solver => do
   -- we expect the next output to be distinct
   assertNe output output2
 
--- test![TestApiBlackSolver, declarePool] tm solver => do
---   let setSort ← tm.mkSetSort int
---   let zero ← tm.mkInteger 0
---   let x ← tm.mkConst int "x"
---   let y ← tm.mkConst int "y"
---   -- declare a ppol with initial value `{0, x, y}`
---   let p ← solver.declarePool "p" int #[zero, x, y]
---   -- ppol should have the same sort
---   assertTrue ((← p.getSort) == setSort)
---   -- cannot pass null sort
---   -- solver.declarePool "i" (Sort.null ()) #[] |> assertError "invalid null argument for 'sort'"
+test![TestApiBlackSolver, declarePool] tm solver => do
+  let setSort ← tm.mkSetSort int
+  let zero ← tm.mkInteger 0
+  let x ← tm.mkConst int "x"
+  let y ← tm.mkConst int "y"
+  -- declare a ppol with initial value `{0, x, y}`
+  let p ← solver.declarePool "p" int #[zero, x, y]
+  -- ppol should have the same sort
+  assertTrue ((← p.getSort) == setSort)
+  -- cannot pass null sort
+  -- solver.declarePool "i" (Sort.null ()) #[] |> assertError "invalid null argument for 'sort'"
 
---   let tm' ← TermManager.new
---   let solver' ← Solver.new tm'
---   let int' ← tm'.getIntegerSort
---   let zero' ← tm'.mkInteger 0
---   let x' ← tm'.mkConst int' "x"
---   let y' ← tm'.mkConst int' "y"
---   solver'.declarePool "p" int #[zero', x', y'] |> assertError
---     "Given sort is not associated with the term manager of this solver"
---   solver'.declarePool "p" int' #[zero, x', y'] |> assertError
---     "invalid term in 'initValue' at index 0, \
---     expected a term associated with the term manager of this solver"
---   solver'.declarePool "p" int' #[zero', x, y'] |> assertError
---     "invalid term in 'initValue' at index 1, \
---     expected a term associated with the term manager of this solver"
---   solver'.declarePool "p" int' #[zero', x', y] |> assertError
---     "invalid term in 'initValue' at index 2, \
---     expected a term associated with the term manager of this solver"
+  let tm' ← TermManager.new
+  let solver' ← Solver.new tm'
+  let int' ← tm'.getIntegerSort
+  let zero' ← tm'.mkInteger 0
+  let x' ← tm'.mkConst int' "x"
+  let y' ← tm'.mkConst int' "y"
+  solver'.declarePool "p" int #[zero', x', y'] |> assertError
+    "Given sort is not associated with the term manager of this solver"
+  solver'.declarePool "p" int' #[zero, x', y'] |> assertError
+    "invalid term in 'initValue' at index 0, \
+    expected a term associated with the term manager of this solver"
+  solver'.declarePool "p" int' #[zero', x, y'] |> assertError
+    "invalid term in 'initValue' at index 1, \
+    expected a term associated with the term manager of this solver"
+  solver'.declarePool "p" int' #[zero', x', y] |> assertError
+    "invalid term in 'initValue' at index 2, \
+    expected a term associated with the term manager of this solver"
 
 -- test![TestApiBlackSolver, getDriverOptions] tm solver => do
 

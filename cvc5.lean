@@ -2950,6 +2950,24 @@ The current model interprets the uninterpreted sort `s` as a finite sort whose d
 -/
 extern_def getModelDomainElements (solver : Solver) (s : cvc5.Sort) : Env (Array Term)
 
+/-- Declare a symbolic pool of terms with the given initial value.
+
+For details on how pools are used to specify instructions for quantifier instantiation, see
+`Kind.INST_POOL`
+
+```smtlib
+(declare-pool <symbol> <sort> ( <term>* ))
+```
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `symbol`: The name of the pool.
+- `sort`: The sort of the elements of the pool.
+- `initValue` The initial value of the pool.
+-/
+extern_def declarePool :
+  (solver : Solver) → (symbol : String) → (sort : cvc5.Sort) → (initValue : Array Term) → Env Term
+
 /-- Pop (a) level(s) from the assertion stack.
 
 ```smtlib

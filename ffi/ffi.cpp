@@ -3846,6 +3846,23 @@ LEAN_EXPORT lean_obj_res solver_push(lean_obj_arg solver, uint32_t nscopes)
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_declarePool(lean_obj_arg solver,
+                                            lean_obj_arg symbol,
+                                            lean_obj_arg sort,
+                                            lean_obj_arg initValue)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> initValueVec;
+  for (size_t i = 0, n = lean_array_size(initValue); i < n; ++i)
+  {
+    initValueVec.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), initValue, lean_usize_to_nat(i))));
+  }
+  return env_val(term_box(new Term(solver_unbox(solver)->declarePool(
+      lean_string_cstr(symbol), *sort_unbox(sort), initValueVec))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_pop(lean_obj_arg solver, uint32_t nscopes)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
