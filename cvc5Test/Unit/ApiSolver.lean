@@ -1355,72 +1355,72 @@ test![TestApiBlackSolver, pop3] tm solver => do
   solver.pop 1 |> assertOkDiscard
   solver.pop 1 |> assertError "cannot pop beyond first pushed context"
 
--- test![TestApiBlackSolver, blockModel1] tm solver => do
---   let x ← tm.mkConst bool "x"
---   x.eqTerm x >>= solver.assertFormula
---   solver.checkSat |> assertOkDiscard
---   solver.blockModel BlockModelsMode.LITERALS |> assertError
---     "cannot get value unless model generation is enabled (try --produce-models)"
+test![TestApiBlackSolver, blockModel1] tm solver => do
+  let x ← tm.mkConst bool "x"
+  x.eqTerm x >>= solver.assertFormula
+  solver.checkSat |> assertOkDiscard
+  solver.blockModel BlockModelsMode.LITERALS |> assertError
+    "cannot get value unless model generation is enabled (try --produce-models)"
 
--- test![TestApiBlackSolver, blockModel2] tm solver => do
---   solver.setOption "produce-models" "true"
---   let x ← tm.mkConst bool "x"
---   x.eqTerm x >>= solver.assertFormula
---   solver.blockModel BlockModelsMode.LITERALS |> assertError
---     "can only block model after SAT or UNKNOWN response."
+test![TestApiBlackSolver, blockModel2] tm solver => do
+  solver.setOption "produce-models" "true"
+  let x ← tm.mkConst bool "x"
+  x.eqTerm x >>= solver.assertFormula
+  solver.blockModel BlockModelsMode.LITERALS |> assertError
+    "can only block model after SAT or UNKNOWN response."
 
--- test![TestApiBlackSolver, blockModel3] tm solver => do
---   solver.setOption "produce-models" "true"
---   let x ← tm.mkConst bool "x"
---   x.eqTerm x >>= solver.assertFormula
---   solver.checkSat |> assertOkDiscard
---   solver.blockModel BlockModelsMode.LITERALS |> assertOkDiscard
+test![TestApiBlackSolver, blockModel3] tm solver => do
+  solver.setOption "produce-models" "true"
+  let x ← tm.mkConst bool "x"
+  x.eqTerm x >>= solver.assertFormula
+  solver.checkSat |> assertOkDiscard
+  solver.blockModel BlockModelsMode.LITERALS |> assertOkDiscard
 
--- test![TestApiBlackSolver, blockModelValues1] tm solver => do
---   solver.setOption "produce-models" "true"
---   let x ← tm.mkConst bool "x"
---   x.eqTerm x >>= solver.assertFormula
---   solver.checkSat |> assertOkDiscard
---   solver.blockModelValues #[] |> assertError
---     "invalid size of argument 'terms', expected a non-empty set of terms"
---   solver.blockModelValues #[Term.null ()] |> assertError "invalid null term in 'terms' at index 0"
---   solver.blockModelValues #[← tm.mkBoolean false] |> assertOkDiscard
+test![TestApiBlackSolver, blockModelValues1] tm solver => do
+  solver.setOption "produce-models" "true"
+  let x ← tm.mkConst bool "x"
+  x.eqTerm x >>= solver.assertFormula
+  solver.checkSat |> assertOkDiscard
+  solver.blockModelValues #[] |> assertError
+    "invalid size of argument 'terms', expected a non-empty set of terms"
+  solver.blockModelValues #[Term.null ()] |> assertError "invalid null term in 'terms' at index 0"
+  solver.blockModelValues #[← tm.mkBoolean false] |> assertOkDiscard
 
---   let tm' ← TermManager.new
---   let solver' ← Solver.new tm'
---   solver'.setOption "produce-models" "true"
---   solver'.checkSat |> assertOkDiscard
---   solver'.blockModelValues #[← tm.mkFalse] |> assertError
---     "invalid term in 'terms' at index 0, \
---     expected a term associated with the term manager of this solver"
+  let tm' ← TermManager.new
+  let solver' ← Solver.new tm'
+  solver'.setOption "produce-models" "true"
+  solver'.checkSat |> assertOkDiscard
+  solver'.blockModelValues #[← tm.mkFalse] |> assertError
+    "invalid term in 'terms' at index 0, \
+    expected a term associated with the term manager of this solver"
 
--- test![TestApiBlackSolver, blockModelValues2] tm solver => do
---   solver.setOption "produce-models" "true"
---   let x ← tm.mkConst bool "x"
---   x.eqTerm x >>= solver.assertFormula
---   solver.checkSat |> assertOkDiscard
---   solver.blockModelValues #[ x ] |> assertOkDiscard
+test![TestApiBlackSolver, blockModelValues2] tm solver => do
+  solver.setOption "produce-models" "true"
+  let x ← tm.mkConst bool "x"
+  x.eqTerm x >>= solver.assertFormula
+  solver.checkSat |> assertOkDiscard
+  solver.blockModelValues #[ x ] |> assertOkDiscard
 
--- test![TestApiBlackSolver, blockModelValues3] tm solver => do
---   let x ← tm.mkConst bool "x"
---   x.eqTerm x >>= solver.assertFormula
---   solver.checkSat |> assertOkDiscard
---   solver.blockModelValues #[ x ] |> assertError
---     "cannot get value unless model generation is enabled (try --produce-models)"
+test![TestApiBlackSolver, blockModelValues3] tm solver => do
+  let x ← tm.mkConst bool "x"
+  x.eqTerm x >>= solver.assertFormula
+  solver.checkSat |> assertOkDiscard
+  solver.blockModelValues #[ x ] |> assertError
+    "cannot get value unless model generation is enabled (try --produce-models)"
 
--- test![TestApiBlackSolver, blockModelValues4] tm solver => do
---   solver.setOption "produce-models" "true"
---   let x ← tm.mkConst bool "x"
---   x.eqTerm x >>= solver.assertFormula
---   solver.blockModelValues #[ x ] |> assertError
---     "can only block model values after SAT or UNKNOWN response."
+test![TestApiBlackSolver, blockModelValues4] tm solver => do
+  solver.setOption "produce-models" "true"
+  let x ← tm.mkConst bool "x"
+  x.eqTerm x >>= solver.assertFormula
+  solver.blockModelValues #[ x ] |> assertError
+    "can only block model values after SAT or UNKNOWN response."
 
--- test![TestApiBlackSolver, blockModelValues5] tm solver => do
---   solver.setOption "produce-models" "true"
---   let x ← tm.mkConst bool "x"
---   x.eqTerm x >>= solver.assertFormula
---   solver.checkSat |> assertOkDiscard
---   solver.blockModelValues #[ x ] |> assertOkDiscard
+test![TestApiBlackSolver, blockModelValues5] tm solver => do
+  solver.setOption "produce-models" "true"
+  let x ← tm.mkConst bool "x"
+  x.eqTerm x >>= solver.assertFormula
+  solver.checkSat |> assertOkDiscard
+  solver.blockModelValues #[ x ] |> assertOkDiscard
 
 -- test![TestApiBlackSolver, getInstantiations] tm solver => do
 --   let p ← solver.declareFun "p" #[int] bool

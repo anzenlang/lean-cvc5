@@ -3294,6 +3294,36 @@ function, or the null term if such a term cannot be found.
 -/
 extern_def getAbductNext : (solver : Solver) → Env Term
 
+/-- Block the current model. Can be called only if immediately preceded by a SAT or INVALID query.
+
+```smtlib
+(block-model)
+```
+
+**NB:** requires enabling option `produce-models`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `mode`: The mode to use for blocking.
+-/
+extern_def blockModel : (solver : Solver) → (mode : BlockModelsMode) → Env Unit
+
+/-- Block the current model values of (at least) the values in `terms`.
+
+Can be called only if immediately preceded by a SAT query.
+
+```smtlib
+(block-model-values ( <term>+ ))
+```
+
+**NB:** requires enabling option `produce-models`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `terms`: The model values to block.
+-/
+extern_def blockModelValues : (solver : Solver) → (terms : Array Term) → Env Unit
+
 /-- Prints a proof as a string in a selected proof format mode.
 
 Other aspects of printing are taken from the solver options.

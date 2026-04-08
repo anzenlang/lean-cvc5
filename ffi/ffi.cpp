@@ -4037,6 +4037,30 @@ LEAN_EXPORT lean_obj_res solver_getAbductNext(lean_obj_arg solver)
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_blockModel(lean_obj_arg solver, uint8_t mode)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  solver_unbox(solver)->blockModel(
+      static_cast<cvc5::modes::BlockModelsMode>(mode));
+  return env_val(mk_unit_unit());
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_blockModelValues(lean_obj_arg solver,
+                                                 lean_obj_arg terms)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> termVec;
+  for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
+  {
+    termVec.push_back(*term_unbox(
+        lean_array_get(term_box(new Term()), terms, lean_usize_to_nat(i))));
+  }
+  solver_unbox(solver)->blockModelValues(termVec);
+  return env_val(mk_unit_unit());
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_proofToString(lean_obj_arg solver,
                                               lean_obj_arg proof,
                                               uint8_t pf)
