@@ -3768,10 +3768,11 @@ LEAN_EXPORT lean_obj_res solver_getUnsatCore(lean_obj_arg solver)
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
-LEAN_EXPORT lean_obj_res solver_getProof(lean_obj_arg solver)
+LEAN_EXPORT lean_obj_res solver_getProof(lean_obj_arg solver, uint8_t pc)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
-  std::vector<Proof> proofs = solver_unbox(solver)->getProof();
+  std::vector<Proof> proofs = solver_unbox(solver)->getProof(
+      static_cast<cvc5::modes::ProofComponent>(pc));
   lean_object* ps = lean_mk_empty_array();
   for (const Proof& proof : proofs)
   {
@@ -3821,6 +3822,22 @@ LEAN_EXPORT lean_obj_res solver_getModelDomainElements(lean_obj_arg solver,
     es = lean_array_push(es, term_box(new Term(element)));
   }
   return env_val(es);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_push(lean_obj_arg solver, uint32_t nscopes)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  solver_unbox(solver)->push(nscopes);
+  return env_val(mk_unit_unit());
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_pop(lean_obj_arg solver, uint32_t nscopes)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  solver_unbox(solver)->pop(nscopes);
+  return env_val(mk_unit_unit());
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 

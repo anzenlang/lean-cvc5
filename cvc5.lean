@@ -2643,6 +2643,16 @@ extern_def getVersion : (solver : Solver) → Env String
 -/
 extern_def setOption : (solver : Solver) → (option value : String) → Env Unit
 
+/-- Push (a) level(s) to the assertion stack.
+
+```smtlib
+(push <numeral>)
+```
+
+- `nscopes`: The number of levels to push.
+-/
+extern_def push : (solver : Solver) → (nscopes : UInt32 := 1) → Env Unit
+
 /-- Remove all assertions. -/
 extern_def resetAssertions : (solver : Solver) → Env Unit
 
@@ -2875,8 +2885,19 @@ extern_def getUnsatCore : (solver : Solver) → Env (Array Term)
 /-- Get a proof associated with the most recent call to `checkSat`.
 
 Requires to enable option `produce-proofs`.
+
+```smtlib
+(get-proof :c)
+```
+
+**NB:** requires to enable option `produce-proofs`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `c`: The component of the proof to return.
 -/
-extern_def getProof : (solver : Solver) → Env (Array Proof)
+extern_def getProof :
+  (solver : Solver) → (c : ProofComponent := ProofComponent.FULL) → Env (Array Proof)
 
 /--
 Get the values of the given term in the current model.
@@ -2916,6 +2937,16 @@ The current model interprets the uninterpreted sort `s` as a finite sort whose d
 - `s`: The uninterpreted sort in question.
 -/
 extern_def getModelDomainElements (solver : Solver) (s : cvc5.Sort) : Env (Array Term)
+
+/-- Pop (a) level(s) from the assertion stack.
+
+```smtlib
+(pop <numeral>)
+```
+
+- `nscopes`: The number of levels to pop.
+-/
+extern_def pop : (solver : Solver) → (nscopes : UInt32 := 1) → Env Unit
 
 /-- Prints a proof as a string in a selected proof format mode.
 
