@@ -2882,6 +2882,18 @@ Returns a set of terms representing the unsatisfiable core.
 -/
 extern_def getUnsatCore : (solver : Solver) → Env (Array Term)
 
+/-- Get the lemmas used to derive unsatisfiability.
+
+```smtlib
+(get-unsat-core-lemmas)
+```
+
+Requires the SAT proof unsat core mode, so to enable option `unsat-cores-mode=sat-proof`.
+
+**Warning**: this function is experimental and may change in future versions.
+-/
+extern_def getUnsatCoreLemmas : (solver : Solver) → Env (Array Term)
+
 /-- Get a proof associated with the most recent call to `checkSat`.
 
 Requires to enable option `produce-proofs`.
@@ -2948,13 +2960,101 @@ extern_def getModelDomainElements (solver : Solver) (s : cvc5.Sort) : Env (Array
 -/
 extern_def pop : (solver : Solver) → (nscopes : UInt32 := 1) → Env Unit
 
+/-- Get an abduct if one exists, the null term otherwise.
+
+```smtlib
+(get-abduct <conj>)
+```
+
+**NB:** Requires to enable option `produce-abducts`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+
+Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is unsatisfiable, where `A` is
+the current set of assertions and `B` is given in the input by `conj`, or the null term if such a
+term cannot be found.
+-/
+private extern_def getAbductSimple : (solver : Solver) → (conj : Term) → Env Term
+
+/-- Get an abduct if one exists, the null term otherwise.
+
+```smtlib
+(get-abduct <conj> <grammar>)
+```
+
+**NB:** Requires to enable option `produce-abducts`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+- `grammar`: The grammar for the abduct `C`.
+
+Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is unsatisfiable, where `A` is
+the current set of assertions and `B` is given in the input by `conj`, or the null term if such a
+term cannot be found.
+-/
+extern_def getAbductOfGrammar :
+  (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env Term
+
+/-- Get an abduct if one exists.
+
+```smtlib
+(get-abduct <conj>)
+(get-abduct <conj> <grammar>)
+```
+
+**NB:** Requires to enable option `produce-abducts`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `conj`: The conjecture term.
+- `grammar`: The optional grammar for the abduct `C`.
+
+Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is unsatisfiable, where `A` is
+the current set of assertions and `B` is given in the input by `conj`, or the null term if such a
+term cannot be found.
+-/
+def getAbduct
+  (solver : Solver) (conj : Term) (grammar : Option Grammar := none)
+: Env Term :=
+  if let some grammar := grammar
+  then solver.getAbductOfGrammar conj grammar
+  else solver.getAbductSimple conj
+
+/-- Get the next interpolant if any, the null term otherwise.
+
+Can only be called immediately after a successful call to `getAbduct`, `getAbductOfGrammar`,
+`getAbduct?`, `getAbductNext`, or `getAbductNext?`. It is guaranteed to produce a syntactically
+different abduct *w.r.t.* the last returned abduct if successful.
+
+```smtlib
+(get-abduct-next)
+```
+
+Requires to enable incremental mode, and option `produce-abducts`.
+
+**Warning**: this function is experimental and may change in future versions.
+
+Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is unsatisfiable, where `A` is
+the current set of assertions and `B` is given in the input by the last call to a `getAbduct`-like
+function, or the null term if such a term cannot be found.
+-/
+extern_def getAbductNext : (solver : Solver) → Env Term
+
 /-- Prints a proof as a string in a selected proof format mode.
 
 Other aspects of printing are taken from the solver options.
 
+**Warning**: this function is experimental and may change in future versions.
+
 - `proof`: A proof, usually obtained from `getProof`.
+- `format`: The proof format used to print the proof. Must be `ProofFormat.NONE` if the proof is
+  from a component other than `ProofComponent.FULL`.
 -/
-extern_def proofToString : (solver : Solver) → Proof → Env String
+extern_def proofToString :
+  (solver : Solver) → (proof : Proof) → (format : ProofFormat := ProofFormat.DEFAULT) → Env String
 
 /-- Create a Sygus grammar.
 

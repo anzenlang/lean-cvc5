@@ -3768,6 +3768,19 @@ LEAN_EXPORT lean_obj_res solver_getUnsatCore(lean_obj_arg solver)
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_getUnsatCoreLemmas(lean_obj_arg solver)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Term> assertions = solver_unbox(solver)->getUnsatCoreLemmas();
+  lean_object* as = lean_mk_empty_array();
+  for (const Term& assertion : assertions)
+  {
+    as = lean_array_push(as, term_box(new Term(assertion)));
+  }
+  return env_val(as);
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_getProof(lean_obj_arg solver, uint8_t pc)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
@@ -3841,12 +3854,42 @@ LEAN_EXPORT lean_obj_res solver_pop(lean_obj_arg solver, uint32_t nscopes)
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_getAbductSimple(lean_obj_arg solver,
+                                                lean_obj_arg conj)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(
+      term_box(new Term(solver_unbox(solver)->getAbduct(*term_unbox(conj)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_getAbductOfGrammar(lean_obj_arg solver,
+                                                   lean_obj_arg conj,
+                                                   lean_obj_arg grammar)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(solver_unbox(solver)->getAbduct(
+      *term_unbox(conj), *mut_grammar_unbox(grammar)))));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
+LEAN_EXPORT lean_obj_res solver_getAbductNext(lean_obj_arg solver)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  return env_val(term_box(new Term(solver_unbox(solver)->getAbductNext())));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_proofToString(lean_obj_arg solver,
-                                              lean_obj_arg proof)
+                                              lean_obj_arg proof,
+                                              uint8_t pf)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
   return env_val(lean_mk_string(
-      solver_unbox(solver)->proofToString(*proof_unbox(proof)).c_str()));
+      solver_unbox(solver)
+          ->proofToString(*proof_unbox(proof),
+                          static_cast<cvc5::modes::ProofFormat>(pf))
+          .c_str()));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
