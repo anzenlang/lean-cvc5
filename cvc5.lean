@@ -3124,6 +3124,38 @@ For details on how pools are used to specify instructions for quantifier instant
 extern_def declarePool :
   (solver : Solver) → (symbol : String) → (sort : cvc5.Sort) → (initValue : Array Term) → Env Term
 
+/-- Declare an oracle function with reference to an implementation.
+
+Oracle functions have a different semantics with respect to ordinary declared functions. In
+particular, for an input to be satisfiable, its oracle functions are implicitly universally
+quantified.
+
+This function is used in part for implementing this command:
+
+```smtlib
+(declare-oracle-fun <sym> ( <sort>* ) <sort> <sym>)
+```
+
+In particular, the above command is implemented by constructing a function over terms that wraps a
+call to binary sym via a text interface.
+
+**Warning**: this function is experimental and may change in future versions.
+
+- `symbol`: The name of the oracle.
+- `sorts`: The sorts of the parameters to this function.
+- `sort`: The sort of the return value of this function.
+- `fn`: The function that implements the oracle function.
+
+# TODO
+
+Causes the tests to crash in a very weird way, see `cvc5Test/Unit/ApiSolverOracleFun.lean`.
+-/
+extern_def declareOracleFun :
+  (solver : Solver) → (symbol : String)
+  → (sorts : Array cvc5.Sort) → (sort : cvc5.Sort)
+  → (fn : Array Term → Env Term)
+  → Env Term
+
 /-- Pop (a) level(s) from the assertion stack.
 
 ```smtlib

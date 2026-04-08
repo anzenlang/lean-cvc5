@@ -3987,6 +3987,52 @@ LEAN_EXPORT lean_obj_res solver_declarePool(lean_obj_arg solver,
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
+LEAN_EXPORT lean_obj_res solver_declareOracleFun(lean_obj_arg solver,
+                                                 lean_obj_arg symbol,
+                                                 lean_obj_arg sorts,
+                                                 lean_obj_arg sort,
+                                                 lean_obj_arg fn)
+{
+  CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
+  std::vector<Sort> sortVec;
+  for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
+  {
+    sortVec.push_back(*sort_unbox(
+        lean_array_fget(sorts, lean_usize_to_nat(i))));
+  }
+  std::function<Term(const std::vector<Term>&)> fun =
+      [fn](const std::vector<Term>& termVec) {
+        lean_object* terms = lean_mk_empty_array();
+        for (const Term& elem : termVec)
+        {
+          terms = lean_array_push(terms, term_box(new Term(elem)));
+        }
+        // increment `fn`'s ref count as `lean_apply_2` decrements it
+        lean_inc(fn);
+        lean_object* except = lean_apply_2(fn, terms, lean_box(0));
+        if (lean_obj_tag(except) == 1)
+        {
+          lean_object* term = lean_ctor_get(except, 0);
+          Term t = *term_unbox(term);
+          lean_dec_ref(except);
+          return t;
+        }
+        else if (lean_obj_tag(except) == 0)
+        {
+          lean_object* error = lean_ctor_get(except, 0);
+          lean_inc(error);
+          lean_dec_ref(except);
+          throw error;
+        } else {
+          throw std::string("unexpected lean-obj-tag in 'Solver.declareOracleFun'");
+        }
+      };
+  Term t = solver_unbox(solver)->declareOracleFun(
+      lean_string_cstr(symbol), sortVec, *sort_unbox(sort), fun);
+  return env_val(term_box(new Term(t)));
+  CVC5_LEAN_API_TRY_CATCH_ENV_END;
+}
+
 LEAN_EXPORT lean_obj_res solver_pop(lean_obj_arg solver, uint32_t nscopes)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
