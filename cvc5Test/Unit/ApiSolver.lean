@@ -1901,10 +1901,10 @@ test![TestApiBlackSolver, declareOracleFunError] tm solver => do
   solver.declareOracleFun "f" #[int] int (fun _input => tm.mkInteger 0) |> assertError
     "cannot call declareOracleFun unless oracles is enabled (use --oracles)"
   solver.setOption "oracles" "true"
-  -- let nullSort := Sort.null ()
+  let nullSort := Sort.null ()
   -- -- bad sort
-  -- solver.declareOracleFun "f" #[nullSort] int (fun _input => tm.mkInteger 0) |> assertError
-  --   "invalid null domain sort in 'sorts' at index 0"
+  solver.declareOracleFun "f" #[nullSort] int (fun _input => tm.mkInteger 0) |> assertError
+    "invalid null domain sort in 'sorts' at index 0"
 
 test![TestApiBlackSolver, declareOracleFunUnsat] tm solver => do
   solver.setOption "oracles" "true"
