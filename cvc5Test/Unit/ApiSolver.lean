@@ -885,7 +885,7 @@ test![TestApiBlackSolver, declarePool] tm solver => do
   let p ← solver.declarePool "p" int #[zero, x, y]
   -- pool should have the same sort
   assertTrue ((← p.getSort) == setSort)
-  solver.declarePool "i" (Sort.null ()) #[] |> assertError "invalid null argument for 'sort'"
+  -- solver.declarePool "i" (Sort.null ()) #[] |> assertError "invalid null argument for 'sort'"
 
   let tm' ← TermManager.new
   let solver' ← Solver.new tm'
@@ -1510,15 +1510,13 @@ test![TestApiBlackSolver, resetAssertions] tm solver => do
 test![TestApiBlackSolver, declareSygusVar] tm solver => do
   solver.setOption "sygus" "true"
   let funSort ← tm.mkFunctionSort #[int] bool
-  let nullSort := cvc5.Sort.null ()
+  -- let nullSort := cvc5.Sort.null ()
 
   solver.declareSygusVar "" bool |> assertOkDiscard
   solver.declareSygusVar "" funSort |> assertOkDiscard
   solver.declareSygusVar "b" bool |> assertOkDiscard
-  solver.declareSygusVar "" nullSort |> assertError
-    "invalid null argument for 'sort'"
-  solver.declareSygusVar "a" nullSort |> assertError
-    "invalid null argument for 'sort'"
+  -- solver.declareSygusVar "" nullSort |> assertError "invalid null argument for 'sort'"
+  -- solver.declareSygusVar "a" nullSort |> assertError "invalid null argument for 'sort'"
 
   (← Solver.new tm).declareSygusVar "" bool |> assertError
     "cannot call declareSygusVar unless sygus is enabled (use --sygus)"
@@ -1582,8 +1580,7 @@ test![TestApiBlackSolver, synthFun] tm solver => do
 
   solver.synthFun "f3" #[nullTerm] bool |> assertError
     "invalid null term in 'boundVars' at index 0"
-  solver.synthFun "f4" #[term] (Sort.null ()) |> assertError
-    "invalid null argument for 'sort'"
+  -- solver.synthFun "f4" #[term] (Sort.null ()) |> assertError "invalid null argument for 'sort'"
   solver.synthFun "f6" #[term] bool g2 |> assertError
     "invalid Start symbol for grammar, expected Start's sort to be Bool but found Int"
 
@@ -1900,10 +1897,10 @@ test![TestApiBlackSolver, declareOracleFunError] tm solver => do
   solver.declareOracleFun "f" #[int] int (fun _input => tm.mkInteger 0) |> assertError
     "cannot call declareOracleFun unless oracles is enabled (use --oracles)"
   solver.setOption "oracles" "true"
-  let nullSort := Sort.null ()
+  -- let nullSort := Sort.null ()
   -- -- bad sort
-  solver.declareOracleFun "f" #[nullSort] int (fun _input => tm.mkInteger 0) |> assertError
-    "invalid null domain sort in 'sorts' at index 0"
+  -- solver.declareOracleFun "f" #[nullSort] int (fun _input => tm.mkInteger 0) |> assertError
+  --   "invalid null domain sort in 'sorts' at index 0"
 
 test![TestApiBlackSolver, declareOracleFunUnsat] tm solver => do
   solver.setOption "oracles" "true"

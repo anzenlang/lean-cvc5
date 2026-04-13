@@ -245,14 +245,60 @@ instance SynthResult.instNonemptySynthResult : Nonempty SynthResult := SynthResu
 
 private opaque SortImpl : NonemptyType.{0}
 
+private def SortRaw : Type := SortImpl.type
+
+namespace SortRaw
+
+private instance : Nonempty SortRaw := SortImpl.property
+
+/-- Comparison for structural equality. -/
+private protected extern_def beq : SortRaw → SortRaw → Bool
+
+private instance : BEq SortRaw := ⟨SortRaw.beq⟩
+
+/-- String representation. -/
+private protected extern_def toString : SortRaw → String
+
+/-- Null sort constructor. -/
+private extern_def getNull : Unit → SortRaw
+
+/-- Null sort. -/
+private def null : SortRaw := getNull ()
+
+/-- Internal default value.
+
+The underlying C++ function just crashes, because this function should never be called. It is only
+used to provide a `Nonempty cvc5.Sort` instance.
+-/
+private extern_def getFakeDefault : Unit → SortRaw
+
+/-- Helper axiom for the `Nonempty cvc5.Sort` instance. -/
+private axiom getFakeDefault_ne_null : getFakeDefault () != null
+
+end SortRaw
+
 end cvc5
 
 /-- The sort of a cvc5 term. -/
-def cvc5.Sort : Type := cvc5.SortImpl.type
+structure cvc5.Sort where private mk ::
+  /-- Raw sort: actual C++ `Sort` value. -/
+  private raw : SortRaw
+  /-- Proof that `raw` is not null. -/
+  private valid : raw != SortRaw.null
+
+namespace cvc5.Sort
+
+private def fakeDefault : cvc5.Sort where
+  raw := SortRaw.getFakeDefault ()
+  valid := SortRaw.getFakeDefault_ne_null
+
+instance : Nonempty cvc5.Sort := .intro fakeDefault
+
+private instance : Inhabited cvc5.Sort := ⟨fakeDefault⟩
+
+end cvc5.Sort
 
 namespace cvc5
-
-instance Sort.instNonemptySort : Nonempty cvc5.Sort := SortImpl.property
 
 private opaque OpImpl : NonemptyType.{0}
 
@@ -706,6 +752,10 @@ private def mkExceptErrOfString {α : Type} : String → Except Error α := .err
 
 end ffi_except_constructors
 
+end cvc5
+
+namespace cvc5
+
 namespace DatatypeConstructorDecl
 
 /-- The null datatype constructor declaration. -/
@@ -1048,10 +1098,17 @@ end cvc5
 
 namespace cvc5.Sort
 
-/-- The null sort. -/
-extern_def null : Unit → cvc5.Sort
+@[export sort_of_sortRaw]
+private def ofSortRaw (raw : SortRaw) : Except Error cvc5.Sort :=
+  if valid : raw != SortRaw.null then .ok ⟨raw, valid⟩
+  else Error.error s!"unexpected null sort `{raw.toString}`" |> throw
 
-instance : Inhabited cvc5.Sort := ⟨null ()⟩
+@[export sort_try_of_sortRaw]
+private def ofSortRaw? (raw : SortRaw) : Option cvc5.Sort :=
+  if valid : raw != SortRaw.null then some ⟨raw, valid⟩ else none
+
+@[export sort_to_sortRaw]
+private def toRaw (sort : cvc5.Sort) : SortRaw := sort.raw
 
 /-- Comparison for structural equality. -/
 protected extern_def beq : cvc5.Sort → cvc5.Sort → Bool
@@ -1096,10 +1153,7 @@ protected extern_def hash : cvc5.Sort → UInt64
 instance : Hashable cvc5.Sort := ⟨Sort.hash⟩
 
 /-- Get the kind of this sort. -/
-extern_def!? getKind : cvc5.Sort → Except Error SortKind
-
-/-- Determine if this is the null sort (`cvc5.Sort`). -/
-extern_def isNull : cvc5.Sort → Bool
+extern_def getKind : cvc5.Sort → SortKind
 
 /-- Determine if this is the Boolean sort (SMT-LIB: `Bool`). -/
 extern_def isBoolean : cvc5.Sort → Bool
@@ -1199,7 +1253,7 @@ arguments --- see also `cvc5.Sort.instantiate`.
 extern_def isInstantiated : cvc5.Sort → Bool
 
 /-- A string representation of this sort. -/
-protected extern_def toString : cvc5.Sort → String
+protected def toString (s : cvc5.Sort) : String := s.raw.toString
 
 instance : ToString cvc5.Sort := ⟨Sort.toString⟩
 instance : Repr cvc5.Sort := ⟨fun self _ => self.toString⟩
@@ -1208,11 +1262,11 @@ instance : Repr cvc5.Sort := ⟨fun self _ => self.toString⟩
 
 For example, free constants and variables have symbols.
 -/
-extern_def!? hasSymbol : cvc5.Sort → Except Error Bool
+extern_def hasSymbol : cvc5.Sort → Bool
 
 /-- Get the symbol of this sort.
 
-The symbol of this sort is the string that was provided when consrtucting it *via* one of
+The symbol of this sort is the string that was provided when constructing it *via* one of
 `Solver.mkUninterpretedSort`, `Solver.mkUnresolvedSort`, or
 `Solver.mkUninterpretedSortConstructorSort`.
 -/

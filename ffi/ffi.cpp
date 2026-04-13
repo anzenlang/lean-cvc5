@@ -79,6 +79,26 @@ lean_obj_res except_err_of_string(lean_obj_arg msg)
   return generic_except_err_of_string(lean_box(0), msg);
 }
 
+// Unwraps the value of an `Except Error` if it's `.ok`, throws the `Error` otherwise.
+lean_obj_res unwrap_except(lean_obj_arg except) {
+  if (lean_obj_tag(except) == 1) {
+    // `.ok`
+    lean_obj_arg value = lean_ctor_get(except, 0);
+    lean_inc(value);
+    lean_dec_ref(except);
+    return value;
+  } else if (lean_obj_tag(except) == 0) {
+    // `.error`
+    lean_obj_arg error = lean_ctor_get(except, 0);
+    lean_inc(error);
+    lean_dec_ref(except);
+    throw error;
+  } else {
+    // unexpected `lean_obj_tag` value
+    throw std::string("fatal: unexpected `lean_obj_tag` value");
+  }
+}
+
 // # Exception-catching macro for `Except`
 //
 // Runs `code`, `return`s an `Except Error α` error on exceptions.
@@ -413,44 +433,69 @@ LEAN_EXPORT lean_obj_res synthResult_toString(lean_obj_arg r)
   return lean_mk_string(synthResult_unbox(r)->toString().c_str());
 }
 
-static void sort_finalize(void* obj) { delete static_cast<Sort*>(obj); }
+static void sortRaw_finalize(void* obj) { delete static_cast<Sort*>(obj); }
 
-static void sort_foreach(void*, b_lean_obj_arg)
+static void sortRaw_foreach(void*, b_lean_obj_arg)
 {
   // do nothing since `Sort` does not contain nested Lean objects
 }
 
-static lean_external_class* g_sort_class = nullptr;
+static lean_external_class* g_sortRaw_class = nullptr;
 
-static inline lean_obj_res sort_box(Sort* s)
+static inline lean_obj_res sortRaw_box(Sort* s)
 {
-  if (g_sort_class == nullptr)
+  if (g_sortRaw_class == nullptr)
   {
-    g_sort_class = lean_register_external_class(sort_finalize, sort_foreach);
+    g_sortRaw_class = lean_register_external_class(sortRaw_finalize, sortRaw_foreach);
   }
-  return lean_alloc_external(g_sort_class, s);
+  return lean_alloc_external(g_sortRaw_class, s);
 }
 
-static inline const Sort* sort_unbox(b_lean_obj_arg s)
+static inline const Sort* sortRaw_unbox(b_lean_obj_arg s)
 {
   return static_cast<Sort*>(lean_get_external_data(s));
 }
 
-LEAN_EXPORT lean_obj_res sort_null(lean_obj_arg unit)
+LEAN_EXPORT lean_obj_res sortRaw_getNull(lean_obj_arg unit)
 {
-  return sort_box(new Sort());
+  return sortRaw_box(new Sort());
 }
 
-LEAN_EXPORT uint8_t sort_isNull(lean_obj_arg sort)
+LEAN_EXPORT uint8_t sortRaw_beq(lean_obj_arg l, lean_obj_arg r)
 {
-  return bool_box(sort_unbox(sort)->isNull());
+  return bool_box(*sortRaw_unbox(l) == *sortRaw_unbox(r));
 }
 
-LEAN_EXPORT lean_obj_res sort_getKind(lean_obj_arg s)
+LEAN_EXPORT lean_obj_res sortRaw_toString(lean_obj_arg s)
 {
-  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
-  return except_ok_i32(static_cast<int32_t>(sort_unbox(s)->getKind()) + 2);
-  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+  return lean_mk_string(sortRaw_unbox(s)->toString().c_str());
+}
+
+LEAN_EXPORT lean_obj_res sortRaw_getFakeDefault(lean_obj_arg unit)
+{
+  TermManager *tm = new TermManager();
+  return sortRaw_box(new Sort(tm->getBooleanSort()));
+}
+
+lean_obj_res sort_of_sortRaw(lean_obj_arg raw);
+
+lean_obj_res sort_try_of_sortRaw(lean_obj_arg raw);
+
+lean_obj_res sort_to_sortRaw(lean_obj_arg srt);
+
+static inline lean_obj_res sort_box(Sort* s) {
+  lean_obj_res except = sort_of_sortRaw(sortRaw_box(s));
+  return unwrap_except(except);
+}
+
+static inline const Sort* sort_unbox(b_lean_obj_arg srt) {
+  return sortRaw_unbox(sort_to_sortRaw(srt));
+}
+
+LEAN_EXPORT int32_t sort_getKind(lean_obj_arg s)
+{
+  // fails on null value, which `sort_unbox(s)` cannot be
+  return static_cast<int32_t>(sort_unbox(s)->getKind()) + 2;
 }
 
 LEAN_EXPORT uint8_t sort_isBoolean(lean_obj_arg sort)
@@ -689,11 +734,10 @@ LEAN_EXPORT lean_obj_res sort_getAbstractedKind(lean_obj_arg s)
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
-LEAN_EXPORT lean_obj_res sort_hasSymbol(lean_obj_arg s)
+LEAN_EXPORT uint8_t sort_hasSymbol(lean_obj_arg s)
 {
-  CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
-  return except_ok_u8(bool_box(sort_unbox(s)->hasSymbol()));
-  CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
+  // fails on null value, which `sort_unbox(s)` cannot be
+  return bool_box(sort_unbox(s)->hasSymbol());
 }
 
 LEAN_EXPORT lean_obj_res sort_getSymbol(lean_obj_arg s)
@@ -798,7 +842,7 @@ LEAN_EXPORT lean_obj_arg sort_instantiate(lean_obj_arg s, lean_obj_arg params)
   for (size_t i = 0, n = lean_array_size(params); i < n; ++i)
   {
     cvc5Sorts.push_back(*sort_unbox(
-        lean_array_get(sort_box(new Sort()), params, lean_usize_to_nat(i))));
+        lean_array_fget(params, lean_usize_to_nat(i))));
   }
   return except_ok(sort_box(new Sort(sort_unbox(s)->instantiate(cvc5Sorts))));
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
@@ -813,13 +857,13 @@ LEAN_EXPORT lean_obj_arg sort_substitute(lean_obj_arg s,
   for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
   {
     cvc5Sorts.push_back(*sort_unbox(
-        lean_array_get(sort_box(new Sort()), sorts, lean_usize_to_nat(i))));
+        lean_array_fget(sorts, lean_usize_to_nat(i))));
   }
   std::vector<Sort> cvc5Replacements;
   for (size_t i = 0, n = lean_array_size(replacements); i < n; ++i)
   {
-    cvc5Replacements.push_back(*sort_unbox(lean_array_get(
-        sort_box(new Sort()), replacements, lean_usize_to_nat(i))));
+    cvc5Replacements.push_back(*sort_unbox(lean_array_fget(
+        replacements, lean_usize_to_nat(i))));
   }
   return except_ok(sort_box(
       new Sort(sort_unbox(s)->substitute(cvc5Sorts, cvc5Replacements))));
@@ -893,11 +937,6 @@ LEAN_EXPORT lean_obj_res sort_getDatatypeArity(lean_obj_arg s)
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_BEGIN;
   return except_ok(lean_usize_to_nat(sort_unbox(s)->getDatatypeArity()));
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
-}
-
-LEAN_EXPORT lean_obj_res sort_toString(lean_obj_arg s)
-{
-  return lean_mk_string(sort_unbox(s)->toString().c_str());
 }
 
 static void op_finalize(void* obj) { delete static_cast<Op*>(obj); }
@@ -2142,7 +2181,7 @@ LEAN_EXPORT lean_obj_res termManager_mkFunctionSort(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
   {
     cvc5Sorts.push_back(*sort_unbox(
-        lean_array_get(sort_box(new Sort()), sorts, lean_usize_to_nat(i))));
+        lean_array_fget(sorts, lean_usize_to_nat(i))));
   }
   return env_val(sort_box(new Sort(
       mut_tm_unbox(tm)->mkFunctionSort(cvc5Sorts, *sort_unbox(codomain)))));
@@ -2182,7 +2221,7 @@ LEAN_EXPORT lean_obj_res termManager_mkPredicateSort(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
   {
     cvc5Sorts.push_back(*sort_unbox(
-        lean_array_get(sort_box(new Sort()), sorts, lean_usize_to_nat(i))));
+        lean_array_fget(sorts, lean_usize_to_nat(i))));
   }
   return env_val(
       sort_box(new Sort(mut_tm_unbox(tm)->mkPredicateSort(cvc5Sorts))));
@@ -2197,7 +2236,7 @@ LEAN_EXPORT lean_obj_res termManager_mkTupleSort(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
   {
     cvc5Sorts.push_back(*sort_unbox(
-        lean_array_get(sort_box(new Sort()), sorts, lean_usize_to_nat(i))));
+        lean_array_fget(sorts, lean_usize_to_nat(i))));
   }
   return env_val(sort_box(new Sort(mut_tm_unbox(tm)->mkTupleSort(cvc5Sorts))));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
@@ -2211,8 +2250,7 @@ LEAN_EXPORT lean_obj_res termManager_mkRecordSort(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(fields); i < n; ++i)
   {
     lean_object* prod =
-        lean_array_get(prod_mk(lean_mk_string(""), sort_box(new Sort())),
-                       fields,
+        lean_array_fget(fields,
                        lean_usize_to_nat(i));
     fieldsVec.push_back(std::make_pair(lean_string_cstr(prod_fst(prod)),
                                        *sort_unbox(prod_snd(prod))));
@@ -2725,7 +2763,7 @@ LEAN_EXPORT lean_obj_res termManager_mkDatatypeDecl(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
   {
     ss.push_back(*sort_unbox(
-        lean_array_get(sort_box(new Sort()), sorts, lean_usize_to_nat(i))));
+        lean_array_fget(sorts, lean_usize_to_nat(i))));
   }
   return env_val(
       datatypeDecl_box(new DatatypeDecl(mut_tm_unbox(tm)->mkDatatypeDecl(
@@ -3537,7 +3575,7 @@ LEAN_EXPORT lean_obj_res solver_declareFun(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(sorts); i < n; ++i)
   {
     ss.push_back(*sort_unbox(
-        lean_array_get(sort_box(new Sort()), sorts, lean_usize_to_nat(i))));
+        lean_array_fget(sorts, lean_usize_to_nat(i))));
   }
   Term f = solver_unbox(solver)->declareFun(
       lean_string_cstr(symbol), ss, *sort_unbox(sort), bool_unbox(fresh));

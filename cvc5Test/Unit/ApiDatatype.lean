@@ -267,8 +267,8 @@ test![TestApiBlackDatatype, mkDatatypeSortsSelUnres] tm => do
   let mut consSpec ← tm.mkDatatypeConstructorDecl "cons"
   consSpec ← consSpec.addSelector "head" int
   consSpec ← consSpec.addSelectorSelf "tail"
-  let nullSort := cvc5.Sort.null ()
-  consSpec.addSelector "null" nullSort |> assertError "invalid null argument for 'sort'"
+  -- let nullSort := cvc5.Sort.null ()
+  -- consSpec.addSelector "null" nullSort |> assertError "invalid null argument for 'sort'"
   dtSpec ← dtSpec.addConstructor consSpec
   let nilSpec ← tm.mkDatatypeConstructorDecl "nil"
   dtSpec ← dtSpec.addConstructor nilSpec
