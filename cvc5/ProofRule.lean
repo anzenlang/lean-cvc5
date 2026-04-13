@@ -5,6 +5,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed, Adrien Champion
 -/
 
+module
+
 namespace cvc5
 
 /--
@@ -56,7 +58,7 @@ rules. These exist for convenience and can be replaced by their definition
 in post-processing.
 \endverbatim
 -/
-inductive ProofRule where
+public inductive ProofRule where
   /--
   \verbatim embed:rst:leading-asterisk
   **Assumption (a leaf)**
@@ -2479,7 +2481,7 @@ and the :cpp:enumerator:`THEORY_REWRITE <cvc5::ProofRule::THEORY_REWRITE>`
 proof rule.
 \endverbatim
 -/
-inductive ProofRewriteRule where
+public inductive ProofRewriteRule where
   | NONE
   /--
   \verbatim embed:rst:leading-asterisk

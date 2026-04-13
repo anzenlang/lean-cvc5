@@ -5,12 +5,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed, Adrien Champion
 -/
 
+module
+
 namespace cvc5
 
 /--
 The different reasons for returning an "unknown" result.
 -/
-inductive UnknownExplanation where
+public inductive UnknownExplanation where
   /--
   Full satisfiability check required (e.g., if only preprocessing was
   performed).
@@ -68,7 +70,7 @@ The rounding modes are specified in Sections 4.3.1 and 4.3.2 of the IEEE
 Standard 754.
 \endverbatim
 -/
-inductive RoundingMode where
+public inductive RoundingMode where
   /--
   Round to the nearest even number.
   
@@ -114,7 +116,7 @@ Mode for blocking models.
 Specifies how models are blocked in Solver::blockModel and
 Solver::blockModelValues.
 -/
-inductive BlockModelsMode where
+public inductive BlockModelsMode where
   /--
   Block models based on the SAT skeleton. 
   -/
@@ -134,7 +136,7 @@ Solver::getLearnedLiterals.
 Note that a literal may conceptually belong to multiple categories. We
 classify literals based on the first criteria in this list that they meet.
 -/
-inductive LearnedLitType where
+public inductive LearnedLitType where
   /--
   An equality that was turned into a substitution during preprocessing.
   
@@ -187,7 +189,7 @@ deriving Inhabited, Repr, BEq, DecidableEq
 /--
 Components to include in a proof.
 -/
-inductive ProofComponent where
+public inductive ProofComponent where
   /--
   Proofs of G1 ... Gn whose free assumptions are a subset of
   F1, ... Fm, where:
@@ -243,7 +245,7 @@ deriving Inhabited, Repr, BEq, DecidableEq
 /--
 Proof format used for proof printing.
 -/
-inductive ProofFormat where
+public inductive ProofFormat where
   /--
   Do not translate proof output. 
   -/
@@ -274,7 +276,7 @@ deriving Inhabited, Repr, BEq, DecidableEq
 Find synthesis targets, used as an argument to Solver::findSynth. These
 specify various kinds of terms that can be found by this method.
 -/
-inductive FindSynthTarget where
+public inductive FindSynthTarget where
   /--
   Find the next term in the enumeration of the target grammar.
   -/
@@ -324,7 +326,7 @@ deriving Inhabited, Repr, BEq, DecidableEq
 Option category enumeration.
 Specifies the category of an option for user interface purposes.
 -/
-inductive OptionCategory where
+public inductive OptionCategory where
   /--
   Option available to regular users 
   -/
@@ -346,7 +348,7 @@ deriving Inhabited, Repr, BEq, DecidableEq
 /--
 The different reasons for returning an "unknown" result.
 -/
-inductive InputLanguage where
+public inductive InputLanguage where
   /--
   The SMT-LIB version 2.6 language 
   -/

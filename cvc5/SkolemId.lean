@@ -5,6 +5,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed, Adrien Champion
 -/
 
+module
+
 namespace cvc5
 
 /--
@@ -39,7 +41,7 @@ are empty and the skolem has a functional type ``(-> Real Real)``.
 \internal
 
 -/
-inductive SkolemId where
+public inductive SkolemId where
   /--
   The identifier of the skolem is not exported. These skolems should not
   appear in any user-level API calls.

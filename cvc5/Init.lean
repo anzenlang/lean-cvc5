@@ -5,7 +5,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed, Adrien Champion
 -/
 
-import Lean.Elab.Command
+module
+
+public meta import Lean.Elab.Command
 
 namespace cvc5
 
@@ -31,7 +33,7 @@ Stolen from [batteries].
 
 [batteries]: https://leanprover-community.github.io/mathlib4_docs/Batteries/Lean/Expr.html#Lean.Expr.forallArity
 -/
-def forallArity : Expr → Nat
+meta def forallArity : Expr → Nat
   | .mdata _ b => forallArity b
   | .forallE _ _ body _ => 1 + forallArity body
   | _ => 0
@@ -290,7 +292,7 @@ scoped syntax (name := multidefs)
 : command
 
 @[inherit_doc multidefs, command_elab multidefs]
-unsafe def multidefsImpl : CommandElab
+public meta unsafe def multidefsImpl : CommandElab
 | `(command|
   external! $[in $pref:str]? $[$defsItems]*
 ) => do
@@ -354,7 +356,7 @@ scoped syntax (name := externdef)
 : command
 
 @[inherit_doc externdef, command_elab externdef]
-unsafe def externdefImpl : CommandElab
+public meta unsafe def externdefImpl : CommandElab
 | `(command|
   $mods:declModifiers
   $externKw $[in $path:str]? $ident $sig $[$tail]?
