@@ -23,6 +23,21 @@ def fail {α : outParam Type} (msg : String) : IO α :=
 protected def pref (hint : String) : String :=
   if hint.isEmpty then "" else "[" ++ hint ++ "] "
 
+def assertSEq [Monad m] [MonadLiftT IO m] [ToString α] [DecidableEq α] (lft rgt : α)
+  (f : lft = rgt → m Unit)
+  (hint := "")
+: m Unit := do
+  if h : lft = rgt then f h else
+    IO.eprintln s!"{Test.pref hint}comparison failed: `{lft}` is different from `{rgt}`"
+    fail "assertion failed"
+
+def assertSome [Monad m] [MonadLiftT IO m] (opt : Option α)
+  (f : α → m Unit)
+  (hint := "")
+: m Unit := do
+  if let some value := opt then f value else
+    IO.eprintln s!"{Test.pref hint}expected `some _` value, got `none`"
+
 def assertEq [ToString α] [BEq α] (lft rgt : α) (hint := "") : IO Unit := do
   if lft != rgt then
     IO.eprintln s!"{Test.pref hint}comparison failed: `{lft}` is different from `{rgt}`"

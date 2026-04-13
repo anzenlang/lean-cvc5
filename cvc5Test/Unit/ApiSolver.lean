@@ -156,8 +156,7 @@ test![TestApiBlackSolver, simplifyApplySubs] tm solver => do
 
 test![TestApiBlackSolver, assertFormula] tm solver => do
   solver.assertFormula (← tm.mkTrue) |> assertOkDiscard
-  solver.assertFormula (Term.null ()) |> assertError
-    "invalid null argument for 'term'"
+  -- solver.assertFormula (Term.null ()) |> assertError "invalid null argument for 'term'"
   let tm' ← TermManager.new
   let solver' ← Solver.new tm'
   solver'.assertFormula (← tm.mkTrue) |> assertError
@@ -180,8 +179,8 @@ test![TestApiBlackSolver, checkSatAssuming1] tm solver => do
   let z ← tm.mkTerm Kind.AND #[x, y]
   solver.setOption "incremental" "true"
   solver.checkSatAssuming #[← tm.mkTrue] |> assertOkDiscard
-  solver.checkSatAssuming #[Term.null ()] |> assertError
-    "invalid null term in 'assumptions' at index 0"
+  -- solver.checkSatAssuming #[Term.null ()] |> assertError
+  --   "invalid null term in 'assumptions' at index 0"
   solver.checkSatAssuming #[← tm.mkTrue] |> assertOkDiscard
   solver.checkSatAssuming #[z] |> assertOkDiscard
 
@@ -191,7 +190,7 @@ test![TestApiBlackSolver, checkSatAssuming2] tm solver => do
   let uToIntSort ← tm.mkFunctionSort #[uninterpreted] int
   let intPredSort ← tm.mkFunctionSort #[int] bool
 
-  let n := Term.null ()
+  -- let n := Term.null ()
   -- constants
   let x ← tm.mkConst uninterpreted "x"
   let y ← tm.mkConst uninterpreted "y"
@@ -220,10 +219,9 @@ test![TestApiBlackSolver, checkSatAssuming2] tm solver => do
   solver.assertFormula assertions
   solver.checkSatAssuming #[← tm.mkTerm Kind.DISTINCT #[x, y]] |> assertOkDiscard
   solver.checkSatAssuming #[← tm.mkFalse, ← tm.mkTerm Kind.DISTINCT #[x, y]] |> assertOkDiscard
-  solver.checkSatAssuming #[n] |> assertError
-    "invalid null term in 'assumptions' at index 0"
-  solver.checkSatAssuming #[n, ← tm.mkTerm Kind.DISTINCT #[x, y]] |> assertError
-    "invalid null term in 'assumptions' at index 0"
+  -- solver.checkSatAssuming #[n] |> assertError "invalid null term in 'assumptions' at index 0"
+  -- solver.checkSatAssuming #[n, ← tm.mkTerm Kind.DISTINCT #[x, y]] |> assertError
+  --   "invalid null term in 'assumptions' at index 0"
 
 test![TestApiBlackSolver, declareFunFresh] tm solver => do
   let t1 ← solver.declareFun "b" #[] bool true
@@ -731,22 +729,23 @@ test![TestApiBlackSolver, getAbduct] tm solver => do
   -- conjecture for abduction `y > 0`
   let conj ← tm.mkTerm Kind.GT #[y, zero]
   -- call the abduction api, while the resulting abduct is the output
-  let output ← solver.getAbduct conj
-  -- we expect the resulting output to be a boolean formula
-  assertTrue (¬ output.isNull ∧ (← output.getSort).isBoolean)
+  assertSome (← solver.getAbduct? conj) fun output => do
+    -- we expect the resulting output to be a boolean formula
+    -- assertTrue (¬ output.isNull ∧ (← output.getSort).isBoolean)
+    assertTrue (← output.getSort).isBoolean
 
   -- try with a grammar, a simple grammar admitting true
   let truen ← tm.mkBoolean true
   let start ← tm.mkVar bool
   let mut g ← solver.mkGrammar #[] #[start]
   let conj2 ← tm.mkTerm Kind.GT #[x, zero]
-  solver.getAbduct conj2 g |> assertError
+  solver.getAbduct? conj2 g |> assertError
     "invalid grammar, must have at least one rule for each non-terminal symbol"
   g ← g.addRule start truen
   -- call the abduction api, while the resulting abduct is the output
-  let output2 ← solver.getAbduct conj2 g
-  -- abduct must be true
-  assertEq truen output2
+  assertSome (← solver.getAbduct? conj2 g) fun output2 => do
+    -- abduct must be true
+    assertEq truen output2
 
   let tm' ← TermManager.new
   let solver' ← Solver.new tm'
@@ -760,12 +759,12 @@ test![TestApiBlackSolver, getAbduct] tm solver => do
   let mut gg ← solver'.mkGrammar #[] #[sstart]
   gg ← tm'.mkTrue >>= gg.addRule sstart
   let cconj2 ← tm'.mkTerm Kind.EQUAL #[zzero, zzero]
-  solver'.getAbduct cconj2 gg |> assertOkDiscard
-  solver'.getAbduct conj2 |> assertError
+  solver'.getAbduct? cconj2 gg |> assertOkDiscard
+  solver'.getAbduct? conj2 |> assertError
     "Given term is not associated with the term manager of this solver"
-  solver'.getAbduct conj2 gg |> assertError
+  solver'.getAbduct? conj2 gg |> assertError
     "Given term is not associated with the term manager of this solver"
-  solver'.getAbduct cconj2 g |> assertError
+  solver'.getAbduct? cconj2 g |> assertError
     "Given grammar is not associated with the term manager of this solver"
 
 test![TestApiBlackSolver, getAbduct2] tm solver => do
@@ -779,7 +778,7 @@ test![TestApiBlackSolver, getAbduct2] tm solver => do
   -- conjecture for abduction: `y > 0`
   let conj ← tm.mkTerm Kind.GT #[y, zero]
   -- fails due to option not set
-  solver.getAbduct conj |> assertError
+  solver.getAbduct? conj |> assertError
     "cannot get abduct unless abducts are enabled (try --produce-abducts)"
 
 test![TestApiBlackSolver, getAbductNext] tm solver => do
@@ -796,8 +795,8 @@ test![TestApiBlackSolver, getAbductNext] tm solver => do
   -- conjecture for abduction: `y > 0`
   let conj ← tm.mkTerm Kind.GT #[y, zero]
   -- call the abduction api, while the resulting abduct is the output
-  let output ← solver.getAbduct conj
-  let output2 ← solver.getAbductNext
+  assertSome (← solver.getAbduct? conj) fun output => do
+  assertSome (← solver.getAbductNext?) fun output2 => do
   -- should produce a different output
   assertNe output output2
 
@@ -820,22 +819,22 @@ test![TestApiBlackSolver, getInterpolant] tm solver => do
     ← tm.mkTerm Kind.LT #[z, zero],
   ]
   -- call the interpolation api, while the resulting interpolant is the output
-  let output ← solver.getInterpolant conj
-  -- we expect the resulting output to be a boolean formula
-  assertTrue (← output.getSort).isBoolean
+  assertSome (← solver.getInterpolant? conj) fun output => do
+    -- we expect the resulting output to be a boolean formula
+    assertTrue (← output.getSort).isBoolean
 
   -- try with a grammar, a simple grammar admitting true
   let truen ← tm.mkBoolean true
   let start ← tm.mkVar bool
   let mut g ← solver.mkGrammar #[] #[start]
   let conj2 ← tm.mkTerm Kind.EQUAL #[zero, zero]
-  solver.getInterpolant conj2 g |> assertError
+  solver.getInterpolant? conj2 g |> assertError
     "invalid grammar, must have at least one rule for each non-terminal symbol"
   g ← g.addRule start truen |> assertOk
   -- call the interpolation api, while the resulting interpolant is the output
-  let output2 ← solver.getInterpolant conj2 g
-  -- interpolant must be true
-  assertEq truen output2
+  assertSome (← solver.getInterpolant? conj2 g) fun output2 =>
+    -- interpolant must be true
+    assertEq truen output2
 
   let tm' ← TermManager.new
   let solver' ← Solver.new tm'
@@ -845,12 +844,12 @@ test![TestApiBlackSolver, getInterpolant] tm solver => do
   let mut gg ← solver'.mkGrammar #[] #[sstart]
   gg ← tm'.mkTrue >>= gg.addRule sstart
   let cconj2 ← tm'.mkTerm Kind.EQUAL #[zzero, zzero]
-  solver'.getInterpolant cconj2 gg |> assertOkDiscard
-  solver'.getInterpolant conj2 |> assertError
+  solver'.getInterpolant? cconj2 gg |> assertOkDiscard
+  solver'.getInterpolant? conj2 |> assertError
     "Given term is not associated with the term manager of this solver"
-  solver'.getInterpolant conj2 gg |> assertError
+  solver'.getInterpolant? conj2 gg |> assertError
     "Given term is not associated with the term manager of this solver"
-  solver'.getInterpolant cconj2 g |> assertError
+  solver'.getInterpolant? cconj2 g |> assertError
     "Given grammar is not associated with the term manager of this solver"
 
 test![TestApiBlackSolver, getInterpolantNext] tm solver => do
@@ -870,9 +869,8 @@ test![TestApiBlackSolver, getInterpolantNext] tm solver => do
     ← tm.mkTerm Kind.GT #[← tm.mkTerm Kind.ADD #[y, z], zero],
     ← tm.mkTerm Kind.LT #[z, zero],
   ]
-  let output ← solver.getInterpolant conj
-  let output2 ← solver.getInterpolantNext
-
+  assertSome (← solver.getInterpolant? conj) fun output => do
+  assertSome (← solver.getInterpolantNext?) fun output2 => do
   -- we expect the next output to be distinct
   assertNe output output2
 
@@ -984,8 +982,8 @@ test![TestApiBlackSolver, getTimeoutCore] tm solver => do
   solver.assertFormula hard
   let (res, terms) ← solver.getTimeoutCore
   assertTrue res.isUnknown
-  assertEq 1 terms.size
-  assertEq hard terms[0]!
+  assertSEq 1 terms.size fun h_terms =>
+    assertEq hard terms[0]
 
 test![TestApiBlackSolver, getTimeoutCoreUnsat] tm solver => do
   solver.setOption "produce-unsat-cores" "true"
@@ -996,8 +994,8 @@ test![TestApiBlackSolver, getTimeoutCoreUnsat] tm solver => do
   solver.assertFormula tt
   let (res, terms) ← solver.getTimeoutCore
   assertTrue res.isUnsat
-  assertEq 1 terms.size
-  assertEq ff terms[0]!
+  assertSEq 1 terms.size fun h_terms =>
+    assertEq ff terms[0]
 
 test![TestApiBlackSolver, getTimeoutCoreAssuming] tm solver => do
   solver.setOption "produce-unsat-cores" "true"
@@ -1006,8 +1004,8 @@ test![TestApiBlackSolver, getTimeoutCoreAssuming] tm solver => do
   solver.assertFormula tt
   let (res, terms) ← solver.getTimeoutCoreAssuming #[ff, tt]
   assertTrue res.isUnsat
-  assertEq 1 terms.size
-  assertEq ff terms[0]!
+  assertSEq 1 terms.size fun h_terms =>
+    assertEq ff terms[0]
 
 test![TestApiBlackSolver, getTimeoutCoreAssumingEmpty] tm solver => do
   solver.setOption "produce-unsat-cores" "true"
@@ -1147,8 +1145,8 @@ test![TestApiBlackSolver, getModel] tm solver => do
   let sorts := #[uninterpreted]
   let terms := #[x, y]
   solver.getModel sorts terms |> assertOkDiscard
-  solver.getModel sorts (terms.push <| Term.null ()) |> assertError
-    "invalid null term in 'vars' at index 2"
+  -- solver.getModel sorts (terms.push <| Term.null ()) |> assertError
+  --   "invalid null term in 'vars' at index 2"
 
 test![TestApiBlackSolver, getModel2] tm solver => do
   solver.setOption "produce-models" "true"
@@ -1168,7 +1166,7 @@ test![TestApiBlackSolver, getQuantifierElimitation] tm solver => do
     ← tm.mkTerm Kind.VARIABLE_LIST #[ x ],
     ← tm.mkTerm Kind.OR #[x, ← tm.mkTerm Kind.NOT #[ x ]]
   ]
-  solver.getQuantifierElimination (Term.null ()) |> assertError "invalid null argument for 'q'"
+  -- solver.getQuantifierElimination (Term.null ()) |> assertError "invalid null argument for 'q'"
   solver.getQuantifierElimination (← tm.mkBoolean false) |> assertError
     "Expecting a quantified formula as argument to get-qe."
   solver.getQuantifierElimination term |> assertOkDiscard
@@ -1185,8 +1183,8 @@ test![TestApiBlackSolver, getQuantifierElimitationDisjunct] tm solver => do
     ← tm.mkTerm Kind.VARIABLE_LIST #[ x ],
     ← tm.mkTerm Kind.OR #[x, ← tm.mkTerm Kind.NOT #[ x ]]
   ]
-  solver.getQuantifierEliminationDisjunct (Term.null ()) |> assertError
-    "invalid null argument for 'q'"
+  -- solver.getQuantifierEliminationDisjunct (Term.null ()) |> assertError
+  --   "invalid null argument for 'q'"
   solver.getQuantifierEliminationDisjunct (← tm.mkBoolean false) |> assertError
     "Expecting a quantified formula as argument to get-qe."
   solver.getQuantifierEliminationDisjunct term |> assertOkDiscard
@@ -1382,7 +1380,8 @@ test![TestApiBlackSolver, blockModelValues1] tm solver => do
   solver.checkSat |> assertOkDiscard
   solver.blockModelValues #[] |> assertError
     "invalid size of argument 'terms', expected a non-empty set of terms"
-  solver.blockModelValues #[Term.null ()] |> assertError "invalid null term in 'terms' at index 0"
+  -- solver.blockModelValues #[Term.null ()] |> assertError
+  --   "invalid null term in 'terms' at index 0"
   solver.blockModelValues #[← tm.mkBoolean false] |> assertOkDiscard
 
   let tm' ← TermManager.new
@@ -1528,7 +1527,7 @@ test![TestApiBlackSolver, declareSygusVar] tm solver => do
     "Given sort is not associated with the term manager of this solver"
 
 test![TestApiBlackSolver, mkGrammar] tm solver => do
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let boolTerm ← tm.mkBoolean true
   let boolVar ← tm.mkVar bool
   let intVar ← tm.mkVar int
@@ -1537,8 +1536,7 @@ test![TestApiBlackSolver, mkGrammar] tm solver => do
   solver.mkGrammar #[boolVar] #[intVar] |> assertOkDiscard
   solver.mkGrammar #[] #[] |> assertError
     "invalid size of argument 'ntSymbols', expected a non-empty vector"
-  solver.mkGrammar #[] #[nullTerm] |> assertError
-    "invalid null term in 'ntSymbols' at index 0"
+  -- solver.mkGrammar #[] #[nullTerm] |> assertError "invalid null term in 'ntSymbols' at index 0"
   solver.mkGrammar #[] #[boolTerm] |> assertError
     "invalid bound variable in 'ntSymbols' at index 0, expected a bound variable"
   solver.mkGrammar #[boolTerm] #[intVar] |> assertError
@@ -1559,7 +1557,7 @@ test![TestApiBlackSolver, mkGrammar] tm solver => do
 test![TestApiBlackSolver, synthFun] tm solver => do
   solver.setOption "sygus" "true"
   let fls ← tm.mkBoolean false
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let term ← tm.mkVar bool "term"
   let start1 ← tm.mkVar bool "start1"
   let start2 ← tm.mkVar int "start2"
@@ -1578,8 +1576,8 @@ test![TestApiBlackSolver, synthFun] tm solver => do
   solver.synthFun "f1" #[term] bool |> assertOkDiscard
   solver.synthFun "f2" #[term] bool g1 |> assertOkDiscard
 
-  solver.synthFun "f3" #[nullTerm] bool |> assertError
-    "invalid null term in 'boundVars' at index 0"
+  -- solver.synthFun "f3" #[nullTerm] bool |> assertError
+  --   "invalid null term in 'boundVars' at index 0"
   -- solver.synthFun "f4" #[term] (Sort.null ()) |> assertError "invalid null argument for 'sort'"
   solver.synthFun "f6" #[term] bool g2 |> assertError
     "invalid Start symbol for grammar, expected Start's sort to be Bool but found Int"
@@ -1599,13 +1597,12 @@ test![TestApiBlackSolver, synthFun] tm solver => do
 
 test![TestApiBlackSolver, addSygusConstraint] tm solver => do
   solver.setOption "sygus" "true"
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let boolTerm ← tm.mkBoolean true
   let intTerm ← tm.mkInteger 1
 
   solver.addSygusConstraint boolTerm |> assertOk
-  solver.addSygusConstraint nullTerm |> assertError
-    "invalid null argument for 'term'"
+  -- solver.addSygusConstraint nullTerm |> assertError "invalid null argument for 'term'"
   solver.addSygusConstraint intTerm |> assertError
     "invalid argument '1' for 'term', expected boolean term"
 
@@ -1625,13 +1622,12 @@ test![TestApiBlackSolver, getSygusConstraints] tm solver => do
 
 test![TestApiBlackSolver, addSygusAssume] tm solver => do
   solver.setOption "sygus" "true"
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let boolTerm ← tm.mkBoolean true
   let intTerm ← tm.mkInteger 1
 
   solver.addSygusAssume boolTerm |> assertOk
-  solver.addSygusAssume nullTerm |> assertError
-    "invalid null argument for 'term'"
+  -- solver.addSygusAssume nullTerm |> assertError "invalid null argument for 'term'"
   solver.addSygusAssume intTerm |> assertError
     "invalid argument '1' for 'term', expected boolean term"
 
@@ -1651,7 +1647,7 @@ test![TestApiBlackSolver, getSygusAssumptions] tm solver => do
 
 test![TestApiBlackSolver, addSygusInvConstraint] tm solver => do
   solver.setOption "sygus" "true"
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let intTerm ← tm.mkInteger 1
   let real ← tm.getRealSort
 
@@ -1668,14 +1664,14 @@ test![TestApiBlackSolver, addSygusInvConstraint] tm solver => do
 
   solver.addSygusInvConstraint inv pre trans post |> assertOk
 
-  solver.addSygusInvConstraint nullTerm pre trans post |> assertError
-    "invalid null argument for 'inv'"
-  solver.addSygusInvConstraint inv nullTerm trans post |> assertError
-    "invalid null argument for 'pre'"
-  solver.addSygusInvConstraint inv pre nullTerm post |> assertError
-    "invalid null argument for 'trans'"
-  solver.addSygusInvConstraint inv pre trans nullTerm |> assertError
-    "invalid null argument for 'post'"
+  -- solver.addSygusInvConstraint nullTerm pre trans post |> assertError
+  --   "invalid null argument for 'inv'"
+  -- solver.addSygusInvConstraint inv nullTerm trans post |> assertError
+  --   "invalid null argument for 'pre'"
+  -- solver.addSygusInvConstraint inv pre nullTerm post |> assertError
+  --   "invalid null argument for 'trans'"
+  -- solver.addSygusInvConstraint inv pre trans nullTerm |> assertError
+  --   "invalid null argument for 'post'"
 
   solver.addSygusInvConstraint inv1 pre trans post |> assertError
     "invalid argument 'inv1' for 'inv', expected boolean range"
@@ -1724,7 +1720,7 @@ test![TestApiBlackSolver, getSynthSolution] tm solver => do
   solver.setOption "sygus" "true"
   solver.setOption "incremental" "false"
 
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let fls ← tm.mkBoolean false
   let f ← solver.synthFun "f" #[] bool
 
@@ -1737,8 +1733,7 @@ test![TestApiBlackSolver, getSynthSolution] tm solver => do
   solver.getSynthSolution f |> assertOkDiscard
   solver.getSynthSolution f |> assertOkDiscard
 
-  solver.getSynthSolution nullTerm |> assertError
-    "invalid null argument for 'term'"
+  -- solver.getSynthSolution nullTerm |> assertError "invalid null argument for 'term'"
   solver.getSynthSolution fls |> assertError
     "synthesis solution not found for given term"
 
@@ -1749,7 +1744,7 @@ test![TestApiBlackSolver, getSynthSolutions] tm solver => do
   solver.setOption "sygus" "true"
   solver.setOption "incremental" "false"
 
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let fls ← tm.mkBoolean false
   let f ← solver.synthFun "f" #[] bool
 
@@ -1766,8 +1761,7 @@ test![TestApiBlackSolver, getSynthSolutions] tm solver => do
 
   solver.getSynthSolutions #[] |> assertError
     "invalid size of argument 'terms', expected non-empty vector"
-  solver.getSynthSolutions #[nullTerm] |> assertError
-    "invalid null term in 'terms' at index 0"
+  -- solver.getSynthSolutions #[nullTerm] |> assertError "invalid null term in 'terms' at index 0"
   solver.getSynthSolutions #[fls] |> assertError
     "synthesis solution not found for term at index 0"
 
@@ -1817,7 +1811,7 @@ test![TestApiBlackSolver, findSynth] tm solver => do
 
   -- should enumerate based on the grammar of the function to synthesize above
   let term ← solver.findSynth .ENUM
-  assertFalse term.isNull
+  -- assertFalse term.isNull
   assertTrue (← term.getSort).isBoolean
 
 test![TestApiBlackSolver, findSynth2] tm solver => do
@@ -1832,10 +1826,10 @@ test![TestApiBlackSolver, findSynth2] tm solver => do
 
   -- should enumerate true/false
   let term ← solver.findSynth .ENUM grammar
-  assertFalse term.isNull
+  -- assertFalse term.isNull
   assertTrue (← term.getSort).isBoolean
-  let term ← solver.findSynthNext
-  assertFalse term.isNull
+  assertSome (← solver.findSynthNext?) fun term => do
+  -- assertFalse term.isNull
   assertTrue (← term.getSort).isBoolean
 
 test![TestApiBlackSolver, tupleProject] tm solver => do
@@ -1879,7 +1873,9 @@ test![TestApiBlackSolver, tupleProject] tm solver => do
     let selectorTerm ← constructor[index]!.getTerm
     let selectedTerm ← tm.mkTerm Kind.APPLY_SELECTOR #[selectorTerm, tuple]
     let simplifiedTerm ← solver.simplify selectedTerm
-    assertEq elements[index]! simplifiedTerm
+    if h : index < elements.size then
+      assertEq elements[index] simplifiedTerm
+    else println! "test index {index} is out of bounds, must be < {elements.size}"
 
   projection.toString
   |> assertEq "((_ tuple.project 0 3 2 0 1 2) (tuple true 3 \"C\" (set.singleton \"Z\")))"

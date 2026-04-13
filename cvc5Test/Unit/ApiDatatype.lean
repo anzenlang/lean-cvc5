@@ -197,7 +197,8 @@ test![TestApiBlackDatatype, mkDatatypeSorts] tm => do
     assertEq sort.getDatatype!.getName! dtSpecs[idx]!.getName!
 
   -- verify the resolution was correct
-  let dtTree := dtSorts[0]!.getDatatype!
+  assertSEq 2 dtSorts.size fun h_dtSorts => do
+  let dtTree := dtSorts[0].getDatatype!
   let dtcTreeNode := dtTree[0]!
   assertEq dtcTreeNode.getName! "node"
   let dtsTreeNodeLeft := dtcTreeNode[0]!
@@ -205,7 +206,7 @@ test![TestApiBlackDatatype, mkDatatypeSorts] tm => do
   -- argument type should have resolved to be recursive
   let dtsTreeNodeLeftCodom ← dtsTreeNodeLeft.getCodomainSort
   assertTrue dtsTreeNodeLeftCodom.isDatatype
-  assertEq dtsTreeNodeLeftCodom dtSorts[0]!
+  assertEq dtsTreeNodeLeftCodom dtSorts[0]
 
   -- fails due to empty datatype
   let dtDeclsBad := #[← tm.mkDatatypeDecl "emptyD"]
@@ -248,7 +249,8 @@ test![TestApiBlackDatatype, mkDatatypeSortsSelUnres] tm => do
     assertEq sort.getDatatype!.getName! dtSpecs[idx]!.getName!
 
   -- verify the resolution was correct
-  let dtTree := dtSorts[0]!.getDatatype!
+  assertSEq 2 dtSorts.size fun h_dtSorts => do
+  let dtTree := dtSorts[0].getDatatype!
   let dtcTreeNode := dtTree[0]!
   assertEq dtcTreeNode.getName! "node"
   let dtsTreeNodeLeft := dtcTreeNode[0]!
@@ -256,7 +258,7 @@ test![TestApiBlackDatatype, mkDatatypeSortsSelUnres] tm => do
   -- argument type should have resolved to be recursive
   let dtsTreeNodeLeftCodom ← dtsTreeNodeLeft.getCodomainSort
   assertTrue dtsTreeNodeLeftCodom.isDatatype
-  assertEq dtsTreeNodeLeftCodom dtSorts[0]!
+  assertEq dtsTreeNodeLeftCodom dtSorts[0]
 
 test![TestApiBlackDatatype, mkDatatypeSortsSelUnres] tm => do
   let int ← tm.getIntegerSort
@@ -389,8 +391,9 @@ test![TestApiBlackDatatype, parametricDatatype] tm => do
 
   assertTrue pairSort.getDatatype!.isParametric
   let dParams ← pairSort.getDatatype!.getParameters
-  assertTrue (dParams[0]! == t1)
-  assertTrue (dParams[1]! == t2)
+  assertSEq 2 dParams.size fun h_dParams => do
+    assertTrue (dParams[0] == t1)
+    assertTrue (dParams[1] == t2)
 
   let pairIntInt ← pairSort.instantiate #[int, int]
   let pairRealReal ← pairSort.instantiate #[real, real]
@@ -461,10 +464,10 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
 
   let dtDecls := #[wListSpec, listSpec, nsSpec]
   let dtSorts ← assertOk <| tm.mkDatatypeSorts dtDecls
-  assertEq 3 dtSorts.size
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
-  assertTrue dtSorts[1]!.getDatatype!.isWellFounded
-  assertTrue dtSorts[2]!.getDatatype!.isWellFounded
+  assertSEq 3 dtSorts.size fun h_dtSorts => do
+    assertTrue dtSorts[0].getDatatype!.isWellFounded
+    assertTrue dtSorts[1].getDatatype!.isWellFounded
+    assertTrue dtSorts[2].getDatatype!.isWellFounded
 
   /- Create mutual datatypes corresponding to this definition block:
 
@@ -487,11 +490,11 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
   let dtDecls := #[ns2Spec]
   -- this is not well-founded due to non-simple recursion
   let dtSorts ← tm.mkDatatypeSorts dtDecls
-  assertEq 1 dtSorts.size
-  let codom ← dtSorts[0]!.getDatatype![0]![0]!.getCodomainSort
-  assertTrue codom.isArray
-  assertEq codom.getArrayElementSort! dtSorts[0]!
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
+  assertSEq 1 dtSorts.size fun h_dtSorts => do
+    let codom ← dtSorts[0].getDatatype![0]![0]!.getCodomainSort
+    assertTrue codom.isArray
+    assertEq (← codom.getArrayElementSort) dtSorts[0]
+    assertTrue dtSorts[0].getDatatype!.isWellFounded
 
   /- Create mutual datatypes corresponding to this definition block:
 
@@ -522,9 +525,9 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
 
   -- both are well-founded and have nested recursion
   let dtSorts ← tm.mkDatatypeSorts dtDecls
-  assertEq 2 dtSorts.size
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
-  assertTrue dtSorts[1]!.getDatatype!.isWellFounded
+  assertSEq 2 dtSorts.size fun h_dtSorts => do
+    assertTrue dtSorts[0].getDatatype!.isWellFounded
+    assertTrue dtSorts[1].getDatatype!.isWellFounded
 
   /- Create mutual datatypes corresponding to this definition block:
 
@@ -553,9 +556,9 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
 
   let dtDecls := #[list4Spec, ns4Spec]
   let dtSorts ← tm.mkDatatypeSorts dtDecls
-  assertEq 2 dtSorts.size
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
-  assertTrue dtSorts[1]!.getDatatype!.isWellFounded
+  assertSEq 2 dtSorts.size fun h_dtSorts => do
+    assertTrue dtSorts[0].getDatatype!.isWellFounded
+    assertTrue dtSorts[1].getDatatype!.isWellFounded
 
   /- Create mutual datatypes corresponding to this definition block:
 
@@ -582,8 +585,8 @@ test![TestApiBlackDatatype, datatypeSimplyRec] tm => do
 
   -- well-founded and has nested recursion
   let dtSorts ← tm.mkDatatypeSorts #[list5Spec]
-  assertEq 1 dtSorts.size
-  assertTrue dtSorts[0]!.getDatatype!.isWellFounded
+  assertSEq 1 dtSorts.size fun h_dtSorts =>
+    assertTrue dtSorts[0].getDatatype!.isWellFounded
 
 test![TestApiBlackDatatype, datatypeSpecializedCons] tm => do
   /- Create mutual datatypes corresponding to this definition block:
@@ -609,17 +612,17 @@ test![TestApiBlackDatatype, datatypeSpecializedCons] tm => do
   pListSpec ← pListSpec.addConstructor nil5Spec
 
   let dtSorts ← tm.mkDatatypeSorts #[pListSpec]
-  assertEq 1 dtSorts.size
-  let dt ← dtSorts[0]!.getDatatype
+  assertSEq 1 dtSorts.size fun h_dtSorts => do
+  let dt ← dtSorts[0].getDatatype
   let nilCtor := dt[0]!
 
   let int ← tm.getIntegerSort
-  let listInt ← dtSorts[0]!.instantiate #[int]
+  let listInt ← dtSorts[0].instantiate #[int]
 
   let liParams ← listInt.getDatatype!.getParameters
   -- the parameter of the datatype is not instantiated
-  assertEq 1 liParams.size
-  assertEq xSort liParams[0]!
+  assertSEq 1 liParams.size fun h_liParams => do
+    assertEq xSort liParams[0]
 
   let testConsTerm ← nilCtor.getInstantiatedTerm listInt
   assertNe testConsTerm (← nilCtor.getTerm)

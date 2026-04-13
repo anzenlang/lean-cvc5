@@ -471,10 +471,9 @@ LEAN_EXPORT lean_obj_res sortRaw_toString(lean_obj_arg s)
   return lean_mk_string(sortRaw_unbox(s)->toString().c_str());
 }
 
-LEAN_EXPORT lean_obj_res sortRaw_getFakeDefault(lean_obj_arg unit)
+LEAN_EXPORT lean_obj_res sortRaw_staticDefault(lean_obj_arg unit)
 {
-  TermManager *tm = new TermManager();
-  return sortRaw_box(new Sort(tm->getBooleanSort()));
+  throw "illegal call to purely static `cvc5.SortRaw.staticDefault`";
 }
 
 lean_obj_res sort_of_sortRaw(lean_obj_arg raw);
@@ -1011,37 +1010,66 @@ LEAN_EXPORT lean_obj_res op_toString(lean_obj_arg op)
   return lean_mk_string(op_unbox(op)->toString().c_str());
 }
 
-static void term_finalize(void* obj) { delete static_cast<Term*>(obj); }
+static void termRaw_finalize(void* obj) { delete static_cast<Term*>(obj); }
 
-static void term_foreach(void*, b_lean_obj_arg)
+static void termRaw_foreach(void*, b_lean_obj_arg)
 {
-  // do nothing since `Term` does not contain nested Lean objects
+  // do nothing since `Sort` does not contain nested Lean objects
 }
 
-static lean_external_class* g_term_class = nullptr;
+static lean_external_class* g_termRaw_class = nullptr;
 
-static inline lean_obj_res term_box(Term* t)
+static inline lean_obj_res termRaw_box(Term* s)
 {
-  if (g_term_class == nullptr)
+  if (g_termRaw_class == nullptr)
   {
-    g_term_class = lean_register_external_class(term_finalize, term_foreach);
+    g_termRaw_class = lean_register_external_class(termRaw_finalize, termRaw_foreach);
   }
-  return lean_alloc_external(g_term_class, t);
+  return lean_alloc_external(g_termRaw_class, s);
 }
 
-static inline const Term* term_unbox(b_lean_obj_arg t)
+static inline const Term* termRaw_unbox(b_lean_obj_arg t)
 {
   return static_cast<Term*>(lean_get_external_data(t));
 }
 
-LEAN_EXPORT lean_obj_res term_null(lean_obj_arg unit)
+LEAN_EXPORT lean_obj_res termRaw_getNull(lean_obj_arg unit)
 {
-  return term_box(new Term());
+  return termRaw_box(new Term());
 }
 
-LEAN_EXPORT uint8_t term_isNull(lean_obj_arg t)
+LEAN_EXPORT uint8_t termRaw_beq(lean_obj_arg l, lean_obj_arg r)
 {
-  return bool_box(term_unbox(t)->isNull());
+  return bool_box(*termRaw_unbox(l) == *termRaw_unbox(r));
+}
+
+LEAN_EXPORT lean_obj_res termRaw_toString(lean_obj_arg t)
+{
+  return lean_mk_string(termRaw_unbox(t)->toString().c_str());
+}
+
+LEAN_EXPORT lean_obj_res termRaw_staticDefault(lean_obj_arg unit)
+{
+  throw "illegal call to purely static `cvc5.TermRaw.staticDefault`";
+}
+
+lean_obj_res term_of_termRaw(lean_obj_arg raw);
+
+lean_obj_res term_try_of_termRaw(lean_obj_arg raw);
+
+lean_obj_res term_to_termRaw(lean_obj_arg term);
+
+static inline lean_obj_res term_box(Term* t) {
+  lean_obj_res except = term_of_termRaw(termRaw_box(t));
+  return unwrap_except(except);
+}
+
+static inline lean_obj_res term_try_box(Term* t) {
+  return term_try_of_termRaw(termRaw_box(t));
+}
+
+static inline const Term* term_unbox(b_lean_obj_arg term) {
+  return termRaw_unbox(term_to_termRaw(term));
 }
 
 LEAN_EXPORT lean_obj_res term_not(lean_obj_arg t)
@@ -1139,13 +1167,13 @@ LEAN_EXPORT lean_obj_res term_substitute(lean_obj_arg t,
   for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
   {
     cvc5Terms.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), terms, lean_usize_to_nat(i))));
+        lean_array_fget(terms, lean_usize_to_nat(i))));
   }
   std::vector<Term> cvc5Replacements;
   for (size_t i = 0, n = lean_array_size(replacements); i < n; ++i)
   {
-    cvc5Replacements.push_back(*term_unbox(lean_array_get(
-        term_box(new Term()), replacements, lean_usize_to_nat(i))));
+    cvc5Replacements.push_back(*term_unbox(lean_array_fget(
+        replacements, lean_usize_to_nat(i))));
   }
   return except_ok(term_box(
       new Term(term_unbox(t)->substitute(cvc5Terms, cvc5Replacements))));
@@ -1452,7 +1480,7 @@ LEAN_EXPORT lean_obj_res term_getSequenceValue(lean_obj_arg t)
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
-LEAN_EXPORT uint8_t term_isCardinalityConstraintInternal(lean_obj_arg t)
+LEAN_EXPORT uint8_t term_isCardinalityConstraint(lean_obj_arg t)
 {
   return bool_box(term_unbox(t)->isCardinalityConstraint());
 }
@@ -1597,7 +1625,7 @@ LEAN_EXPORT lean_obj_res term_getId(lean_obj_arg t)
   CVC5_LEAN_API_TRY_CATCH_EXCEPT_END;
 }
 
-LEAN_EXPORT lean_obj_res term_getNumChildrenInternal(lean_obj_arg t)
+LEAN_EXPORT lean_obj_res term_getNumChildren(lean_obj_arg t)
 {
   return lean_usize_to_nat(term_unbox(t)->getNumChildren());
 }
@@ -1674,7 +1702,7 @@ LEAN_EXPORT lean_obj_res proof_getRewriteRule(lean_obj_arg p)
 
 LEAN_EXPORT lean_obj_res proof_getResult(lean_obj_arg p)
 {
-  return term_box(new Term(proof_unbox(p)->getResult()));
+  return term_try_box(new Term(proof_unbox(p)->getResult()));
 }
 
 LEAN_EXPORT lean_obj_res proof_getChildren(lean_obj_arg p)
@@ -2197,7 +2225,7 @@ LEAN_EXPORT lean_obj_res termManager_mkSkolem(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(indices); i < n; ++i)
   {
     indexVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), indices, lean_usize_to_nat(i))));
+        lean_array_fget(indices, lean_usize_to_nat(i))));
   }
   return env_val(term_box(new Term(
       mut_tm_unbox(tm)->mkSkolem(static_cast<SkolemId>(si), indexVec))));
@@ -2607,7 +2635,7 @@ LEAN_EXPORT lean_obj_res termManager_mkTuple(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
   {
     cs.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), terms, lean_usize_to_nat(i))));
+        lean_array_fget(terms, lean_usize_to_nat(i))));
   }
   return env_val(term_box(new Term(mut_tm_unbox(tm)->mkTuple(cs))));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
@@ -2668,7 +2696,7 @@ LEAN_EXPORT lean_obj_res termManager_mkNullableLift(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(args); i < n; ++i)
   {
     cs.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), args, lean_usize_to_nat(i))));
+        lean_array_fget(args, lean_usize_to_nat(i))));
   }
   return env_val(term_box(new Term(mut_tm_unbox(tm)->mkNullableLift(k, cs))));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
@@ -2684,7 +2712,7 @@ LEAN_EXPORT lean_obj_res termManager_mkTerm(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(children); i < n; ++i)
   {
     cs.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), children, lean_usize_to_nat(i))));
+        lean_array_fget(children, lean_usize_to_nat(i))));
   }
   return env_val(term_box(new Term(mut_tm_unbox(tm)->mkTerm(k, cs))));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
@@ -2699,7 +2727,7 @@ LEAN_EXPORT lean_obj_res termManager_mkTermOfOp(lean_obj_arg tm,
   for (size_t i = 0, n = lean_array_size(children); i < n; ++i)
   {
     cs.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), children, lean_usize_to_nat(i))));
+        lean_array_fget(children, lean_usize_to_nat(i))));
   }
   return env_val(
       term_box(new Term(mut_tm_unbox(tm)->mkTerm(*op_unbox(op), cs))));
@@ -3272,7 +3300,7 @@ LEAN_EXPORT lean_obj_res grammar_addRules(lean_obj_arg grammarArg,
   for (size_t i = 0, n = lean_array_size(rules); i < n; ++i)
   {
     ruleVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), rules, lean_usize_to_nat(i))));
+        lean_array_fget(rules, lean_usize_to_nat(i))));
   }
   mut_grammar_unbox(grammar)->addRules(*term_unbox(ntSymbol), ruleVec);
   return env_val(grammar);
@@ -3480,7 +3508,7 @@ LEAN_EXPORT lean_obj_res inputParser_nextCommand(lean_obj_arg parser)
 LEAN_EXPORT lean_obj_res inputParser_nextTerm(lean_obj_arg parser)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
-  return env_val(term_box(new Term(mut_parser_unbox(parser)->nextTerm())));
+  return env_val(term_try_box(new Term(mut_parser_unbox(parser)->nextTerm())));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
@@ -3606,8 +3634,8 @@ LEAN_EXPORT lean_obj_res solver_checkSatAssuming(lean_obj_arg solver,
   std::vector<Term> formulas;
   for (size_t i = 0, n = lean_array_size(assumptions); i < n; ++i)
   {
-    formulas.push_back(*term_unbox(lean_array_get(
-        term_box(new Term()), assumptions, lean_usize_to_nat(i))));
+    formulas.push_back(*term_unbox(lean_array_fget(
+        assumptions, lean_usize_to_nat(i))));
   }
   Result res = solver_unbox(solver)->checkSatAssuming(formulas);
   return env_val(result_box(new Result(res)));
@@ -3655,7 +3683,7 @@ LEAN_EXPORT lean_obj_res solver_defineFun(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
   {
     boundVarVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), boundVars, lean_usize_to_nat(i))));
+        lean_array_fget(boundVars, lean_usize_to_nat(i))));
   }
   Term term = solver_unbox(solver)->defineFun(lean_string_cstr(symbol),
                                               boundVarVec,
@@ -3678,7 +3706,7 @@ LEAN_EXPORT lean_obj_res solver_defineFunRec(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
   {
     boundVarVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), boundVars, lean_usize_to_nat(i))));
+        lean_array_fget(boundVars, lean_usize_to_nat(i))));
   }
   Term term = solver_unbox(solver)->defineFunRec(lean_string_cstr(symbol),
                                                  boundVarVec,
@@ -3700,7 +3728,7 @@ LEAN_EXPORT lean_obj_res solver_defineFunRecTerm(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
   {
     boundVarVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), boundVars, lean_usize_to_nat(i))));
+        lean_array_fget(boundVars, lean_usize_to_nat(i))));
   }
   Term term = solver_unbox(solver)->defineFunRec(
       *term_unbox(fun), boundVarVec, *term_unbox(body), bool_unbox(global));
@@ -3719,7 +3747,7 @@ LEAN_EXPORT lean_obj_res solver_defineFunsRec(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(funs); i < n; ++i)
   {
     funVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), funs, lean_usize_to_nat(i))));
+        lean_array_fget(funs, lean_usize_to_nat(i))));
   }
   std::vector<std::vector<Term>> boundVarVecVec;
   for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
@@ -3729,8 +3757,8 @@ LEAN_EXPORT lean_obj_res solver_defineFunsRec(lean_obj_arg solver,
         lean_array_get(lean_mk_empty_array(), boundVars, lean_usize_to_nat(i));
     for (size_t j = 0, n = lean_array_size(boundVarArray); j < n; ++j)
     {
-      boundVarVec.push_back(*term_unbox(lean_array_get(
-          term_box(new Term()), boundVarArray, lean_usize_to_nat(j))));
+      boundVarVec.push_back(*term_unbox(lean_array_fget(
+          boundVarArray, lean_usize_to_nat(j))));
     }
     boundVarVecVec.push_back(boundVarVec);
   }
@@ -3738,7 +3766,7 @@ LEAN_EXPORT lean_obj_res solver_defineFunsRec(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(bodies); i < n; ++i)
   {
     bodyVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), bodies, lean_usize_to_nat(i))));
+        lean_array_fget(bodies, lean_usize_to_nat(i))));
   }
   solver_unbox(solver)->defineFunsRec(
       funVec, boundVarVecVec, bodyVec, bool_unbox(global));
@@ -3852,8 +3880,8 @@ LEAN_EXPORT lean_obj_res solver_getTimeoutCoreAssuming(lean_obj_arg solver,
   std::vector<Term> formulas;
   for (size_t i = 0, n = lean_array_size(assumptions); i < n; ++i)
   {
-    formulas.push_back(*term_unbox(lean_array_get(
-        term_box(new Term()), assumptions, lean_usize_to_nat(i))));
+    formulas.push_back(*term_unbox(lean_array_fget(
+        assumptions, lean_usize_to_nat(i))));
   }
   std::pair<Result, std::vector<Term>> pair =
       solver_unbox(solver)->getTimeoutCoreAssuming(formulas);
@@ -3897,7 +3925,7 @@ LEAN_EXPORT lean_obj_res solver_getValues(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
   {
     ts.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), terms, lean_usize_to_nat(i))));
+        lean_array_fget(terms, lean_usize_to_nat(i))));
   }
   std::vector<Term> values = solver_unbox(solver)->getValue(ts);
   lean_object* vs = lean_mk_empty_array();
@@ -3947,7 +3975,7 @@ LEAN_EXPORT lean_obj_res solver_getModel(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(consts); i < n; ++i)
   {
     constVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), consts, lean_usize_to_nat(i))));
+        lean_array_fget(consts, lean_usize_to_nat(i))));
   }
   return env_val(lean_mk_string(
       solver_unbox(solver)->getModel(sortVec, constVec).c_str()));
@@ -4016,7 +4044,7 @@ LEAN_EXPORT lean_obj_res solver_declarePool(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(initValue); i < n; ++i)
   {
     initValueVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), initValue, lean_usize_to_nat(i))));
+        lean_array_fget(initValue, lean_usize_to_nat(i))));
   }
   return env_val(term_box(new Term(solver_unbox(solver)->declarePool(
       lean_string_cstr(symbol), *sort_unbox(sort), initValueVec))));
@@ -4084,7 +4112,7 @@ LEAN_EXPORT lean_obj_res solver_getInterpolantSimple(lean_obj_arg solver,
                                                      lean_obj_arg conj)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
-  return env_val(term_box(
+  return env_val(term_try_box(
       new Term(solver_unbox(solver)->getInterpolant(*term_unbox(conj)))));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
@@ -4094,7 +4122,7 @@ LEAN_EXPORT lean_obj_res solver_getInterpolantOfGrammar(lean_obj_arg solver,
                                                         lean_obj_arg grammar)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
-  return env_val(term_box(new Term(solver_unbox(solver)->getInterpolant(
+  return env_val(term_try_box(new Term(solver_unbox(solver)->getInterpolant(
       *term_unbox(conj), *mut_grammar_unbox(grammar)))));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
@@ -4103,7 +4131,7 @@ LEAN_EXPORT lean_obj_res solver_getInterpolantNext(lean_obj_arg solver)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
   return env_val(
-      term_box(new Term(solver_unbox(solver)->getInterpolantNext())));
+      term_try_box(new Term(solver_unbox(solver)->getInterpolantNext())));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
@@ -4112,7 +4140,7 @@ LEAN_EXPORT lean_obj_res solver_getAbductSimple(lean_obj_arg solver,
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
   return env_val(
-      term_box(new Term(solver_unbox(solver)->getAbduct(*term_unbox(conj)))));
+      term_try_box(new Term(solver_unbox(solver)->getAbduct(*term_unbox(conj)))));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
@@ -4121,7 +4149,7 @@ LEAN_EXPORT lean_obj_res solver_getAbductOfGrammar(lean_obj_arg solver,
                                                    lean_obj_arg grammar)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
-  return env_val(term_box(new Term(solver_unbox(solver)->getAbduct(
+  return env_val(term_try_box(new Term(solver_unbox(solver)->getAbduct(
       *term_unbox(conj), *mut_grammar_unbox(grammar)))));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
@@ -4129,7 +4157,7 @@ LEAN_EXPORT lean_obj_res solver_getAbductOfGrammar(lean_obj_arg solver,
 LEAN_EXPORT lean_obj_res solver_getAbductNext(lean_obj_arg solver)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
-  return env_val(term_box(new Term(solver_unbox(solver)->getAbductNext())));
+  return env_val(term_try_box(new Term(solver_unbox(solver)->getAbductNext())));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 
@@ -4150,7 +4178,7 @@ LEAN_EXPORT lean_obj_res solver_blockModelValues(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
   {
     termVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), terms, lean_usize_to_nat(i))));
+        lean_array_fget(terms, lean_usize_to_nat(i))));
   }
   solver_unbox(solver)->blockModelValues(termVec);
   return env_val(mk_unit_unit());
@@ -4202,13 +4230,13 @@ LEAN_EXPORT lean_obj_res solver_mkGrammar(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
   {
     boundVarVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), boundVars, lean_usize_to_nat(i))));
+        lean_array_fget(boundVars, lean_usize_to_nat(i))));
   }
   std::vector<Term> ntSymbolVec;
   for (size_t i = 0, n = lean_array_size(ntSymbols); i < n; ++i)
   {
     ntSymbolVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), ntSymbols, lean_usize_to_nat(i))));
+        lean_array_fget(ntSymbols, lean_usize_to_nat(i))));
   }
   return env_val(grammar_box(
       new Grammar(solver_unbox(solver)->mkGrammar(boundVarVec, ntSymbolVec))));
@@ -4225,7 +4253,7 @@ LEAN_EXPORT lean_obj_res solver_synthFunWithoutGrammar(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
   {
     boundVarVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), boundVars, lean_usize_to_nat(i))));
+        lean_array_fget(boundVars, lean_usize_to_nat(i))));
   }
   return env_val(term_box(new Term(solver_unbox(solver)->synthFun(
       lean_string_cstr(symbol), boundVarVec, *sort_unbox(sort)))));
@@ -4243,7 +4271,7 @@ LEAN_EXPORT lean_obj_res solver_synthFunWithGrammar(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(boundVars); i < n; ++i)
   {
     boundVarVec.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), boundVars, lean_usize_to_nat(i))));
+        lean_array_fget(boundVars, lean_usize_to_nat(i))));
   }
   return env_val(term_box(
       new Term(solver_unbox(solver)->synthFun(lean_string_cstr(symbol),
@@ -4355,7 +4383,7 @@ LEAN_EXPORT lean_obj_res solver_getSynthSolutions(lean_obj_arg solver,
   for (size_t i = 0, n = lean_array_size(terms); i < n; ++i)
   {
     ts.push_back(*term_unbox(
-        lean_array_get(term_box(new Term()), terms, lean_usize_to_nat(i))));
+        lean_array_fget(terms, lean_usize_to_nat(i))));
   }
   std::vector<Term> solutionVec = solver_unbox(solver)->getSynthSolutions(ts);
   lean_object* solutions = lean_mk_empty_array();
@@ -4390,7 +4418,7 @@ LEAN_EXPORT lean_obj_res solver_findSynthWithGrammar(lean_obj_arg solver,
 LEAN_EXPORT lean_obj_res solver_findSynthNext(lean_obj_arg solver)
 {
   CVC5_LEAN_API_TRY_CATCH_ENV_BEGIN;
-  return env_val(term_box(new Term(solver_unbox(solver)->findSynthNext())));
+  return env_val(term_try_box(new Term(solver_unbox(solver)->findSynthNext())));
   CVC5_LEAN_API_TRY_CATCH_ENV_END;
 }
 }

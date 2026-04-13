@@ -79,7 +79,9 @@ def solver1Parse : IO Unit := Env.runIO do
 
   println! "proof:"
   for p in proofs do
-    println! "- {p.getResult}"
+    if let some res := p.getResult then
+      println! "- {res}"
+    else println! "- no proof result available"
 
 /-- info:
 confirmed `sat` result

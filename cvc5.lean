@@ -265,15 +265,15 @@ private extern_def getNull : Unit → SortRaw
 /-- Null sort. -/
 private def null : SortRaw := getNull ()
 
-/-- Internal default value.
+/-- Internal default value, purely static, never called.
 
 The underlying C++ function just crashes, because this function should never be called. It is only
 used to provide a `Nonempty cvc5.Sort` instance.
 -/
-private extern_def getFakeDefault : Unit → SortRaw
+private extern_def staticDefault : Unit → SortRaw
 
 /-- Helper axiom for the `Nonempty cvc5.Sort` instance. -/
-private axiom getFakeDefault_ne_null : getFakeDefault () != null
+private axiom staticDefault_ne_null : staticDefault () != null
 
 end SortRaw
 
@@ -288,13 +288,7 @@ structure cvc5.Sort where private mk ::
 
 namespace cvc5.Sort
 
-private def fakeDefault : cvc5.Sort where
-  raw := SortRaw.getFakeDefault ()
-  valid := SortRaw.getFakeDefault_ne_null
-
-instance : Nonempty cvc5.Sort := .intro fakeDefault
-
-private instance : Inhabited cvc5.Sort := ⟨fakeDefault⟩
+instance : Nonempty cvc5.Sort := .intro ⟨SortRaw.staticDefault (), SortRaw.staticDefault_ne_null⟩
 
 end cvc5.Sort
 
@@ -313,10 +307,50 @@ instance Op.instNonemptyOp : Nonempty Op := OpImpl.property
 
 private opaque TermImpl : NonemptyType.{0}
 
-/-- A cvc5 term. -/
-def Term : Type := TermImpl.type
+private def TermRaw : Type := TermImpl.type
 
-instance Term.instNonemptyTerm : Nonempty Term := TermImpl.property
+namespace TermRaw
+
+private instance : Nonempty TermRaw := TermImpl.property
+
+/-- Comparison for structural equality. -/
+private protected extern_def beq : TermRaw → TermRaw → Bool
+
+private instance : BEq TermRaw := ⟨TermRaw.beq⟩
+
+/-- String representation. -/
+private protected extern_def toString : TermRaw → String
+
+/-- Null term constructor. -/
+private extern_def getNull : Unit → TermRaw
+
+/-- Null term. -/
+private def null : TermRaw := getNull ()
+
+/-- Internal default value, purely static, never called.
+
+The underlying C++ function just crashes, because this function should never be called. It is only
+used to provide a `Nonempty cvc5.Term` instance.
+-/
+private extern_def staticDefault : Unit → TermRaw
+
+/-- Helper axiom for the `Nonempty cvc5.Term` instance. -/
+private axiom staticDefault_ne_null : staticDefault () != null
+
+end TermRaw
+
+/-- A cvc5 term. -/
+structure Term where private mk ::
+  /-- Raw term: actual C++ `Term` value. -/
+  private raw : TermRaw
+  /-- Proof that `raw` is not null. -/
+  private valid : raw != TermRaw.null
+
+namespace Term
+
+instance : Nonempty Term := .intro ⟨TermRaw.staticDefault (), TermRaw.staticDefault_ne_null⟩
+
+end Term
 
 private opaque ProofImpl : NonemptyType.{0}
 
@@ -1279,22 +1313,22 @@ extern_def!? getFunctionArity : cvc5.Sort → Except Error Nat
 extern_def!? getFunctionDomainSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
 
 /-- The codomain sort of a function sort. -/
-extern_def!? getFunctionCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getFunctionCodomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The array index sort of an array index. -/
-extern_def!? getArrayIndexSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getArrayIndexSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The array element sort of an array index. -/
-extern_def!? getArrayElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getArrayElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The element sort of a set sort. -/
-extern_def!? getSetElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getSetElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The element sort of a bag sort. -/
-extern_def!? getBagElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getBagElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The element sort of a sequence sort. -/
-extern_def!? getSequenceElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getSequenceElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The sort kind of an abstract sort, which denotes the kind of sorts that this abstract sort
 denotes.
@@ -1323,10 +1357,10 @@ extern_def!? getTupleLength : cvc5.Sort → Except Error UInt32
 extern_def!? getTupleSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
 
 /-- The element sort of a nullable sort. -/
-extern_def!? getNullableElementSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getNullableElementSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- Get the associated uninterpreted sort constructor of an instantiated uninterpreted sort. -/
-extern_def!? getUninterpretedSortConstructor : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getUninterpretedSortConstructor : cvc5.Sort → Except Error cvc5.Sort
 
 /-- Get the underlying datatype of a datatype sort. -/
 extern_def!? getDatatype : cvc5.Sort → Except Error Datatype
@@ -1343,7 +1377,7 @@ Create sort parameters with `mkParamSort symbol`.
 
 - `params` The list of sort parameters to instantiate with.
 -/
-extern_def!? instantiate : cvc5.Sort → (params : Array cvc5.Sort) → Except Error cvc5.Sort
+extern_def? instantiate : cvc5.Sort → (params : Array cvc5.Sort) → Except Error cvc5.Sort
 
 /-- Simultaneous substitution of Sorts.
 
@@ -1355,7 +1389,7 @@ the vector takes priority.
 - `sorts` The sub-sorts to be substituted within this sort.
 - `replacements` The sort replacing the substituted sub-sorts.
 -/
-extern_def!? substitute :
+extern_def? substitute :
   cvc5.Sort → (sorts : Array cvc5.Sort) → (replacements : Array cvc5.Sort) → Except Error cvc5.Sort
 
 /-- The arity of a datatype constructor sort. -/
@@ -1365,19 +1399,19 @@ extern_def!? getDatatypeConstructorArity : cvc5.Sort → Except Error Nat
 extern_def!? getDatatypeConstructorDomainSorts : cvc5.Sort → Except Error (Array cvc5.Sort)
 
 /-- The codomain sort of a constructor sort. -/
-extern_def!? getDatatypeConstructorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getDatatypeConstructorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The domain sort of a datatype selector sort. -/
-extern_def!? getDatatypeSelectorDomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getDatatypeSelectorDomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The codomain sort of a datatype selector sort. -/
-extern_def!? getDatatypeSelectorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getDatatypeSelectorCodomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The domain sort of a datatype tester sort. -/
-extern_def!? getDatatypeTesterDomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getDatatypeTesterDomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- The codomain sort of a datatype tester sort. -/
-extern_def!? getDatatypeTesterCodomainSort : cvc5.Sort → Except Error cvc5.Sort
+extern_def? getDatatypeTesterCodomainSort : cvc5.Sort → Except Error cvc5.Sort
 
 /-- Get the arity of a datatype sort.
 
@@ -1433,10 +1467,17 @@ end Op
 
 namespace Term
 
-/-- The null term. -/
-extern_def null : Unit → Term
+@[export term_of_termRaw]
+private def ofTermRaw (raw : TermRaw) : Except Error Term :=
+  if valid : raw != TermRaw.null then .ok ⟨raw, valid⟩
+  else Error.error s!"unexpected null term `{raw.toString}`" |> throw
 
-instance : Inhabited Term := ⟨null ()⟩
+@[export term_try_of_termRaw]
+private def ofTermRaw? (raw : TermRaw) : Option Term :=
+  if valid : raw != TermRaw.null then some ⟨raw, valid⟩ else none
+
+@[export term_to_termRaw]
+private def toRaw (term : Term) : TermRaw := term.raw
 
 /-- Syntactic equality operator. -/
 protected extern_def beq : Term → Term → Bool
@@ -1475,14 +1516,11 @@ protected extern_def hash : Term → UInt64
 
 instance : Hashable Term := ⟨Term.hash⟩
 
-/-- Determine if this term is nullary. -/
-extern_def isNull : Term → Bool
-
 /-- Get the kind of this term. -/
 extern_def!? getKind : Term → Except Error Kind
 
 /-- Get the sort of this term. -/
-extern_def!? getSort : Term → Except Error cvc5.Sort
+extern_def? getSort : Term → Except Error cvc5.Sort
 
 /-- Simultaneously replace `terms` with `replacements` in `term`.
 
@@ -1517,9 +1555,7 @@ extern_def!? hasSymbol : Term → Except Error Bool
 extern_def!? getId : Term → Except Error Nat
 
 /-- Get the number of children of this term. -/
-private extern_def getNumChildrenInternal : Term → Nat
-with getNumChildren (t : Term) : Nat :=
-  if t.isNull then 0 else t.getNumChildrenInternal
+extern_def getNumChildren : Term → Nat
 
 /-- Is this term a skolem? -/
 extern_def isSkolem : Term → Bool
@@ -1696,7 +1732,7 @@ extern_def isConstArray : Term → Bool
 
 **NB:** requires that this term is a constant array (see `isConstArray`).
 -/
-extern_def!? getConstArrayBase : Term → Except Error Term
+extern_def? getConstArrayBase : Term → Except Error Term
 
 /-- Determine if this term is a Boolean value. -/
 extern_def isBooleanValue : Term → Bool
@@ -1781,7 +1817,7 @@ value term.
 
 **NB:** asserts `isFloatingPointValue`.
 -/
-extern_def!? getFloatingPointValue : Term → Except Error (UInt32 × UInt32 × Term)
+extern_def? getFloatingPointValue : Term → Except Error (UInt32 × UInt32 × Term)
 
 /-- Determine if this term is a set value.
 
@@ -1843,15 +1879,13 @@ extern_def isSequenceValue : Term → Bool
 extern_def!? getSequenceValue : Term → Except Error (Array Term)
 
 /-- Determine if this term is a cardinality constraint. -/
-private extern_def isCardinalityConstraintInternal : Term → Bool
-with isCardinalityConstraint (t : Term) :=
-  if t.isNull then false else t.isCardinalityConstraintInternal
+extern_def isCardinalityConstraint : Term → Bool
 
 /-- Get a cardinality constraint as a pair of its sort and upper bound.
 
 **NB:** asserts `isCardinalityConstraint`.
 -/
-extern_def!? getCardinalityConstraint : Term → Except Error (cvc5.Sort × UInt32)
+extern_def? getCardinalityConstraint : Term → Except Error (cvc5.Sort × UInt32)
 
 /-- Determine if this term is a real algebraic number. -/
 extern_def isRealAlgebraicNumber : Term → Bool
@@ -1863,19 +1897,19 @@ variable.
 
 - `v` The variable over which to express the polynomial.
 -/
-extern_def!? getRealAlgebraicNumberDefiningPolynomial : Term → (v : Term) → Except Error Term
+extern_def? getRealAlgebraicNumberDefiningPolynomial : Term → (v : Term) → Except Error Term
 
 /-- Get the lower bound for a real algebraic number value.
 
 **NB:** asserts `isRealAlgebraicNumber`.
 -/
-extern_def!? getRealAlgebraicNumberLowerBound : Term → Except Error Term
+extern_def? getRealAlgebraicNumberLowerBound : Term → Except Error Term
 
 /-- Get the upper bound for a real algebraic number value.
 
 **NB:** asserts `isRealAlgebraicNumber`.
 -/
-extern_def!? getRealAlgebraicNumberUpperBound : Term → Except Error Term
+extern_def? getRealAlgebraicNumberUpperBound : Term → Except Error Term
 
 /-- Get skolem identifier of this term.
 
@@ -1895,14 +1929,18 @@ extern_def!? getSkolemIndices : Term → Except Error (Array Term)
 instance : GetElem Term Nat Term fun t i => i < t.getNumChildren where
   getElem t i h := t.get ⟨i, h⟩
 
-protected def forIn {β : Type u} [Monad m] (t : Term) (b : β) (f : Term → β → m (ForInStep β)) : m β :=
+protected def forIn {β : Type u} [Monad m]
+  (t : Term) (b : β) (f : Term → β → m (ForInStep β))
+: m β :=
   let rec loop (i : Nat) (h : i ≤ t.getNumChildren) (b : β) : m β := do
     match i, h with
     | 0,   _ => pure b
     | i+1, h =>
       have h' : i < t.getNumChildren := Nat.lt_of_lt_of_le (Nat.lt_succ_self i) h
-      have : t.getNumChildren - 1 < t.getNumChildren := Nat.sub_lt (Nat.zero_lt_of_lt h') (by decide)
-      have : t.getNumChildren - 1 - i < t.getNumChildren := Nat.lt_of_le_of_lt (Nat.sub_le (t.getNumChildren - 1) i) this
+      have : t.getNumChildren - 1 < t.getNumChildren :=
+        Nat.sub_lt (Nat.zero_lt_of_lt h') (by decide)
+      have : t.getNumChildren - 1 - i < t.getNumChildren :=
+        Nat.lt_of_le_of_lt (Nat.sub_le (t.getNumChildren - 1) i) this
       match (← f t[t.getNumChildren - 1 - i] b) with
       | ForInStep.done b  => pure b
       | ForInStep.yield b => loop i (Nat.le_of_lt h') b
@@ -1913,13 +1951,13 @@ instance [Monad m] : ForIn m Term Term where
 
 /-- Get the children of a term. -/
 def getChildren (t : Term) : Array Term := Id.run do
-  let mut cts := #[]
+  let mut cts := Array.emptyWithCapacity t.getNumChildren
   for ct in t do
     cts := cts.push ct
   cts
 
 /-- A string representation of this term. -/
-protected extern_def toString : Term → String
+protected def toString (t : Term) : String := t.raw.toString
 
 instance : ToString Term := ⟨Term.toString⟩
 
@@ -1942,7 +1980,7 @@ Requires that `getRule` does not return `ProofRule.DSL_REWRITE` or `ProofRule.RE
 extern_def!? getRewriteRule : Proof → Except Error ProofRewriteRule
 
 /-- The conclusion of the root step of the proof. -/
-extern_def getResult : Proof → Term
+extern_def getResult : Proof → Option Term
 
 /-- The premises of the root step of the proof. -/
 extern_def getChildren : Proof → Array Proof
@@ -2681,12 +2719,8 @@ extern_def nextCommand : InputParser → Env Command
       if cmd.isNull then return none else return cmd
 
 /-- Parse and return the next term. Requires setting the logic prior to this point. -/
-extern_def nextTerm : InputParser → Env Term
-  with
-    /-- Parse and returns the next term if any, or `none` if the parser is at end-of-input. -/
-    nextTerm? (parser : InputParser) : Env (Option Term) := do
-      let term ← parser.nextTerm
-      if term.isNull then return none else return term
+private extern_def nextTerm : InputParser → Env (Option Term)
+with nextTerm? : InputParser → Env (Option Term) := nextTerm
 
 end InputParser
 
@@ -3241,7 +3275,10 @@ Given that `A → B` is valid, this function determines a term `I` over the shar
 
 - `conj`: The conjecture term.
 -/
-extern_def getInterpolantSimple : (solver : Solver) → (conj : Term) → Env Term
+private extern_def getInterpolantSimple : (solver : Solver) → (conj : Term) → Env (Option Term)
+with
+  getInterpolantSimple? : (solver : Solver) → (conj : Term) → Env (Option Term) :=
+    getInterpolantSimple
 
 /-- Get an interpolant if one exists, the null term otherwise.
 
@@ -3262,8 +3299,12 @@ the current set of assertions and `B` is the conjecture, given as `conj`.
 - `conj`: The conjecture term.
 - `grammar`: The grammar for the interpolant `I`.
 -/
-extern_def getInterpolantOfGrammar :
-  (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env Term
+private extern_def getInterpolantOfGrammar :
+  (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env (Option Term)
+with
+  getInterpolantOfGrammar? :
+    (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env (Option Term)
+  := getInterpolantOfGrammar
 
 /-- Get an interpolant if one exists, the null term otherwise.
 
@@ -3285,9 +3326,9 @@ from `G`. `A` is the current set of assertions and `B` is the conjecture, given 
 - `conj`: The conjecture term.
 - `grammar`: The optional grammar for the interpolant `I`.
 -/
-def getInterpolant
+def getInterpolant?
   (solver : Solver) (conj : Term) (grammar : Option Grammar := none)
-: Env Term :=
+: Env (Option Term) :=
   if let some grammar := grammar
   then solver.getInterpolantOfGrammar conj grammar
   else solver.getInterpolantSimple conj
@@ -3311,7 +3352,8 @@ from `none`.
 Returns a term `I` such that `A → I` and `I → B` and valid, where `A` is the current set of
 assertions and `B` is given in the input by `conj`, or the null term if such a term cannot be found.
 -/
-extern_def getInterpolantNext : (solver : Solver) → Env Term
+private extern_def getInterpolantNext : (solver : Solver) → Env (Option Term)
+with getInterpolantNext? : (solver : Solver) → Env (Option Term) := getInterpolantNext
 
 /-- Get an abduct if one exists, the null term otherwise.
 
@@ -3329,7 +3371,8 @@ Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is 
 the current set of assertions and `B` is given in the input by `conj`, or the null term if such a
 term cannot be found.
 -/
-private extern_def getAbductSimple : (solver : Solver) → (conj : Term) → Env Term
+private extern_def getAbductSimple : (solver : Solver) → (conj : Term) → Env (Option Term)
+with getAbductSimple? : (solver : Solver) → (conj : Term) → Env (Option Term) := getAbductSimple
 
 /-- Get an abduct if one exists, the null term otherwise.
 
@@ -3348,8 +3391,12 @@ Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is 
 the current set of assertions and `B` is given in the input by `conj`, or the null term if such a
 term cannot be found.
 -/
-extern_def getAbductOfGrammar :
-  (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env Term
+private extern_def getAbductOfGrammar :
+  (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env (Option Term)
+with
+  getAbductOfGrammar? :
+    (solver : Solver) → (conj : Term) → (grammar : Grammar) → Env (Option Term)
+  := getAbductOfGrammar
 
 /-- Get an abduct if one exists.
 
@@ -3369,18 +3416,18 @@ Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is 
 the current set of assertions and `B` is given in the input by `conj`, or the null term if such a
 term cannot be found.
 -/
-def getAbduct
+def getAbduct?
   (solver : Solver) (conj : Term) (grammar : Option Grammar := none)
-: Env Term :=
+: Env (Option Term) :=
   if let some grammar := grammar
   then solver.getAbductOfGrammar conj grammar
   else solver.getAbductSimple conj
 
-/-- Get the next interpolant if any, the null term otherwise.
+/-- Get the next abduct if any, the null term otherwise.
 
-Can only be called immediately after a successful call to `getAbduct`, `getAbductOfGrammar`,
-`getAbduct?`, `getAbductNext`, or `getAbductNext?`. It is guaranteed to produce a syntactically
-different abduct *w.r.t.* the last returned abduct if successful.
+Can only be called immediately after a successful call to `getAbduct?`, `getAbductOfGrammar?`,
+`getAbduct?`, or `getAbductNext?`. It is guaranteed to produce a syntactically different abduct
+*w.r.t.* the last returned abduct if successful.
 
 ```smtlib
 (get-abduct-next)
@@ -3394,7 +3441,8 @@ Returns a term `C` such that `A ∧ C` is satisfiable, and `A ∧ ¬B ∧ C` is 
 the current set of assertions and `B` is given in the input by the last call to a `getAbduct`-like
 function, or the null term if such a term cannot be found.
 -/
-extern_def getAbductNext : (solver : Solver) → Env Term
+private extern_def getAbductNext : (solver : Solver) → Env (Option Term)
+with getAbductNext? : (solver : Solver) → Env (Option Term) := getAbductNext
 
 /-- Block the current model. Can be called only if immediately preceded by a SAT or INVALID query.
 
@@ -3700,7 +3748,8 @@ Returns the result of the find, which is the null term if this call failed.
 
 **Warning**: this function is experimental and may change in future versions.
 -/
-extern_def findSynthNext : Solver → Env Term
+private extern_def findSynthNext : Solver → Env (Option Term)
+with findSynthNext? : Solver → Env (Option Term) := findSynthNext
 
 end Solver
 

@@ -10,23 +10,23 @@ test![TestApiBlackTerm, equalHash] tm => do
   let uSort ← tm.mkUninterpretedSort "u"
   let x ← tm.mkVar uSort "x"
   let y ← tm.mkVar uSort "y"
-  let z := Term.null ()
+  -- let z := Term.null ()
 
   assertTrue (x == x)
   assertFalse (x != x)
   assertFalse (x == y)
   assertTrue (x != y)
-  assertFalse (x == z)
-  assertTrue (x != z)
+  -- assertFalse (x == z)
+  -- assertTrue (x != z)
 
   assertEq x.hash x.hash
   assertNe x.hash y.hash
-  assertEq 0 (Term.null ()).hash
+  -- assertEq 0 (Term.null ()).hash
 
 test![TestApiBlackTerm, getId] tm => do
-  let n := Term.null ()
-  n.getId |> assertError
-    "invalid call to 'uint64_t cvc5::Term::getId() const', expected non-null object"
+  -- let n := Term.null ()
+  -- n.getId |> assertError
+  --   "invalid call to 'uint64_t cvc5::Term::getId() const', expected non-null object"
   let x ← tm.mkVar (← tm.getIntegerSort) "x"
   x.getId |> assertOkDiscard
   let y := x
@@ -39,9 +39,9 @@ test![TestApiBlackTerm, getKind] tm => do
   let funSort1 ← tm.mkFunctionSort #[uSort] intSort
   let funSort2 ← tm.mkFunctionSort #[intSort] boolSort
 
-  let n := Term.null ()
-  n.getKind |> assertError
-    "invalid call to 'Kind cvc5::Term::getKind() const', expected non-null object"
+  -- let n := Term.null ()
+  -- n.getKind |> assertError
+  --   "invalid call to 'Kind cvc5::Term::getKind() const', expected non-null object"
   let x ← tm.mkVar uSort "x"
   x.getKind |> assertOkDiscard
   let y ← tm.mkVar uSort "y"
@@ -78,9 +78,9 @@ test![TestApiBlackTerm, getSort] tm => do
   let funSort1 ← tm.mkFunctionSort #[bvSort] intSort
   let funSort2 ← tm.mkFunctionSort #[intSort] boolSort
 
-  let n := Term.null ()
-  n.getSort |> assertError
-    "invalid call to 'Sort cvc5::Term::getSort() const', expected non-null object"
+  -- let n := Term.null ()
+  -- n.getSort |> assertError
+  --   "invalid call to 'Sort cvc5::Term::getSort() const', expected non-null object"
   let x ← tm.mkVar bvSort "x"
   x.getSort |> assertOkDiscard
   assertEq bvSort (← x.getSort)
@@ -145,8 +145,8 @@ test![TestApiBlackTerm, getOp] tm => do
   assertTrue bitb.hasOp
   assertEq bit bitb.getOp!
   assertTrue bitb.getOp!.isIndexed
-  assertEq bit.getNumIndices 1
-  assertEq (← tm.mkInteger 4) bit[0]!
+  assertSEq 1 bit.getNumIndices fun h_bit => do
+    assertEq (← tm.mkInteger 4) bit[0]
 
   let f ← tm.mkConst funSort "f"
   let fx ← tm.mkTerm Kind.APPLY_UF #[f, x]
@@ -199,27 +199,27 @@ test![TestApiBlackTerm, getOp] tm => do
   assertEq headTerm (← tm.mkTermOfOp headTerm.getOp! children)
 
 test![TestApiBlackTerm, hasGetSymbol] tm => do
-  let n := Term.null ()
+  -- let n := Term.null ()
   let t ← tm.mkBoolean true
   let c ← tm.mkConst (← tm.getBooleanSort) "|\\|"
 
-  n.hasSymbol |> assertError
-    "invalid call to 'bool cvc5::Term::hasSymbol() const', expected non-null object"
+  -- n.hasSymbol |> assertError
+  --   "invalid call to 'bool cvc5::Term::hasSymbol() const', expected non-null object"
   assertFalse (← t.hasSymbol)
   assertTrue (← c.hasSymbol)
 
-  n.getSymbol |> assertError
-    "invalid call to 'std::string cvc5::Term::getSymbol() const', expected non-null object"
+  -- n.getSymbol |> assertError
+  --   "invalid call to 'std::string cvc5::Term::getSymbol() const', expected non-null object"
   t.getSymbol |> assertError
     "invalid call to 'std::string cvc5::Term::getSymbol() const', \
     expected the term to have a symbol."
   assertEq "|\\|" (← c.getSymbol)
 
-test![TestApiBlackTerm, isNull] tm => do
-  let mut x := Term.null ()
-  assertTrue x.isNull
-  x ← tm.mkVar (← tm.mkBitVectorSort 4) "x"
-  assertFalse x.isNull
+-- test![TestApiBlackTerm, isNull] tm => do
+--   let mut x := Term.null ()
+--   assertTrue x.isNull
+--   x ← tm.mkVar (← tm.mkBitVectorSort 4) "x"
+--   assertFalse x.isNull
 
 test![TestApiBlackTerm, notTerm] tm => do
   let bvSort ← tm.mkBitVectorSort 8
@@ -228,8 +228,8 @@ test![TestApiBlackTerm, notTerm] tm => do
   let funSort1 ← tm.mkFunctionSort #[bvSort] intSort
   let funSort2 ← tm.mkFunctionSort #[intSort] boolSort
 
-  Term.null () |>.notTerm |> assertError
-    "invalid call to 'Term cvc5::Term::notTerm() const', expected non-null object"
+  -- Term.null () |>.notTerm |> assertError
+  --   "invalid call to 'Term cvc5::Term::notTerm() const', expected non-null object"
   let b ← tm.mkTrue
   b.notTerm |> assertOkDiscard
   let x ← tm.mkVar (← tm.mkBitVectorSort 8) "x"
@@ -256,11 +256,11 @@ test![TestApiBlackTerm, andTerm] tm => do
   let funSort1 ← tm.mkFunctionSort #[bvSort] intSort
   let funSort2 ← tm.mkFunctionSort #[intSort] boolSort
 
-  let n := Term.null ()
+  -- let n := Term.null ()
   let b ← tm.mkTrue
-  n.andTerm b |> assertError
-    "invalid call to 'Term cvc5::Term::andTerm(const Term &) const', expected non-null object"
-  b.andTerm n |> assertError "invalid null argument for 't'"
+  -- n.andTerm b |> assertError
+  --   "invalid call to 'Term cvc5::Term::andTerm(const Term &) const', expected non-null object"
+  -- b.andTerm n |> assertError "invalid null argument for 't'"
   b.andTerm b |> assertOkDiscard
   let x ← tm.mkVar (← tm.mkBitVectorSort 8) "x"
   x.andTerm b |> assertError "expecting a Boolean subexpression"
@@ -322,11 +322,11 @@ test![TestApiBlackTerm, orTerm] tm => do
   let funSort1 ← tm.mkFunctionSort #[bvSort] intSort
   let funSort2 ← tm.mkFunctionSort #[intSort] boolSort
 
-  let n := Term.null ()
+  -- let n := Term.null ()
   let b ← tm.mkTrue
-  n.orTerm b |> assertError
-    "invalid call to 'Term cvc5::Term::orTerm(const Term &) const', expected non-null object"
-  b.orTerm n |> assertError "invalid null argument for 't'"
+  -- n.orTerm b |> assertError
+  --   "invalid call to 'Term cvc5::Term::orTerm(const Term &) const', expected non-null object"
+  -- b.orTerm n |> assertError "invalid null argument for 't'"
   b.orTerm b |> assertOkDiscard
   let x ← tm.mkVar (← tm.mkBitVectorSort 8) "x"
   x.orTerm b |> assertError "expecting a Boolean subexpression"
@@ -388,11 +388,11 @@ test![TestApiBlackTerm, xorTerm] tm => do
   let funSort1 ← tm.mkFunctionSort #[bvSort] intSort
   let funSort2 ← tm.mkFunctionSort #[intSort] boolSort
 
-  let n := Term.null ()
+  -- let n := Term.null ()
   let b ← tm.mkTrue
-  n.xorTerm b |> assertError
-    "invalid call to 'Term cvc5::Term::xorTerm(const Term &) const', expected non-null object"
-  b.xorTerm n |> assertError "invalid null argument for 't'"
+  -- n.xorTerm b |> assertError
+  --   "invalid call to 'Term cvc5::Term::xorTerm(const Term &) const', expected non-null object"
+  -- b.xorTerm n |> assertError "invalid null argument for 't'"
   b.xorTerm b |> assertOkDiscard
   let x ← tm.mkVar (← tm.mkBitVectorSort 8) "x"
   x.xorTerm b |> assertError "expecting a Boolean subexpression"
@@ -454,11 +454,11 @@ test![TestApiBlackTerm, eqTerm] tm => do
   let funSort1 ← tm.mkFunctionSort #[bvSort] intSort
   let funSort2 ← tm.mkFunctionSort #[intSort] boolSort
 
-  let n := Term.null ()
+  -- let n := Term.null ()
   let b ← tm.mkTrue
-  n.eqTerm b |> assertError
-    "invalid call to 'Term cvc5::Term::eqTerm(const Term &) const', expected non-null object"
-  b.eqTerm n |> assertError "invalid null argument for 't'"
+  -- n.eqTerm b |> assertError
+  --   "invalid call to 'Term cvc5::Term::eqTerm(const Term &) const', expected non-null object"
+  -- b.eqTerm n |> assertError "invalid null argument for 't'"
   b.eqTerm b |> assertOkDiscard
   let x ← tm.mkVar (← tm.mkBitVectorSort 8) "x"
   x.eqTerm b |> assertError
@@ -581,11 +581,11 @@ test![TestApiBlackTerm, impTerm] tm => do
   let funSort1 ← tm.mkFunctionSort #[bvSort] intSort
   let funSort2 ← tm.mkFunctionSort #[intSort] boolSort
 
-  let n := Term.null ()
+  -- let n := Term.null ()
   let b ← tm.mkTrue
-  n.impTerm b |> assertError
-    "invalid call to 'Term cvc5::Term::impTerm(const Term &) const', expected non-null object"
-  b.impTerm n |> assertError "invalid null argument for 't'"
+  -- n.impTerm b |> assertError
+  --   "invalid call to 'Term cvc5::Term::impTerm(const Term &) const', expected non-null object"
+  -- b.impTerm n |> assertError "invalid null argument for 't'"
   b.impTerm b |> assertOkDiscard
   let x ← tm.mkVar (← tm.mkBitVectorSort 8) "x"
   x.impTerm b |> assertError "expecting a Boolean subexpression"
@@ -647,13 +647,13 @@ test![TestApiBlackTerm, iteTerm] tm => do
   let funSort1 ← tm.mkFunctionSort #[bvSort] intSort
   let funSort2 ← tm.mkFunctionSort #[intSort] boolSort
 
-  let n := Term.null ()
+  -- let n := Term.null ()
   let b ← tm.mkTrue
-  n.iteTerm b b |> assertError
-    "invalid call to 'Term cvc5::Term::iteTerm(const Term &, const Term &) const', \
-    expected non-null object"
-  b.iteTerm n b |> assertError "invalid null argument for 'then_t'"
-  b.iteTerm b n |> assertError "invalid null argument for 'else_t'"
+  -- n.iteTerm b b |> assertError
+  --   "invalid call to 'Term cvc5::Term::iteTerm(const Term &, const Term &) const', \
+  --   expected non-null object"
+  -- b.iteTerm n b |> assertError "invalid null argument for 'then_t'"
+  -- b.iteTerm b n |> assertError "invalid null argument for 'else_t'"
   b.iteTerm b b |> assertOkDiscard
   let x ← tm.mkVar (← tm.mkBitVectorSort 8) "x"
   b.iteTerm x x |> assertOkDiscard
@@ -724,13 +724,14 @@ test![TestApiBlackTerm, termChildren] tm => do
   -- simple term `2+3`
   let two ← tm.mkInteger 2
   let t1 ← tm.mkTerm Kind.ADD #[two, ← tm.mkInteger 3]
-  assertEq two t1[0]!
+  assertSEq 2 t1.getNumChildren fun h_t1 => do
+    assertEq two t1[0]
   assertEq 2 t1.getNumChildren
-  let n := Term.null ()
+  -- let n := Term.null ()
   -- -- lean's version of `getNumChildren` produces `0` on `null` terms
   -- n.getNumChildren |> assertError
   --   "invalid call to 'size_t cvc5::Term::getNumChildren() const', expected non-null object"
-  assertEq 0 n.getNumChildren
+  -- assertEq 0 n.getNumChildren
 
   for kid in t1 do assertTrue kid.isIntegerValue
 
@@ -740,9 +741,9 @@ test![TestApiBlackTerm, termChildren] tm => do
   let f ← tm.mkConst fSort "f"
   let t2 ← tm.mkTerm Kind.APPLY_UF #[f, two]
   -- due to our higher-order view of terms, we treat f as a child of `APPLY_UF`
-  assertEq 2 t2.getNumChildren
-  assertEq f t2[0]!
-  assertEq two t2[1]!
+  assertSEq 2 t2.getNumChildren fun h_t2 => do
+    assertEq f t2[0]
+    assertEq two t2[1]
   -- original test checks that `n[0]` fails, but that call is invalid in the lean API
 
 test![TestApiBlackTerm, getInteger] tm => do
@@ -999,9 +1000,9 @@ test![TestApiBlackTerm, getFiniteFieldValue] tm => do
   let fS ← tm.mkFiniteFieldSort 7
   let fV ← tm.mkFiniteFieldElem 1 fS
   assertEq 1 (← fV.getFiniteFieldValue)
-  Term.null () |>.getFiniteFieldValue |> assertError
-    "invalid call to 'std::string cvc5::Term::getFiniteFieldValue() const', \
-    expected non-null object"
+  -- Term.null () |>.getFiniteFieldValue |> assertError
+    -- "invalid call to 'std::string cvc5::Term::getFiniteFieldValue() const', \
+    -- expected non-null object"
   let b1 ← tm.mkBitVector 8 15
   b1.getFiniteFieldValue |> assertError
     "invalid argument '#b00001111' for '*d_node', \
@@ -1152,22 +1153,22 @@ test![TestApiBlackTerm, substitute] tm => do
   xPy.substitute es rs |> assertError "expecting terms of the same sort at index 1"
 
   -- null cannot substitute
-  let n := Term.null ()
-  n.substitute #[one] #[x] |> assertError
-    "invalid call to 'Term cvc5::Term::substitute(const std::vector<Term> &, \
-    const std::vector<Term> &) const', expected non-null object"
-  xPx.substitute #[n] #[x] |> assertError "invalid null term in 'terms' at index 0"
-  xPx.substitute #[x] #[n] |> assertError "invalid null term in 'replacements' at index 0"
-  let rs := rs.pop.push n
-  xPy.substitute es rs |> assertError "invalid null term in 'replacements' at index 1"
-  let es := #[x]
-  let rs := #[y]
-  n.substitute es rs |> assertError
-    "invalid call to 'Term cvc5::Term::substitute(const std::vector<Term> &, \
-    const std::vector<Term> &) const', expected non-null object"
-  let es := es.push n
-  let rs := rs.push one
-  xPx.substitute es rs |> assertError "invalid null term in 'terms' at index 1"
+  -- let n := Term.null ()
+  -- n.substitute #[one] #[x] |> assertError
+  --   "invalid call to 'Term cvc5::Term::substitute(const std::vector<Term> &, \
+  --   const std::vector<Term> &) const', expected non-null object"
+  -- xPx.substitute #[n] #[x] |> assertError "invalid null term in 'terms' at index 0"
+  -- xPx.substitute #[x] #[n] |> assertError "invalid null term in 'replacements' at index 0"
+  -- let rs := rs.pop.push n
+  -- xPy.substitute es rs |> assertError "invalid null term in 'replacements' at index 1"
+  -- let es := #[x]
+  -- let rs := #[y]
+  -- n.substitute es rs |> assertError
+  --   "invalid call to 'Term cvc5::Term::substitute(const std::vector<Term> &, \
+  --   const std::vector<Term> &) const', expected non-null object"
+  -- let es := es.push n
+  -- let rs := rs.push one
+  -- xPx.substitute es rs |> assertError "invalid null term in 'terms' at index 1"
 
 test![TestApiBlackTerm, constArray] tm => do
   let int ← tm.getIntegerSort
@@ -1223,7 +1224,7 @@ test![TestApiBlackTerm, getCardinalityConstraint] tm => do
     "invalid argument 'x' for '*d_node', \
     expected Term to be a cardinality constraint when calling getCardinalityConstraint()"
   -- original test checks that the following produces an error, but the lean version does not
-  Term.null () |>.isCardinalityConstraint |> assertFalse
+  -- Term.null () |>.isCardinalityConstraint |> assertFalse
 
 test![TestApiBlackTerm, getRealAlgebraicNumber] tm solver => do
   solver.setOption "produce-models" "true"
@@ -1242,8 +1243,8 @@ test![TestApiBlackTerm, getRealAlgebraicNumber] tm solver => do
     let vx ← solver.getValue x
     assertTrue vx.isRealAlgebraicNumber
     let y ← tm.mkVar realSort "y"
-    let poly ← vx.getRealAlgebraicNumberDefiningPolynomial y
-    assertFalse poly.isNull
+    assertOkDiscard <| vx.getRealAlgebraicNumberDefiningPolynomial y
+    -- assertFalse poly.isNull
     let lb ← vx.getRealAlgebraicNumberLowerBound
     assertTrue lb.isRealValue
     let ub ← vx.getRealAlgebraicNumberUpperBound
@@ -1264,7 +1265,7 @@ test![TestApiBlackTerm, getSkolem] tm => do
     "invalid argument 'x' for '*d_node', expected Term to be a skolem when calling getSkolemIndices"
 
 test![TestApiBlackTerm, toString] tm => do
-  assertEq "null" (Term.null () |>.toString)
+  -- assertEq "null" (Term.null () |>.toString)
 
   let int ← tm.getIntegerSort
   let x ← tm.mkConst int "x"
