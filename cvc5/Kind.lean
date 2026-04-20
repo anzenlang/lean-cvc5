@@ -6,6 +6,7 @@ Authors: Abdalrhman Mohamed, Adrien Champion
 -/
 
 module
+public section
 
 namespace cvc5
 
@@ -22,7 +23,7 @@ export to its corresponding internal kinds. The underlying type of
 of this type depends on the size of `cvc5::internal::Kind`
 (`NodeValue::NBITS_KIND`, currently 10 bits, see expr/node_value.h).
 -/
-public inductive Kind where
+inductive Kind where
   /--
   Internal kind.
   
@@ -6017,7 +6018,7 @@ export to its corresponding internal kinds. The underlying type of
 of this type depends on the size of `cvc5::internal::Kind`
 (`NodeValue::NBITS_KIND`, currently 10 bits, see expr/node_value.h).
 -/
-public inductive SortKind where
+inductive SortKind where
   /--
   Internal kind.
   
