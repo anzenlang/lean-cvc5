@@ -1,3 +1,5 @@
+module
+
 import Lean.Data.Position
 import Std.Internal.Parsec
 
@@ -108,6 +110,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Abdalrhman Mohamed, Adrien Champion
 -/\
   "]
+  wln []
+  wln ["module"]
+  wln ["public section"]
   wln []
   wln ["namespace cvc5"]
   for e in es do
@@ -555,7 +560,7 @@ def fail (s : String) : IO α :=
   throw (.userError s)
 
 open cvc5.PreBuild.Fs in
-def main (args : List String) : IO Unit := do
+public def main (args : List String) : IO Unit := do
   let (cppDir, leanDir) ← match args with
     | [cpp, lean] => pure ((cpp, lean) : FilePath × FilePath)
     | l => fail s!"expected exactly 2 arguments, found {l.length}"
