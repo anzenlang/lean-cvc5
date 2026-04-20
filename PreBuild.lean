@@ -73,7 +73,7 @@ def Enum.writeToLean (e : Enum) (skipIfDefs := true) : IO Unit := do
   -- write the type's doc
   e.doc.writeToLean h pref
   -- type definition
-  wln ["public inductive ", e.ident, " where"]
+  wln ["inductive ", e.ident, " where"]
   -- write each variant (and its doc), populate `listAll`'s definition
   for v in e.variants do
     -- ignore variants inside `#ifdef`?
@@ -112,6 +112,7 @@ Authors: Abdalrhman Mohamed, Adrien Champion
   "]
   wln []
   wln ["module"]
+  wln ["public section"]
   wln []
   wln ["namespace cvc5"]
   for e in es do

@@ -3754,3 +3754,5 @@ with findSynthNext? : Solver → Env (Option Term) := findSynthNext
 end Solver
 
 end cvc5
+
+end

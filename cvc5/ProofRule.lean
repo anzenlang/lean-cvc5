@@ -6,6 +6,7 @@ Authors: Abdalrhman Mohamed, Adrien Champion
 -/
 
 module
+public section
 
 namespace cvc5
 
@@ -58,7 +59,7 @@ rules. These exist for convenience and can be replaced by their definition
 in post-processing.
 \endverbatim
 -/
-public inductive ProofRule where
+inductive ProofRule where
   /--
   \verbatim embed:rst:leading-asterisk
   **Assumption (a leaf)**
@@ -2481,7 +2482,7 @@ and the :cpp:enumerator:`THEORY_REWRITE <cvc5::ProofRule::THEORY_REWRITE>`
 proof rule.
 \endverbatim
 -/
-public inductive ProofRewriteRule where
+inductive ProofRewriteRule where
   | NONE
   /--
   \verbatim embed:rst:leading-asterisk

@@ -6,6 +6,7 @@ Authors: Abdalrhman Mohamed, Adrien Champion
 -/
 
 module
+public section
 
 namespace cvc5
 
@@ -41,7 +42,7 @@ are empty and the skolem has a functional type ``(-> Real Real)``.
 \internal
 
 -/
-public inductive SkolemId where
+inductive SkolemId where
   /--
   The identifier of the skolem is not exported. These skolems should not
   appear in any user-level API calls.
