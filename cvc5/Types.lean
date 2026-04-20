@@ -6,6 +6,7 @@ Authors: Abdalrhman Mohamed, Adrien Champion
 -/
 
 module
+
 public section
 
 namespace cvc5
@@ -20,39 +21,39 @@ inductive UnknownExplanation where
   -/
   | REQUIRES_FULL_CHECK
   /--
-  Incomplete theory solver. 
+  Incomplete theory solver.
   -/
   | INCOMPLETE
   /--
-  Time limit reached. 
+  Time limit reached.
   -/
   | TIMEOUT
   /--
-  Resource limit reached. 
+  Resource limit reached.
   -/
   | RESOURCEOUT
   /--
-  Memory limit reached. 
+  Memory limit reached.
   -/
   | MEMOUT
   /--
-  Solver was interrupted. 
+  Solver was interrupted.
   -/
   | INTERRUPTED
   /--
-  Unsupported feature encountered. 
+  Unsupported feature encountered.
   -/
   | UNSUPPORTED
   /--
-  Other reason. 
+  Other reason.
   -/
   | OTHER
   /--
-  Requires another satisfiability check 
+  Requires another satisfiability check
   -/
   | REQUIRES_CHECK_AGAIN
   /--
-  No specific reason given. 
+  No specific reason given.
   -/
   | UNKNOWN_REASON
 deriving Inhabited, Repr, BEq, DecidableEq
@@ -74,7 +75,7 @@ Standard 754.
 inductive RoundingMode where
   /--
   Round to the nearest even number.
-  
+
   If the two nearest floating-point numbers bracketing an unrepresentable
   infinitely precise result are equally near, the one with an even least
   significant digit will be delivered.
@@ -82,28 +83,28 @@ inductive RoundingMode where
   | ROUND_NEAREST_TIES_TO_EVEN
   /--
   Round towards positive infinity (SMT-LIB: ``+oo``).
-  
+
   The result shall be the format's floating-point number (possibly ``+oo``)
   closest to and no less than the infinitely precise result.
   -/
   | ROUND_TOWARD_POSITIVE
   /--
   Round towards negative infinity (``-oo``).
-  
+
   The result shall be the format's floating-point number (possibly ``-oo``)
   closest to and no less than the infinitely precise result.
   -/
   | ROUND_TOWARD_NEGATIVE
   /--
   Round towards zero.
-  
+
   The result shall be the format's floating-point number closest to and no
   greater in magnitude than the infinitely precise result.
   -/
   | ROUND_TOWARD_ZERO
   /--
   Round to the nearest number away from zero.
-  
+
   If the two nearest floating-point numbers bracketing an unrepresentable
   infinitely precise result are equally near), the one with larger magnitude
   will be selected.
@@ -119,11 +120,11 @@ Solver::blockModelValues.
 -/
 inductive BlockModelsMode where
   /--
-  Block models based on the SAT skeleton. 
+  Block models based on the SAT skeleton.
   -/
   | LITERALS
   /--
-  Block models based on the concrete model values for the free variables. 
+  Block models based on the concrete model values for the free variables.
   -/
   | VALUES
 deriving Inhabited, Repr, BEq, DecidableEq
@@ -140,7 +141,7 @@ classify literals based on the first criteria in this list that they meet.
 inductive LearnedLitType where
   /--
   An equality that was turned into a substitution during preprocessing.
-  
+
   In particular, literals in this category are of the form (= x t) where
   x does not occur in t.
   -/
@@ -153,17 +154,17 @@ inductive LearnedLitType where
   /--
   A literal from the preprocessed set of input formulas that does not
   occur at top-level after preprocessing.
-  
+
   Typically), this is the most interesting category of literals to learn.
   -/
   | INPUT
   /--
   An internal literal that is solvable for an input variable.
-  
+
   In particular, literals in this category are of the form (= x t) where
   x does not occur in t, the preprocessed set of input formulas contains the
   term x, but not the literal (= x t).
-  
+
   Note that solvable literals can be turned into substitutions during
   preprocessing.
   -/
@@ -171,18 +172,18 @@ inductive LearnedLitType where
   /--
   An internal literal that can be made into a constant propagation for an
   input term.
-  
+
   In particular, literals in this category are of the form (= t c) where
   c is a constant, the preprocessed set of input formulas contains the
   term t, but not the literal (= t c).
   -/
   | CONSTANT_PROP
   /--
-  Any internal literal that does not fall into the above categories. 
+  Any internal literal that does not fall into the above categories.
   -/
   | INTERNAL
   /--
-  Special case for when produce-learned-literals is not set.  
+  Special case for when produce-learned-literals is not set.
   -/
   | UNKNOWN
 deriving Inhabited, Repr, BEq, DecidableEq
@@ -196,7 +197,7 @@ inductive ProofComponent where
   F1, ... Fm, where:
   - G1, ... Gn are the preprocessed input formulas,
   - F1, ... Fm are the input formulas.
-  
+
   Note that G1 ... Gn may be arbitrary formulas, not necessarily clauses.
   -/
   | RAW_PREPROCESS
@@ -207,10 +208,10 @@ inductive ProofComponent where
   proof,
   - Fu1, ... Fum is the subset of the input formulas that are used in the SAT
   proof (i.e. the unsat core).
-  
+
   Note that Gu1 ... Gun are clauses that are added to the SAT solver before
   its main search.
-  
+
   Only valid immediately after an unsat response.
   -/
   | PREPROCESS
@@ -219,7 +220,7 @@ inductive ProofComponent where
   where:
   - Gu1, ... Gun, is a set of clauses corresponding to input formulas,
   - L1, ..., Lk is a set of clauses corresponding to theory lemmas.
-  
+
   Only valid immediately after an unsat response.
   -/
   | SAT
@@ -227,17 +228,17 @@ inductive ProofComponent where
   Proofs of L1 ... Lk where:
   - L1, ..., Lk are clauses corresponding to theory lemmas used in the SAT
   proof.
-  
+
   In contrast to proofs given for preprocess, L1 ... Lk are clauses that are
   added to the SAT solver after its main search.
-  
+
   Only valid immediately after an unsat response.
   -/
   | THEORY_LEMMAS
   /--
   A proof of false whose free assumptions are a subset of the input formulas
   F1), ... Fm.
-  
+
   Only valid immediately after an unsat response.
   -/
   | FULL
@@ -248,27 +249,27 @@ Proof format used for proof printing.
 -/
 inductive ProofFormat where
   /--
-  Do not translate proof output. 
+  Do not translate proof output.
   -/
   | NONE
   /--
-  Output DOT proof. 
+  Output DOT proof.
   -/
   | DOT
   /--
-  Output LFSC proof. 
+  Output LFSC proof.
   -/
   | LFSC
   /--
-  Output Alethe proof. 
+  Output Alethe proof.
   -/
   | ALETHE
   /--
-  Output Cooperating Proof Calculus proof based on Eunoia signatures. 
+  Output Cooperating Proof Calculus proof based on Eunoia signatures.
   -/
   | CPC
   /--
-  Use the proof format mode set in the solver options. 
+  Use the proof format mode set in the solver options.
   -/
   | DEFAULT
 deriving Inhabited, Repr, BEq, DecidableEq
@@ -287,7 +288,7 @@ inductive FindSynthTarget where
   but do not rewrite to the same term in the given rewriter
   (--sygus-rewrite=MODE). If so, the equality (= t s) is returned by
   findSynth.
-  
+
   This can be used to synthesize rewrite rules. Note if the rewriter is set
   to none (--sygus-rewrite=none), this indicates a possible rewrite when
   implementing a rewriter from scratch.
@@ -297,7 +298,7 @@ inductive FindSynthTarget where
   Find a term t in the target grammar which rewrites to a term s that is
   not equivalent to it. If so, the equality (= t s) is returned by
   findSynth.
-  
+
   This can be used to test the correctness of the given rewriter. Any
   returned rewrite indicates an unsoundness in the given rewriter.
   -/
@@ -306,7 +307,7 @@ inductive FindSynthTarget where
   Find a rewrite between pairs of terms (t,s) that are matchable with terms
   in the input assertions where t and s are equivalent but do not rewrite
   to the same term in the given rewriter (--sygus-rewrite=MODE).
-  
+
   This can be used to synthesize rewrite rules that apply to the current
   problem.
   -/
@@ -315,7 +316,7 @@ inductive FindSynthTarget where
   Find a query over the given grammar. If the given grammar generates terms
   that are not Boolean, we consider equalities over terms from the given
   grammar.
-  
+
   The algorithm for determining which queries to generate is configured by
   --sygus-query-gen=MODE. Queries that are internally solved can be
   filtered by the option --sygus-query-gen-filter-solved.
@@ -329,19 +330,19 @@ Specifies the category of an option for user interface purposes.
 -/
 inductive OptionCategory where
   /--
-  Option available to regular users 
+  Option available to regular users
   -/
   | REGULAR
   /--
-  Option available to expert users 
+  Option available to expert users
   -/
   | EXPERT
   /--
-  Common options 
+  Common options
   -/
   | COMMON
   /--
-  Undocumented options 
+  Undocumented options
   -/
   | UNDOCUMENTED
 deriving Inhabited, Repr, BEq, DecidableEq
@@ -351,15 +352,19 @@ The different reasons for returning an "unknown" result.
 -/
 inductive InputLanguage where
   /--
-  The SMT-LIB version 2.6 language 
+  The SMT-LIB version 2.6 language
   -/
   | SMT_LIB_2_6
   /--
-  The SyGuS version 2.1 language. 
+  The SyGuS version 2.1 language.
   -/
   | SYGUS_2_1
   /--
-  No language given. 
+  No language given.
   -/
   | UNKNOWN
 deriving Inhabited, Repr, BEq, DecidableEq
+
+end cvc5
+
+end

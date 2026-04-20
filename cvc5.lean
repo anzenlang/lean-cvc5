@@ -16,6 +16,8 @@ public import cvc5.Types
 
 public section
 
+open cvc5.Init
+
 @[export prod_mk_generic]
 private def mkProd := @Prod.mk
 

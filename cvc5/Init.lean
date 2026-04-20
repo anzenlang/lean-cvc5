@@ -9,7 +9,7 @@ module
 
 public meta import Lean.Elab.Command
 
-namespace cvc5
+namespace cvc5.Init
 
 /-! ## DSL for definition  DRY -/
 section defsMacro
@@ -76,7 +76,7 @@ scoped syntax (name := defsItemStx)
   (defsItemTail)?
 : defsItem
 
-unsafe def elabDefsItem
+meta unsafe def elabDefsItem
   (pref : String) (forceMods : Option (TSyntax `defsMod))
 : CommandElab
 | `(defsItem|
@@ -378,3 +378,5 @@ public meta unsafe def externdefImpl : CommandElab
 | _ => throwUnsupportedSyntax
 
 end defsMacro
+
+end cvc5.Init

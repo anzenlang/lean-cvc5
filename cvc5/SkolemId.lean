@@ -6,6 +6,7 @@ Authors: Abdalrhman Mohamed, Adrien Champion
 -/
 
 module
+
 public section
 
 namespace cvc5
@@ -51,28 +52,28 @@ inductive SkolemId where
   /--
   The purification skolem for a term. This is a variable that is semantically
   equivalent to the indexed term t.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The term t that this skolem purifies.
   - Sort: The sort of t.
-  
+
   The term `(@purify t)` is equivalent to `t`.
   -/
   | PURIFY
   /--
   An arbitrary ground term of a given sort.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` A term that represents the sort of the term.
   - Sort: The sort given by the index.
-  
+
   The term `(@ground_term T)` is totally unconstrained.
   -/
   | GROUND_TERM
   /--
   The array diff skolem, which is the witness k for the inference
   ``(=> (not (= A B)) (not (= (select A k) (select B k))))``.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The first array of sort ``(Array T1 T2)``.
     - ``2:`` The second array of sort ``(Array T1 T2)``.
@@ -81,37 +82,37 @@ inductive SkolemId where
   | ARRAY_DEQ_DIFF
   /--
   The empty bitvector.
-  
+
   - Number of skolem indices: ``0``
   - Type: ``(_ BitVec 0)``
-  
+
   The term `@bv_empty` is equivalent to the empty bit-vector.
   -/
   | BV_EMPTY
   /--
   The function for division by zero.
-  
+
   - Number of skolem indices: ``0``
   - Sort: ``(-> Real Real)``
-  
+
   The term `@div_by_zero` is equivalent to `(lambda ((x Real)) (/ x 0.0))`.
   -/
   | DIV_BY_ZERO
   /--
   The function for integer division by zero.
-  
+
   - Number of skolem indices: ``0``
   - Sort: ``(-> Int Int)``
-  
+
   The term `@int_div_by_zero` is equivalent to `(lambda ((x Int)) (div x 0))`.
   -/
   | INT_DIV_BY_ZERO
   /--
   The function for integer modulus by zero.
-  
+
   - Number of skolem indices: ``0``
   - Sort: ``(-> Int Int)``
-  
+
   The term `@int_mod_by_zero` is equivalent to `(lambda ((x Int)) (mod x 0))`.
   -/
   | MOD_BY_ZERO
@@ -120,12 +121,12 @@ inductive SkolemId where
   Transcendental functions like sqrt, arccos, arcsin, etc. are replaced
   during processing with uninterpreted functions that are unique to
   each function.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` A lambda corresponding to the function, e.g.,
     `(lambda ((x Real)) (sqrt x))`.
   - Sort: ``(-> Real Real)``
-  
+
   The term `(@trancendental_purify f)` is equivalent to `f`.
   -/
   | TRANSCENDENTAL_PURIFY
@@ -133,7 +134,7 @@ inductive SkolemId where
   Argument used to purify trancendental function app ``(f x)``.
   For ``(sin x)``, this is a variable that is assumed to be in phase with
   ``x`` that is between ``-pi`` and ``pi``.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The application of a trancendental function.
   - Sort: ``Real``
@@ -144,7 +145,7 @@ inductive SkolemId where
   In particular, this is an integral rational indicating the number of times
   :math:`2\pi` is added to a real value between :math:`-\pi` and :math:`\pi`
   to obtain the value of argument to sine.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The argument to sine.
   - Sort: ``Real``
@@ -154,7 +155,7 @@ inductive SkolemId where
   Used to reason about virtual term substitution. This term represents
   an infinitesimal. This skolem is expected to appear in instantiations
   and immediately be rewritten via virtual term substitution.
-  
+
   - Number of skolem indices: ``0``
   - Sort: ``Real``
   -/
@@ -163,7 +164,7 @@ inductive SkolemId where
   Used to reason about virtual term substitution. This term represents
   an infinitesimal. Unlike ARITH_VTS_DELTA, this skolem may appear in
   lemmas.
-  
+
   - Number of skolem indices: ``0``
   - Sort: ``Real``
   -/
@@ -172,7 +173,7 @@ inductive SkolemId where
   Used to reason about virtual term substitution. This term represents
   infinity.  This skolem is expected to appear in instantiations
   and immediately be rewritten via virtual term substitution.
-  
+
   - Number of skolem indices: ``0``
     - ``1:`` A term that represents an arithmetic sort (Int or Real).
   - Sort: The sort given by the index.
@@ -182,7 +183,7 @@ inductive SkolemId where
   Used to reason about virtual term substitution. This term represents
   infinity. Unlike ARITH_VTS_INFINITY, this skolem may appear in
   lemmas.
-  
+
   - Number of skolem indices: ``0``
     - ``1:`` A term that represents an arithmetic sort (Int or Real).
   - Sort: The sort given by the index.
@@ -192,7 +193,7 @@ inductive SkolemId where
   A shared datatype selector, see Reynolds et. al. "Datatypes with Shared
   Selectors", IJCAR 2018. Represents a selector that can extract fields
   of multiple constructors.
-  
+
   - Number of skolem indices: ``3``
     - ``1:`` A term that represents the datatype we are extracting from.
     - ``2:`` A term that represents the sort of field we are extracting.
@@ -205,7 +206,7 @@ inductive SkolemId where
   /--
   The higher-roder diff skolem, which is the witness k for the inference
   ``(=> (not (= A B)) (not (= (A k1 ... kn) (B k1 ... kn))))``.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The first function of sort ``(-> T1 ... Tn T)``.
     - ``2:`` The second function of sort ``(-> T1 ... Tn T)``.
@@ -215,7 +216,7 @@ inductive SkolemId where
   | HO_DEQ_DIFF
   /--
   The n^th skolem for the negation of universally quantified formula Q.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The universally quantified formula Q.
     - ``2:`` The index of the variable in the binder of Q to skolemize.
@@ -227,7 +228,7 @@ inductive SkolemId where
   be assumed to be distinct if their identifiers (given by their third index) are
   distinct modulo :math:`A` to the power of their length (given by their second index),
   where :math:`A` is the cardinality of the characters of their sort.
-  
+
   - Number of skolem indices: ``3``
     - ``1:`` A term that represents the sort of the term.
     - ``2:`` The assumed length of this term, expected to be a non-negative integer.
@@ -237,7 +238,7 @@ inductive SkolemId where
   | WITNESS_STRING_LENGTH
   /--
   A witness for an invertibility condition.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` A formula of the form ``(exists x. (x <op> s) <rel> t)``
              or ``(exists x. x <rel> t)``, where s and t are ground
@@ -248,7 +249,7 @@ inductive SkolemId where
   /--
   An integer corresponding to the number of times a string occurs in another
   string. This is used to reason about str.replace_all.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The first string.
     - ``2:`` The second string.
@@ -260,7 +261,7 @@ inductive SkolemId where
   index of the x^th occurrence of a string b in string a, where n is the
   number of occurrences of b in a, and ``(= (k 0) 0)``. This is used to
   reason about str.replace_all.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The first string.
     - ``2:`` The second string.
@@ -271,7 +272,7 @@ inductive SkolemId where
   Analogous to STRINGS_NUM_OCCUR, but for regular expressions.
   An integer corresponding to the number of times a regular expression can
   be matched in a string.  This is used to reason about str.replace_all_re.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The string to match.
     - ``2:`` The regular expression to find.
@@ -284,7 +285,7 @@ inductive SkolemId where
   index of the x^th occurrence of a regular expression R in string a, where
   n is the number of occurrences of R in a, and ``(= (k 0) 0)``. This is used
   to reason about str.replace_all_re.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The string to match.
     - ``2:`` The regular expression to find.
@@ -296,7 +297,7 @@ inductive SkolemId where
   the inference
    ``(=> (not (= a b)) (not (= (substr a k 1) (substr b k 1))))``
   where note that `k` may be out of bounds for at most of a,b.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The first string.
     - ``2:`` The second string.
@@ -309,7 +310,7 @@ inductive SkolemId where
   result of processing the string or sequence after processing the n^th
   occurrence of string or match of the regular expression in the given
   replace_all term.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The application of replace_all or replace_all_re.
   - Sort: ``(-> Int S)`` where S is either ``String`` or ``(Seq T)`` for
@@ -320,11 +321,11 @@ inductive SkolemId where
   A function used to define intermediate results of str.from_int
   applications. This is a function k denoting the result
   of processing the first n digits of the argument.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The argument to str.from_int.
   - Sort: ``(-> Int Int)``
-  
+
   The term `(@strings_itos_result n)` is equivalent to
   `(lambda ((x Int)) (str.from_int (mod n (^ 10 x)))`.
   -/
@@ -333,11 +334,11 @@ inductive SkolemId where
   A function used to define intermediate results of str.from_int
   applications. This is a function k of type ``(-> Int String)`` denoting the
   result of processing the first n characters of the argument.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The argument to str.to_int.
   - Sort: ``(-> Int String)``
-  
+
   The term `(@strings_stoi_result s)` is equivalent to
   `(lambda ((x Int)) (str.to_int (str.substr s 0 x)))`.
   -/
@@ -346,11 +347,11 @@ inductive SkolemId where
   A position containing a non-digit in a string, used when ``(str.to_int a)``
   is equal to -1. This is an integer that returns a position for which the
   argument string is not a digit if one exists, or -1 otherwise.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The argument to str.to_int.
   - Sort: ``Int``
-  
+
   The term `(@strings_stoi_non_digit s)` is equivalent to
   `(str.indexof_re s (re.comp (re.range "0" "9")) 0)`.
   -/
@@ -360,7 +361,7 @@ inductive SkolemId where
   ``(re.++ R0 ... Rn)``, then the ``RE_UNFOLD_POS_COMPONENT`` for indices
   (a,R,i) is a string ki such that ``(= a (str.++ k0 ... kn))`` and
   ``(str.in_re k0 R0)`` for i = 0, ..., n.
-  
+
   - Number of skolem indices: ``3``
     - ``1:`` The string.
     - ``2:`` The regular expression.
@@ -378,7 +379,7 @@ inductive SkolemId where
   elements: a skolem function for (bag.fold f t A).
             See ``BAGS_DISTINCT_ELEMENTS``.
   n: is the number of distinct elements in A.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` the bag argument A.
   - Sort: ``(-> Int Int)``
@@ -395,7 +396,7 @@ inductive SkolemId where
   unionDisjoint(i) = disjoint union of {<elements(i), m(elements(i), A)>}
                      and unionDisjoint(i-1).
   unionDisjoint(n) = A.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` the bag argument A of type (Bag T).
   - Sort: ``(-> Int (Bag T))``
@@ -405,7 +406,7 @@ inductive SkolemId where
   An uninterpreted function for bag.fold operator:
   To compute ``(bag.fold f t A)``, we need to guess the cardinality n of
   bag A using a skolem function with ``BAGS_FOLD_CARD`` id.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` the bag argument A.
   - Sort: ``Int``
@@ -422,7 +423,7 @@ inductive SkolemId where
             see ``BAGS_FOLD_ELEMENTS``.
   n: is the cardinality of A.
   T2: is the type of initial value t.
-  
+
   - Number of skolem indices: ``3``
     - ``1:`` the function f of type ``(-> T1 T2)``.
     - ``2:`` the initial value t of type ``T2``.
@@ -439,7 +440,7 @@ inductive SkolemId where
   If the cardinality of A is n, then
   A is the disjoint union of {elements(i)} for 1 <= i <= n.
   See ``BAGS_FOLD_UNION_DISJOINT``.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` a bag argument A of type ``(Bag T1)``
   - Sort: ``(-> Int T1)``
@@ -455,7 +456,7 @@ inductive SkolemId where
   unionDisjoint(0) = bag.empty.
   unionDisjoint(i) = disjoint union of {elements(i)} and unionDisjoint (i-1).
   unionDisjoint(n) = A.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` the bag argument A of type ``(Bag T1)``.
   - Sort: ``(-> Int (Bag T1))``
@@ -466,7 +467,7 @@ inductive SkolemId where
   ``(bag.choose A)`` is replaced by ``(uf A)`` along with the inference
   that ``(>= (bag.count (uf A) A) 1)`` when ``A`` is non-empty.
   where ``T`` is the type of elements of A.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` the bag to chose from, of type (Bag T).
   - Sort: ``(-> (Bag T) T)``
@@ -476,7 +477,7 @@ inductive SkolemId where
   An uninterpreted function for distinct elements of a bag A, which returns
   the n^th distinct element of the bag.
   See ``BAGS_DISTINCT_ELEMENTS_UNION_DISJOINT``.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` the bag argument A of type ``(Bag T)``.
   - Sort: ``(-> Int T)``
@@ -484,7 +485,7 @@ inductive SkolemId where
   | BAGS_DISTINCT_ELEMENTS
   /--
   A skolem variable for the size of the distinct elements of a bag A.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` the bag argument A.
   - Sort: ``Int``
@@ -493,7 +494,7 @@ inductive SkolemId where
   /--
   A skolem for the preimage of an element y in ``(bag.map f A)`` such that
   ``(= (f x) y)`` where f: ``(-> E T)`` is an injective function.
-  
+
   - Number of skolem indices: ``3``
     - ``1:`` the function f of type ``(-> E T)``.
     - ``2:`` the bag argument A of ``(Bag E)``.
@@ -508,7 +509,7 @@ inductive SkolemId where
   A: ``(Bag E)``,
   y: ``T``,
   e: ``E``
-  
+
   - Number of skolem indices: ``5``
     - ``1:`` a map term of the form ``(bag.map f A)``.
     - ``2:`` a skolem function with id ``BAGS_DISTINCT_ELEMENTS``.
@@ -525,7 +526,7 @@ inductive SkolemId where
   where sum: ``(-> Int Int)`` is a skolem function such that:
   sum(0) = 0
   sum(i) = sum (i-1) + (bag.count (uf i) A)
-  
+
   - Number of skolem indices: ``3``
     - ``1:`` the function f of type ``(-> E T)``.
     - ``2:`` the bag argument A of ``(Bag E)``.
@@ -536,7 +537,7 @@ inductive SkolemId where
   /--
   The bag diff skolem, which is the witness k for the inference
   ``(=> (not (= A B)) (not (= (bag.count k A) (bag.count k B))))``.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The first bag of type ``(Bag T)``.
     - ``2:`` The second bag of type ``(Bag T)``.
@@ -547,7 +548,7 @@ inductive SkolemId where
   Given a group term ``((_ table.group n1 ... nk) A)`` of type
   ``(Bag (Table T))``, this skolem maps elements of A to their parts in the
   resulting partition.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` a group term of the form ``((_ table.group n1 ... nk) A)``.
   - Sort: ``(-> T (Table T))``
@@ -557,7 +558,7 @@ inductive SkolemId where
   Given a group term ``((_ table.group n1 ... nk) A)`` of type
   ``(Bag (Table T))`` and a part B of type ``(Table T)``, this function
   returns a skolem element that is a member of B if B is not empty.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` a group term of the form ``((_ table.group n1 ... nk) A)``.
     - ``2:`` a table B of type ``(Table T)``.
@@ -568,7 +569,7 @@ inductive SkolemId where
   Given a group term ``((_ rel.group n1 ... nk) A)`` of type
   ``(Set (Relation T))`` this skolem maps elements of A to their parts in the
   resulting partition.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` a relation of the form ``((_ rel.group n1 ... nk) A)``.
   - Sort: ``(-> T (Relation T))``
@@ -578,7 +579,7 @@ inductive SkolemId where
   Given a group term ((_ rel.group n1 ... nk) A) of type (Set (Relation T))
   and a part B of type (Relation T), this function returns a skolem element
   that is a member of B if B is not empty.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` a group term of the form ``((_ rel.group n1 ... nk) A)``.
     - ``2:`` a relation B of type ``(Relation T)``.
@@ -591,7 +592,7 @@ inductive SkolemId where
   ``(set.member (uf A) A))`` when ``A`` is non-empty,
   where uf: ``(-> (Set E) E)`` is this skolem function, and E is the type of
   elements of ``A``.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` a ground value for the type ``(Set E)``.
   - Sort: ``(-> (Set E) E)``
@@ -600,7 +601,7 @@ inductive SkolemId where
   /--
   The set diff skolem, which is the witness k for the inference
   ``(=> (not (= A B)) (not (= (set.member k A) (set.member k B))))``.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The first set of type ``(Set E)``.
     - ``2:`` The second set of type ``(Set E)``.
@@ -611,7 +612,7 @@ inductive SkolemId where
   An uninterpreted function for set.fold operator:
   To compute ``(set.fold f t A)``, we need to guess the cardinality n of
   set A using a skolem function with SETS_FOLD_CARD id.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` the set argument A.
   - Sort: ``Int``
@@ -628,7 +629,7 @@ inductive SkolemId where
             see SETS_FOLD_ELEMENTS
   n: is the cardinality of A
   T2: is the type of initial value t
-  
+
   - Number of skolem indices: ``3``
     - ``1:`` the function f of type ``(-> T1 T2)``.
     - ``2:`` the initial value t of type ``T2``.
@@ -645,7 +646,7 @@ inductive SkolemId where
   If the cardinality of A is n, then
   A is the union of {elements(i)} for 1 <= i <= n.
   See SETS_FOLD_UNION_DISJOINT.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` a set argument A of type ``(Set T)``.
   - Sort: ``(-> Int T)``
@@ -661,7 +662,7 @@ inductive SkolemId where
   unionFn(0) = set.empty
   unionFn(i) = union of {elements(i)} and unionFn (i-1)
   unionFn(n) = A
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` a set argument A of type ``(Set E)``.
   - Sort: ``(-> Int (Set E))``
@@ -671,7 +672,7 @@ inductive SkolemId where
   A skolem variable that is unique per terms ``(set.map f A)``, y which is an
   element in ``(set.map f A)``. The skolem is constrained to be an element in
   A, and it is mapped to y by f.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` a map term of the form ``(set.map f A)`` where A of type ``(Set E)``
     - ``2:`` the element argument y.
@@ -681,7 +682,7 @@ inductive SkolemId where
   /--
   A skolem function that is unique per floating-point sort, introduced for
   the undefined zero case of ``fp.min``.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The floating-point sort ``FP`` of the fp.min operator.
   - Sort: ``(-> FP FP (_ BitVec 1))``
@@ -690,7 +691,7 @@ inductive SkolemId where
   /--
   A skolem function that is unique per floating-point sort, introduced for
   the undefined zero case of ``fp.max``.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The floating-point sort ``FP`` of the fp.max operator.
   - Sort: ``(-> FP FP (_ BitVec 1))``
@@ -700,7 +701,7 @@ inductive SkolemId where
   A skolem function introduced for the undefined out-ouf-bounds case of
   ``fp.to_ubv`` that is unique per floating-point sort and sort of the
   arguments to the operator.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The floating-point sort ``FP`` of operand of fp.to_ubv.
     - ``2:`` The bit-vector sort ``BV`` to convert to.
@@ -711,7 +712,7 @@ inductive SkolemId where
   A skolem function introduced for the undefined out-ouf-bounds case of
   ``fp.to_sbv`` that is unique per floating-point sort and sort of the
   arguments to the operator.
-  
+
   - Number of skolem indices: ``2``
     - ``1:`` The floating-point sort ``FP`` of operand of fp.to_sbv.
     - ``2:`` The bit-vector sort ``BV`` to convert to.
@@ -721,7 +722,7 @@ inductive SkolemId where
   /--
   A skolem function introduced for the undefined of ``fp.to_real`` that is
   unique per floating-point sort.
-  
+
   - Number of skolem indices: ``1``
     - ``1:`` The floating-point sort ``FP`` of the operand of fp.to_real.
   - Sort: ``(-> FP Real)``
@@ -738,13 +739,17 @@ inductive SkolemId where
   - Number of skolem indices: ``1``
     - ``1:`` the original function f, with BV sorts.
   - Sort: `(-> T1' ... ( -> Tn' T')...)` Where
-    f has sort (->T1 ... (-> Tn T)...) and Ti' (T') is 
+    f has sort (->T1 ... (-> Tn T)...) and Ti' (T') is
     `Int` if Ti (T) is `BV` and Ti' (T') is just Ti (T)
     otherwise.
   -/
   | BV_TO_INT_UF
   /--
-  Indicates this is not a skolem. 
+  Indicates this is not a skolem.
   -/
   | NONE
 deriving Inhabited, Repr, BEq, DecidableEq
+
+end cvc5
+
+end

@@ -43,6 +43,9 @@ open IO.FS (Handle)
 
 variable (h : Handle) (pref : String)
 
+def writeNewLine : IO Unit := do
+  h.putStrLn ""
+
 def writeln (bits : List String) := do
   if ¬ bits.isEmpty then
     h.putStr pref
@@ -58,7 +61,7 @@ def Doc.writeToLean (doc : Doc) : IO Unit := do
   let wln := writeln h pref
   wln ["/--"]
   for line in doc do
-    wln [line]
+    if line.isEmpty then writeNewLine h else wln [line]
   wln ["-/"]
   h.flush
 
@@ -112,12 +115,17 @@ Authors: Abdalrhman Mohamed, Adrien Champion
   "]
   wln []
   wln ["module"]
+  wln []
   wln ["public section"]
   wln []
   wln ["namespace cvc5"]
   for e in es do
     wln []
     e.writeToLean h pref skipIfDefs
+  wln []
+  wln ["end cvc5"]
+  wln []
+  wln ["end"]
 
 def Enums.writeToFile (path : System.FilePath) (es : Enums) (skipIfDefs := true) : IO Unit := do
   let handle ← Handle.mk path .write
@@ -271,7 +279,7 @@ where
     if ← ptest <| pchar '*' then
       discard $ pchar? ' '
     let (line, closed) ← takeUntil' docLineEnd
-    let acc := acc.push line
+    let acc := acc.push line.trimAsciiEnd.toString
     if let some false := closed
     then parseLines acc
     else return acc
