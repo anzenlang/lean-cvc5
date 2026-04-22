@@ -743,10 +743,9 @@ test![TestApiBlackTermManager, mkString] tm => do
   assertEq "\"asdf\\u{5c}nasdf\"" (← tm.mkString "asdf\u005cnasdf" true).toString
   assertEq "\"asdf\\u{5c}u{005c}nasdf\"" (← tm.mkString "asdf\\u{005c}nasdf").toString
 
-  -- -- #TODO probably requires unicode encoding to work properly
-  -- let strings := ["", "ascii text", "utf8 → π ←"]
-  -- for s in strings do
-  --   assertEq (← (← tm.mkString s true).getStringValue) s
+  let strings := ["", "ascii text", "utf8 → π ←", "some α", "α"]
+  for s in strings do
+    assertEq (← (← tm.mkString s true).getStringValue) s
 
 test![TestApiBlackTermManager, mkTerm] tm => do
   let bv32Sort ← tm.mkBitVectorSort 32

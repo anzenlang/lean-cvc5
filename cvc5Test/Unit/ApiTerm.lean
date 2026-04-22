@@ -858,10 +858,10 @@ test![TestApiBlackTerm, getInteger] tm => do
   -- `int12` not used in the original test
   let _ := int12
 
--- test![TestApiBlackTerm, getString] tm => do
---   let s1 ← tm.mkString "abcde"
---   assertTrue s1.isStringValue
---   assertEq "abcde" (← s1.getStringValue)
+test![TestApiBlackTerm, getString] tm => do
+  let s1 ← tm.mkString "abcde"
+  assertTrue s1.isStringValue
+  assertEq "abcde" (← s1.getStringValue)
 
 test![TestApiBlackTerm, getReal] tm => do
   let real1 ← tm.mkRealOfString "0"
