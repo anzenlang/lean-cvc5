@@ -1198,7 +1198,7 @@ LEAN_EXPORT lean_obj_res termRaw_toString(lean_obj_arg t)
   return lean_mk_string(termRaw_unbox(t)->toString().c_str());
 }
 
-LEAN_EXPORT lean_bool term_isNull(lean_obj_arg t)
+LEAN_EXPORT lean_obj_res termRaw_staticDefault(lean_obj_arg unit)
 {
   throw "illegal call to purely static `cvc5.TermRaw.staticDefault`";
 }
