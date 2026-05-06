@@ -76,7 +76,7 @@ test![TestApiBlackProof, solver] do
   let proof := Proof.null ()
   assertEq proof.getRule ProofRule.UNKNOWN
   -- skipping test in original file for the hash being equal to the constructor index
-  assertTrue proof.getResult.isNull
+  assertTrue proof.getResult.isNone
   assertTrue proof.getChildren.isEmpty
   assertTrue proof.getArguments.isEmpty
 

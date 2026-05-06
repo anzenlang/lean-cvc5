@@ -31,7 +31,7 @@ test![TestApiBlackGrammar, toString] tm => do
 test![TestApiBlackGrammar, addRule] tm => do
   let solver ← sygusSolver tm
   let bool ← tm.getBooleanSort
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let start ← tm.mkVar bool "start"
   let nts ← tm.mkVar bool "nts"
   let mut grammar ← solver.mkGrammar #[] #[start]
@@ -39,10 +39,8 @@ test![TestApiBlackGrammar, addRule] tm => do
 
   grammar ← grammar.addRule start fls |> assertOk
 
-  grammar.addRule nullTerm fls |> assertError
-    "invalid null argument for 'ntSymbol'"
-  grammar.addRule start nullTerm |> assertError
-    "invalid null argument for 'rule'"
+  -- grammar.addRule nullTerm fls |> assertError "invalid null argument for 'ntSymbol'"
+  -- grammar.addRule start nullTerm |> assertError "invalid null argument for 'rule'"
   grammar.addRule nts fls |> assertError
     "invalid argument 'nts' for 'ntSymbol', \
     expected ntSymbol to be one of the non-terminal symbols given in the predeclaration"
@@ -57,7 +55,7 @@ test![TestApiBlackGrammar, addRule] tm => do
 test![TestApiBlackGrammar, addRules] tm => do
   let solver ← sygusSolver tm
   let bool ← tm.getBooleanSort
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let start ← tm.mkVar bool "start"
   let nts ← tm.mkVar bool "nts"
   let mut grammar ← solver.mkGrammar #[] #[start]
@@ -65,10 +63,8 @@ test![TestApiBlackGrammar, addRules] tm => do
 
   grammar ← grammar.addRules start #[fls] |> assertOk
 
-  grammar.addRules nullTerm #[fls] |> assertError
-    "invalid null argument for 'ntSymbol'"
-  grammar.addRules start #[nullTerm] |> assertError
-    "invalid null term in 'rules' at index 0"
+  -- grammar.addRules nullTerm #[fls] |> assertError "invalid null argument for 'ntSymbol'"
+  -- grammar.addRules start #[nullTerm] |> assertError "invalid null term in 'rules' at index 0"
   grammar.addRules nts #[fls] |> assertError
     "invalid argument 'nts' for 'ntSymbol', \
     expected ntSymbol to be one of the non-terminal symbols given in the predeclaration"
@@ -83,7 +79,7 @@ test![TestApiBlackGrammar, addRules] tm => do
 test![TestApiBlackGrammar, addAnyConstant] tm => do
   let solver ← sygusSolver tm
   let bool ← tm.getBooleanSort
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let start ← tm.mkVar bool "start"
   let nts ← tm.mkVar bool "nts"
   let mut grammar ← solver.mkGrammar #[] #[start]
@@ -91,8 +87,7 @@ test![TestApiBlackGrammar, addAnyConstant] tm => do
   grammar ← grammar.addAnyConstant start |> assertOk
   grammar ← grammar.addAnyConstant start |> assertOk
 
-  grammar.addAnyConstant nullTerm |> assertError
-    "invalid null argument for 'ntSymbol'"
+  -- grammar.addAnyConstant nullTerm |> assertError "invalid null argument for 'ntSymbol'"
   grammar.addAnyConstant nts |> assertError
     "invalid argument 'nts' for 'ntSymbol', \
     expected ntSymbol to be one of the non-terminal symbols given in the predeclaration"
@@ -105,7 +100,7 @@ test![TestApiBlackGrammar, addAnyConstant] tm => do
 test![TestApiBlackGrammar, addAnyVariable] tm => do
   let solver ← sygusSolver tm
   let bool ← tm.getBooleanSort
-  let nullTerm := Term.null ()
+  -- let nullTerm := Term.null ()
   let x ← tm.mkVar bool "x"
   let start ← tm.mkVar bool "start"
   let nts ← tm.mkVar bool "nts"
@@ -119,8 +114,7 @@ test![TestApiBlackGrammar, addAnyVariable] tm => do
   -- silence warning that `grammar2` is unused
   let _ := grammar2
 
-  grammar1.addAnyVariable nullTerm |> assertError
-    "invalid null argument for 'ntSymbol'"
+  -- grammar1.addAnyVariable nullTerm |> assertError "invalid null argument for 'ntSymbol'"
   grammar1.addAnyVariable nts |> assertError
     "invalid argument 'nts' for 'ntSymbol', \
     expected ntSymbol to be one of the non-terminal symbols given in the predeclaration"

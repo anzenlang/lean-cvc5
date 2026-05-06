@@ -135,22 +135,22 @@ test![TestApiBlackInputParser, nextCommandNoIncrementalInput] tm solver => do
   parser.setIncrementalStringInput (name := "input_parser_black")
   let cmd ← parser.nextCommand
   assertTrue cmd.isNull
-  let term ← parser.nextTerm
-  assertTrue term.isNull
+  let term? ← parser.nextTerm?
+  assertTrue term?.isNone
 
 test![TestApiBlackInputParser, nextTerm] tm solver => do
   let parser ← InputParser.new solver
-  assertError "Input to parser not initialized" parser.nextTerm
+  assertError "Input to parser not initialized" parser.nextTerm?
   parser.setStringInput "" (name := "input_parser_black")
-  let term ← parser.nextTerm
-  assertTrue term.isNull
+  let term? ← parser.nextTerm?
+  assertTrue term?.isNone
 
 test![TestApiBlackInputParser, nextTerm2] tm solver => do
   -- adding a set-logic compared to the original test to silence warnings
   solver.setLogic "ALL"
   let parser ← InputParser.new solver
   let symbols ← parser.getSymbolManager
-  assertError "Input to parser not initialized" parser.nextTerm
+  assertError "Input to parser not initialized" parser.nextTerm?
   parser.setIncrementalStringInput (name := "input_parser_black")
   -- parse a declaration command
   parser.appendIncrementalStringInput "(declare-fun a () Int)\n"
@@ -159,14 +159,15 @@ test![TestApiBlackInputParser, nextTerm2] tm solver => do
   cmd.invoke solver symbols |> assertOkDiscard
   -- now parse some terms
   parser.appendIncrementalStringInput "45\n"
-  let term ← assertOk parser.nextTerm
-  assertFalse term.isNull
+  let term? ← assertOk parser.nextTerm?
+  assertFalse term?.isNone
   parser.appendIncrementalStringInput "(+ a 1)\n"
-  let term ← assertOk parser.nextTerm
-  assertFalse term.isNull
-  assertEq (← term.getKind) Kind.ADD
-  parser.appendIncrementalStringInput "(+ b 1)\n"
-  assertError "Symbol 'b' not declared as a variable" parser.nextTerm
+  let term? ← assertOk parser.nextTerm?
+  assertFalse term?.isNone
+  if let some term := term? then
+    assertEq (← term.getKind) Kind.ADD
+    parser.appendIncrementalStringInput "(+ b 1)\n"
+    assertError "Symbol 'b' not declared as a variable" parser.nextTerm?
 
 test![TestApiBlackInputParser, setAndAppendIncrementalStringInput] tm => do
   let solver1 ← Solver.new tm
@@ -243,6 +244,6 @@ test![TestApiBlackInputParser, getDeclaredTermsAndSorts] tm solver => do
     cmd.invoke solver symbols |> assertOkDiscard
   let sorts ← symbols.getDeclaredSorts
   let terms ← symbols.getDeclaredTerms
-  assertEq 1 sorts.size
-  assertEq 1 terms.size
-  assertEq (← terms[0]!.getSort) sorts[0]!
+  assertSEq 1 sorts.size fun h_sorts =>
+  assertSEq 1 terms.size fun h_terms =>
+    do assertEq (← terms[0].getSort) sorts[0]

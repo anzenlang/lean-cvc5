@@ -190,13 +190,13 @@ test![TestApiBlackTermManager, mkDatatypeSorts] tm => do
   dt1Spec ← dt1Spec.addConstructor ctor1Spec
   dt1Spec ← tm.mkDatatypeConstructorDecl "nil" >>= dt1Spec.addConstructor
   let dtSorts ← tm.mkDatatypeSorts #[dt0Spec, dt1Spec]
-  assertEq 2 dtSorts.size
-  let isort1 ← dtSorts[1]!.instantiate #[bool]
+  assertSEq 2 dtSorts.size fun d_dtSorts => do
+  let isort1 ← dtSorts[1].instantiate #[bool]
   let t1 ← tm.mkConst isort1 "t"
   let t0 ← do
     let selector ← (← t1.getSort).getDatatype!.getSelector "s1" >>= DatatypeSelector.getTerm
     tm.mkTerm Kind.APPLY_SELECTOR #[selector, t1]
-  assertEq (← t0.getSort) (← dtSorts[0]!.instantiate #[bool])
+  assertEq (← t0.getSort) (← dtSorts[0].instantiate #[bool])
 
   let _scope ← do
     let tm' ← TermManager.new
@@ -461,8 +461,7 @@ test![TestApiBlackTermManager, mkConstArray] tm => do
 
   -- tm.mkConstArray (cvc5.Sort.null ()) zero |> assertError
   --   "invalid null argument for 'sort'"
-  tm.mkConstArray arrSort (Term.null ()) |> assertError
-    "invalid null argument for 'val'"
+  -- tm.mkConstArray arrSort (Term.null ()) |> assertError "invalid null argument for 'val'"
   tm.mkConstArray arrSort (← tm.mkBitVector 1 1) |> assertError
     "value does not match element sort"
 
@@ -511,7 +510,7 @@ test![TestApiBlackTermManager, mkFloatingPoint] tm => do
   let t1 ← tm.mkBitVector 8
   let t2 ← tm.mkBitVector 4
   tm.mkFloatingPoint 3 5 t1 |> assertOkDiscard
-  tm.mkFloatingPoint 0 5 (Term.null ()) |> assertError "invalid null argument for 'val'"
+  -- tm.mkFloatingPoint 0 5 (Term.null ()) |> assertError "invalid null argument for 'val'"
   tm.mkFloatingPoint 0 5 t1 |> assertError
     "invalid argument '0' for 'exp', expected exponent size > 1"
   tm.mkFloatingPoint 1 5 t1 |> assertError
@@ -527,12 +526,12 @@ test![TestApiBlackTermManager, mkFloatingPoint] tm => do
     (← tm.mkFloatingPointOfComponents
       (← tm.mkBitVector 1) (← tm.mkBitVector 5) (← tm.mkBitVector 10))
     (← tm.mkFloatingPoint 5 11 (← tm.mkBitVector 16))
-  tm.mkFloatingPointOfComponents (Term.null ()) (← tm.mkBitVector 5) (← tm.mkBitVector 10)
-  |> assertError "invalid null argument for 'sign'"
-  tm.mkFloatingPointOfComponents (← tm.mkBitVector 1) (Term.null ()) (← tm.mkBitVector 10)
-  |> assertError "invalid null argument for 'exp'"
-  tm.mkFloatingPointOfComponents (← tm.mkBitVector 1) (← tm.mkBitVector 5) (Term.null ())
-  |> assertError "invalid null argument for 'sig'"
+  -- tm.mkFloatingPointOfComponents (Term.null ()) (← tm.mkBitVector 5) (← tm.mkBitVector 10)
+  -- |> assertError "invalid null argument for 'sign'"
+  -- tm.mkFloatingPointOfComponents (← tm.mkBitVector 1) (Term.null ()) (← tm.mkBitVector 10)
+  -- |> assertError "invalid null argument for 'exp'"
+  -- tm.mkFloatingPointOfComponents (← tm.mkBitVector 1) (← tm.mkBitVector 5) (Term.null ())
+  -- |> assertError "invalid null argument for 'sig'"
   tm.mkFloatingPointOfComponents
     (← tm.mkConst (← tm.mkBitVectorSort 1)) (← tm.mkBitVector 5) (← tm.mkBitVector 10)
   |> assertError "invalid argument '||' for 'sign', expected bit-vector value"
@@ -753,10 +752,10 @@ test![TestApiBlackTermManager, mkTerm] tm => do
   let a ← tm.mkConst bv32Sort "a"
   let b ← tm.mkConst bv32Sort "b"
   let v1 := #[a, b]
-  let v2 := #[a, Term.null ()]
+  -- let v2 := #[a, Term.null ()]
   let v3 := #[a, ← tm.mkTrue]
   let _v4 := #[← tm.mkInteger 1, ← tm.mkInteger 2]
-  let _v5 := #[← tm.mkInteger 1, Term.null ()]
+  -- let _v5 := #[← tm.mkInteger 1, Term.null ()]
   let v6 := #[]
 
   tm.mkTerm Kind.PI |> assertOkDiscard
@@ -781,35 +780,34 @@ test![TestApiBlackTermManager, mkTerm] tm => do
 
   tm.mkTerm Kind.NOT #[← tm.mkTrue] |> assertOkDiscard
   tm.mkTerm Kind.BAG_MAKE #[← tm.mkTrue, ← tm.mkInteger 1] |> assertOkDiscard
-  tm.mkTerm Kind.NOT #[Term.null ()] |> assertError
-    "invalid null term in 'children' at index 0"
+  -- tm.mkTerm Kind.NOT #[Term.null ()] |> assertError "invalid null term in 'children' at index 0"
   tm.mkTerm Kind.NOT #[a] |> assertError "expecting a Boolean subexpression"
   tm.mkTerm Kind.NOT #[← tm.mkTrue] |> assertOkDiscard
 
   tm.mkTerm Kind.EQUAL #[a, b] |> assertOkDiscard
-  tm.mkTerm Kind.EQUAL #[Term.null (), b] |> assertError
-    "invalid null term in 'children' at index 0"
-  tm.mkTerm Kind.EQUAL #[a, Term.null ()] |> assertError
-    "invalid null term in 'children' at index 1"
+  -- tm.mkTerm Kind.EQUAL #[Term.null (), b] |> assertError
+  --   "invalid null term in 'children' at index 0"
+  -- tm.mkTerm Kind.EQUAL #[a, Term.null ()] |> assertError
+  --   "invalid null term in 'children' at index 1"
   tm.mkTerm Kind.EQUAL #[a, ← tm.mkTrue] |> assertError
     "Subexpressions must have the same type:\n\
     Equation: (= a true)\nType 1: (_ BitVec 32)\nType 2: Bool"
   tm.mkTerm Kind.EQUAL #[a, b] |> assertOkDiscard
 
   tm.mkTerm Kind.ITE #[← tm.mkTrue, ← tm.mkTrue, ← tm.mkTrue] |> assertOkDiscard
-  tm.mkTerm Kind.ITE #[Term.null (), ← tm.mkTrue, ← tm.mkTrue] |> assertError
-    "invalid null term in 'children' at index 0"
-  tm.mkTerm Kind.ITE #[← tm.mkTrue, Term.null (), ← tm.mkTrue] |> assertError
-    "invalid null term in 'children' at index 1"
-  tm.mkTerm Kind.ITE #[← tm.mkTrue, ← tm.mkTrue, Term.null ()] |> assertError
-    "invalid null term in 'children' at index 2"
+  -- tm.mkTerm Kind.ITE #[Term.null (), ← tm.mkTrue, ← tm.mkTrue] |> assertError
+  --   "invalid null term in 'children' at index 0"
+  -- tm.mkTerm Kind.ITE #[← tm.mkTrue, Term.null (), ← tm.mkTrue] |> assertError
+  --   "invalid null term in 'children' at index 1"
+  -- tm.mkTerm Kind.ITE #[← tm.mkTrue, ← tm.mkTrue, Term.null ()] |> assertError
+  --   "invalid null term in 'children' at index 2"
   tm.mkTerm Kind.ITE #[← tm.mkTrue, ← tm.mkTrue, b] |> assertError
     "Branches of the ITE must have comparable type.\n\
     then branch: true\nits type   : Bool\nelse branch: b\nits type   : (_ BitVec 32)"
   tm.mkTerm Kind.ITE #[← tm.mkTrue, ← tm.mkTrue, ← tm.mkTrue] |> assertOkDiscard
 
   tm.mkTerm Kind.EQUAL v1 |> assertOkDiscard
-  tm.mkTerm Kind.EQUAL v2 |> assertError "invalid null term in 'children' at index 1"
+  -- tm.mkTerm Kind.EQUAL v2 |> assertError "invalid null term in 'children' at index 1"
   tm.mkTerm Kind.EQUAL v3 |> assertError
     "Subexpressions must have the same type:\n\
     Equation: (= a true)\nType 1: (_ BitVec 32)\nType 2: Bool"
@@ -861,7 +859,7 @@ test![TestApiBlackTermManager, mkTermOfOp] tm => do
   let a ← tm.mkConst bv32Sort "a"
   let b ← tm.mkConst bv32Sort "b"
   let v1 := #[← tm.mkInteger 1, ← tm.mkInteger 2]
-  let v2 := #[← tm.mkInteger 1, Term.null ()]
+  -- let v2 := #[← tm.mkInteger 1, Term.null ()]
   let v3 := #[]
   let v4 := #[← tm.mkInteger 5]
 
@@ -922,8 +920,8 @@ test![TestApiBlackTermManager, mkTermOfOp] tm => do
     tm.mkTerm Kind.APPLY_SELECTOR #[tailTerm, c] |> assertOkDiscard
     tm.mkTermOfOp opTerm2 #[a] |> assertError
       "Expecting a integer term as the first argument in 'divisible'"
-    tm.mkTermOfOp opTerm1 #[Term.null ()] |> assertError
-      "invalid null term in 'children' at index 0"
+    -- tm.mkTermOfOp opTerm1 #[Term.null ()] |> assertError
+    --   "invalid null term in 'children' at index 0"
     tm.mkTerm Kind.APPLY_CONSTRUCTOR #[consTerm, ← tm.mkInteger 0] |> assertError
       "number of arguments does not match the constructor type"
     tm.mkTermOfOp opTerm1 #[a] |> assertOkDiscard
@@ -940,10 +938,10 @@ test![TestApiBlackTermManager, mkTermOfOp] tm => do
       "invalid kind 'BITVECTOR_EXTRACT', \
       expected Terms with kind BITVECTOR_EXTRACT must have at least 1 children \
       and at most 1 children (the one under construction has 2)"
-    tm.mkTermOfOp opTerm2 #[← tm.mkInteger 1, Term.null ()] |> assertError
-      "invalid null term in 'children' at index 1"
-    tm.mkTermOfOp opTerm2 #[Term.null (), ← tm.mkInteger 1] |> assertError
-      "invalid null term in 'children' at index 0"
+    -- tm.mkTermOfOp opTerm2 #[← tm.mkInteger 1, Term.null ()] |> assertError
+    --   "invalid null term in 'children' at index 1"
+    -- tm.mkTermOfOp opTerm2 #[Term.null (), ← tm.mkInteger 1] |> assertError
+    --   "invalid null term in 'children' at index 0"
     tm.mkTerm Kind.APPLY_CONSTRUCTOR
       #[consTerm, ← tm.mkInteger 0, ← tm.mkTerm Kind.APPLY_CONSTRUCTOR #[nilTerm]]
     |> assertOkDiscard
@@ -952,15 +950,15 @@ test![TestApiBlackTermManager, mkTermOfOp] tm => do
     "invalid kind 'BITVECTOR_EXTRACT', \
     expected Terms with kind BITVECTOR_EXTRACT must have at least 1 children \
     and at most 1 children (the one under construction has 3)"
-  tm.mkTermOfOp opTerm2 #[← tm.mkInteger 1, ← tm.mkInteger 1, Term.null ()] |> assertError
-    "invalid null term in 'children' at index 2"
+  -- tm.mkTermOfOp opTerm2 #[← tm.mkInteger 1, ← tm.mkInteger 1, Term.null ()] |> assertError
+  --   "invalid null term in 'children' at index 2"
 
   tm.mkTermOfOp opTerm2 v4 |> assertOkDiscard
   tm.mkTermOfOp opTerm2 v1 |> assertError
     "invalid kind 'DIVISIBLE', \
     expected Terms with kind DIVISIBLE must have at least 1 children \
     and at most 1 children (the one under construction has 2)"
-  tm.mkTermOfOp opTerm2 v2 |> assertError "invalid null term in 'children' at index 1"
+  -- tm.mkTermOfOp opTerm2 v2 |> assertError "invalid null term in 'children' at index 1"
   tm.mkTermOfOp opTerm2 v3 |> assertError
     "invalid kind 'DIVISIBLE', \
     expected Terms with kind DIVISIBLE must have at least 1 children \
