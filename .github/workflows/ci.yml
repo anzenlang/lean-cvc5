@@ -33,7 +33,7 @@ jobs:
           shell: msys2 {0}
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     - name: Install Dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
