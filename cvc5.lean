@@ -1688,6 +1688,10 @@ extern_def!? getIntegerValue : Term → Except Error Int
 /-- Get the native integral value of an integral value. -/
 extern_def isStringValue : Term → Bool
 
+/-- Get the native integral value of an integral value. -/
+extern_def!? getStringValue : Term → Except Error String
+
+
 /-- Determine if this term is a rational value whose numerator fits into an `Int32` value and its
 denominator fits into a `UInt32` value.
 -/
